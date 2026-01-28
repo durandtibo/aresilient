@@ -55,11 +55,15 @@
 
 ## Overview
 
-`aresnet` is a Python library that provides resilient HTTP request functionality with automatic retry logic and exponential backoff. Built on top of the modern [httpx](https://www.python-httpx.org/) library, it simplifies handling transient failures in HTTP communications, making your applications more robust and fault-tolerant.
+`aresnet` is a Python library that provides resilient HTTP request functionality with automatic
+retry logic and exponential backoff. Built on top of the
+modern [httpx](https://www.python-httpx.org/) library, it simplifies handling transient failures in
+HTTP communications, making your applications more robust and fault-tolerant.
 
 ## Key Features
 
-- **Automatic Retry Logic**: Automatically retries failed requests for configurable HTTP status codes (429, 500, 502, 503, 504 by default)
+- **Automatic Retry Logic**: Automatically retries failed requests for configurable HTTP status
+  codes (429, 500, 502, 503, 504 by default)
 - **Exponential Backoff**: Implements exponential backoff strategy to avoid overwhelming servers
 - **Built on httpx**: Leverages the modern, async-capable httpx library
 - **Configurable**: Customize timeout, retry attempts, backoff factors, and retryable status codes
@@ -69,8 +73,14 @@
 ## Installation
 
 ```bash
-pip install aresnet
+uv pip install aresnet
 ```
+
+The following is the corresponding `aresnet` versions and supported dependencies.
+
+| `aresnet` | `httpx`       | `python` |
+|-----------|---------------|----------|
+| `main`    | `>=0.28,<1.0` | `>=3.10` |
 
 ## Quick Start
 
@@ -145,16 +155,19 @@ except HttpRequestError as e:
 - **Timeout**: 10.0 seconds
 - **Max Retries**: 3 (4 total attempts including the initial request)
 - **Backoff Factor**: 0.3
-- **Retryable Status Codes**: 429 (Too Many Requests), 500 (Internal Server Error), 502 (Bad Gateway), 503 (Service Unavailable), 504 (Gateway Timeout)
+- **Retryable Status Codes**: 429 (Too Many Requests), 500 (Internal Server Error), 502 (Bad
+  Gateway), 503 (Service Unavailable), 504 (Gateway Timeout)
 
 ### Exponential Backoff Formula
 
 The wait time between retries is calculated as:
+
 ```
 wait_time = backoff_factor * (2 ** retry_number)
 ```
 
 For example, with `backoff_factor=0.3`:
+
 - 1st retry: 0.3 seconds
 - 2nd retry: 0.6 seconds
 - 3rd retry: 1.2 seconds
@@ -166,6 +179,7 @@ For example, with `backoff_factor=0.3`:
 Performs an HTTP GET request with automatic retry logic.
 
 **Parameters:**
+
 - `url` (str): The URL to send the request to
 - `client` (httpx.Client | None): Optional httpx client to use
 - `timeout` (float | httpx.Timeout): Request timeout in seconds
@@ -177,6 +191,7 @@ Performs an HTTP GET request with automatic retry logic.
 **Returns:** `httpx.Response`
 
 **Raises:**
+
 - `HttpRequestError`: If the request fails after all retries
 - `ValueError`: If parameters are invalid
 
@@ -185,6 +200,7 @@ Performs an HTTP GET request with automatic retry logic.
 Performs an HTTP POST request with automatic retry logic.
 
 **Parameters:**
+
 - `url` (str): The URL to send the request to
 - `client` (httpx.Client | None): Optional httpx client to use
 - `timeout` (float | httpx.Timeout): Request timeout in seconds
@@ -196,6 +212,7 @@ Performs an HTTP POST request with automatic retry logic.
 **Returns:** `httpx.Response`
 
 **Raises:**
+
 - `HttpRequestError`: If the request fails after all retries
 - `ValueError`: If parameters are invalid
 
@@ -204,6 +221,7 @@ Performs an HTTP POST request with automatic retry logic.
 Exception raised when an HTTP request fails.
 
 **Attributes:**
+
 - `method` (str): HTTP method used
 - `url` (str): URL that was requested
 - `status_code` (int | None): HTTP status code (if available)
@@ -211,8 +229,17 @@ Exception raised when an HTTP request fails.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Please check the instructions in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## API stability
+
+:warning: While `aresnet` is in development stage, no API is guaranteed to be stable from one
+release to the next.
+In fact, it is very likely that the API will change multiple times before a stable 1.0.0 release.
+In practice, this means that upgrading `aresnet` to a new version will possibly break any code
+that was using the old version of `aresnet`.
 
 ## License
 
-`aresnet` is licensed under the BSD-3-Clause License. See the [LICENSE](LICENSE) file for details.
+`aresnet` is licensed under BSD 3-Clause "New" or "Revised" license available
+in [LICENSE](LICENSE) file.
