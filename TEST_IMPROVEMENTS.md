@@ -58,18 +58,16 @@ Added tests for edge cases in `HttpRequestError`:
 #### Integration Test Enhancements (9 new tests)
 Added real-world integration tests using httpbin.org:
 
-**In `tests/integration/test_get.py` (5 new tests):**
+**In `tests/integration/test_get.py` (4 new tests):**
 - `test_get_with_automatic_retry_redirect_chain` - Tests following redirect chains
 - `test_get_with_automatic_retry_large_response` - Tests handling large response bodies
 - `test_get_with_automatic_retry_with_headers` - Tests custom headers
 - `test_get_with_automatic_retry_with_query_params` - Tests query parameters
-- Plus the existing 3 tests
 
-**In `tests/integration/test_post.py` (4 new tests):**
+**In `tests/integration/test_post.py` (3 new tests):**
 - `test_post_with_automatic_retry_large_request_body` - Tests large JSON payloads
 - `test_post_with_automatic_retry_form_data` - Tests form data submissions
 - `test_post_with_automatic_retry_with_headers` - Tests custom headers
-- Plus the existing 3 tests
 
 ## Test Statistics
 
@@ -80,8 +78,8 @@ Added real-world integration tests using httpbin.org:
 
 ### After
 - Unit tests: 198 (+18)
-- Integration tests: 15 (+9)
-- **Total**: 213 tests (+27)
+- Integration tests: 13 (+7)
+- **Total**: 211 tests (+25)
 
 ### Code Coverage
 - **100% coverage** on all source files:
