@@ -1,5 +1,5 @@
 r"""Contain the default configurations for HTTP requests using the httpx
-library.."""
+library."""
 
 from __future__ import annotations
 
