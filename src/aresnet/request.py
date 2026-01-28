@@ -9,6 +9,12 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any
 
+from aresnet.config import (
+    DEFAULT_BACKOFF_FACTOR,
+    DEFAULT_MAX_RETRIES,
+    RETRY_STATUS_CODES,
+)
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -24,9 +30,9 @@ def request_with_automatic_retry(
     method: str,
     request_func: Callable[..., httpx.Response],
     *,
-    max_retries: int,
-    backoff_factor: float,
-    status_forcelist: tuple[int, ...],
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
+    status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
     **kwargs: Any,
 ) -> httpx.Response:
     """Perform an HTTP request with automatic retry logic.

@@ -91,8 +91,7 @@ from aresnet import post_with_automatic_retry
 
 # POST request with JSON payload
 response = post_with_automatic_retry(
-    "https://api.example.com/submit",
-    json={"key": "value"}
+    "https://api.example.com/submit", json={"key": "value"}
 )
 print(response.status_code)
 ```
@@ -105,10 +104,10 @@ from aresnet import get_with_automatic_retry
 # Custom retry configuration
 response = get_with_automatic_retry(
     "https://api.example.com/data",
-    max_retries=5,              # Retry up to 5 times
-    backoff_factor=1.0,         # Exponential backoff factor
-    timeout=30.0,               # 30 second timeout
-    status_forcelist=(429, 503) # Only retry on these status codes
+    max_retries=5,  # Retry up to 5 times
+    backoff_factor=1.0,  # Exponential backoff factor
+    timeout=30.0,  # 30 second timeout
+    status_forcelist=(429, 503),  # Only retry on these status codes
 )
 ```
 
@@ -121,8 +120,7 @@ from aresnet import get_with_automatic_retry
 # Use your own httpx.Client for advanced configuration
 with httpx.Client(headers={"Authorization": "Bearer token"}) as client:
     response = get_with_automatic_retry(
-        "https://api.example.com/protected",
-        client=client
+        "https://api.example.com/protected", client=client
     )
 ```
 
