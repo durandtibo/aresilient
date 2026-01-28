@@ -351,7 +351,9 @@ def test_get_with_automatic_retry_with_params(
             "https://api.example.com/data", params={"page": 1, "limit": 10}
         )
 
-    mock_get.assert_called_once_with(url="https://api.example.com/data", params={"page": 1, "limit": 10})
+    mock_get.assert_called_once_with(
+        url="https://api.example.com/data", params={"page": 1, "limit": 10}
+    )
     assert response.status_code == 200
     mock_sleep.assert_not_called()
 

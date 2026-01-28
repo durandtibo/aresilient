@@ -2,7 +2,7 @@ r"""Unit tests for request_with_automatic_retry function."""
 
 from __future__ import annotations
 
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call
 
 import httpx
 import pytest
@@ -113,7 +113,8 @@ def test_request_with_automatic_retry_multiple_retries_before_success(
 
 
 def test_request_with_automatic_retry_max_retries_exceeded(mock_sleep: Mock) -> None:
-    """Test that HttpRequestError is raised when max retries exceeded."""
+    """Test that HttpRequestError is raised when max retries
+    exceeded."""
     mock_fail_response = Mock(spec=httpx.Response, status_code=502)
     mock_request_func = Mock(return_value=mock_fail_response)
 
@@ -324,7 +325,8 @@ def test_request_with_automatic_retry_empty_status_forcelist(
 
 
 def test_request_with_automatic_retry_preserves_response_object(mock_sleep: Mock) -> None:
-    """Test that the response object is preserved in HttpRequestError."""
+    """Test that the response object is preserved in
+    HttpRequestError."""
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_fail_response.json.return_value = {"error": "Service unavailable"}
     mock_request_func = Mock(return_value=mock_fail_response)
