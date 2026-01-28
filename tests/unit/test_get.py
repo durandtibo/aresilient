@@ -292,11 +292,11 @@ def test_get_with_automatic_retry_recovery_after_multiple_failures(
     mock_response: httpx.Response, mock_sleep: Mock
 ) -> None:
     """Test successful recovery after multiple transient failures."""
-    mock_502 = Mock(spec=httpx.Response, status_code=502)
+    mock_429 = Mock(spec=httpx.Response, status_code=429)
     mock_503 = Mock(spec=httpx.Response, status_code=503)
-    mock_504 = Mock(spec=httpx.Response, status_code=504)
+    mock_500 = Mock(spec=httpx.Response, status_code=500)
 
-    with patch("httpx.Client.get", side_effect=[mock_502, mock_503, mock_504, mock_response]):
+    with patch("httpx.Client.get", side_effect=[mock_429, mock_503, mock_500, mock_response]):
         response = get_with_automatic_retry(TEST_URL, max_retries=5)
 
     assert response.status_code == 200
@@ -337,12 +337,12 @@ def test_get_with_automatic_retry_with_headers(
     with patch("httpx.Client.get", return_value=mock_response) as mock_get:
         response = get_with_automatic_retry(
             TEST_URL,
-            headers={"Authorization": "Bearer token123", "Accept": "application/json"},
+            headers={"Authorization": "Bearer token123", "Content-Type": "application/json"},
         )
 
     mock_get.assert_called_once_with(
         url=TEST_URL,
-        headers={"Authorization": "Bearer token123", "Accept": "application/json"},
+        headers={"Authorization": "Bearer token123", "Content-Type": "application/json"},
     )
     assert response.status_code == 200
     mock_sleep.assert_not_called()
@@ -360,33 +360,22 @@ def test_get_with_automatic_retry_with_params(
     mock_sleep.assert_not_called()
 
 
-def test_get_with_automatic_retry_error_message_includes_url() -> None:
+def test_get_with_automatic_retry_error_message_includes_url(mock_sleep: Mock) -> None:
     """Test that error message includes the URL."""
     mock_response = Mock(spec=httpx.Response, status_code=503)
 
     with (
         patch("httpx.Client.get", return_value=mock_response),
-        pytest.raises(HttpRequestError) as exc_info,
-    ):
-        get_with_automatic_retry("https://api.example.com/special-endpoint", max_retries=0)
-
-    assert "https://api.example.com/special-endpoint" in str(exc_info.value)
-
-
-def test_get_with_automatic_retry_error_includes_method() -> None:
-    """Test that error message includes the HTTP method."""
-    mock_response = Mock(spec=httpx.Response, status_code=500)
-
-    with (
-        patch("httpx.Client.get", return_value=mock_response),
-        pytest.raises(HttpRequestError) as exc_info,
+        pytest.raises(
+            HttpRequestError,
+            match=r"GET request to https://api.example.com/data failed with status 503 after 1 attempts",
+        ),
     ):
         get_with_automatic_retry(TEST_URL, max_retries=0)
+    mock_sleep.assert_not_called()
 
-    assert exc_info.value.method == "GET"
 
-
-def test_get_with_automatic_retry_client_close_on_exception() -> None:
+def test_get_with_automatic_retry_client_close_on_exception(mock_sleep: Mock) -> None:
     """Test that client is closed even when exception occurs."""
     mock_client = Mock(spec=httpx.Client)
     mock_client.get.side_effect = httpx.TimeoutException("Timeout")
@@ -401,20 +390,21 @@ def test_get_with_automatic_retry_client_close_on_exception() -> None:
         get_with_automatic_retry(TEST_URL, max_retries=0)
 
     mock_client.close.assert_called_once()
+    mock_sleep.assert_not_called()
 
 
 def test_get_with_automatic_retry_mixed_error_and_status_failures(
     mock_response: httpx.Response, mock_sleep: Mock
 ) -> None:
     """Test recovery from mix of errors and retryable status codes."""
-    mock_503 = Mock(spec=httpx.Response, status_code=503)
+    mock_502 = Mock(spec=httpx.Response, status_code=502)
 
     with patch(
         "httpx.Client.get",
         side_effect=[
+            httpx.RequestError("Network error"),
+            mock_502,
             httpx.TimeoutException("Timeout"),
-            mock_503,
-            httpx.RequestError("Connection failed"),
             mock_response,
         ],
     ):
