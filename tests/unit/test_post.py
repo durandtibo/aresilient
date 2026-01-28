@@ -1,23 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import Mock, call, patch
 
+import httpx
 import pytest
 
-from aresnet import HttpRequestError, post_with_automatic_retry
-
-if TYPE_CHECKING:
-    from collections.abc import Generator
-
-import httpx
-
-
-@pytest.fixture
-def mock_sleep() -> Generator[Mock, None, None]:
-    """Patch time.sleep to make tests run faster."""
-    with patch("time.sleep", return_value=None) as mock:
-        yield mock
+from aresnet import RETRY_STATUS_CODES, HttpRequestError, post_with_automatic_retry
 
 
 @pytest.fixture
@@ -221,6 +209,20 @@ def test_post_with_automatic_retry_custom_status_forcelist(
         response = post_with_automatic_retry(
             "https://api.example.com/data", status_forcelist=(404,)
         )
+
+    assert response.status_code == 200
+    mock_sleep.assert_called_once_with(0.3)
+
+
+@pytest.mark.parametrize("status_code", RETRY_STATUS_CODES)
+def test_post_with_automatic_retry_default_retry_status_codes(
+    mock_response: httpx.Response, mock_sleep: Mock, status_code: int
+) -> None:
+    """Test custom status codes for retry."""
+    mock_response_fail = Mock(spec=httpx.Response, status_code=status_code)
+
+    with patch("httpx.Client.post", side_effect=[mock_response_fail, mock_response]):
+        response = post_with_automatic_retry("https://api.example.com/data")
 
     assert response.status_code == 200
     mock_sleep.assert_called_once_with(0.3)

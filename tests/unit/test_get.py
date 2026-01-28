@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import Mock, call, patch
 
+import httpx
 import pytest
 
-from aresnet import HttpRequestError, get_with_automatic_retry
-
-if TYPE_CHECKING:
-    from collections.abc import Generator
-
-import httpx
+from aresnet import RETRY_STATUS_CODES, HttpRequestError, get_with_automatic_retry
 
 
 @pytest.fixture
-def mock_sleep() -> Generator[Mock, None, None]:
-    """Patch time.sleep to make tests run faster."""
-    with patch("time.sleep", return_value=None) as mock:
-        yield mock
+def mock_response() -> httpx.Response:
+    return Mock(spec=httpx.Response, status_code=200)
+
+
+@pytest.fixture
+def mock_client(mock_response: httpx.Response) -> httpx.Client:
+    return Mock(spec=httpx.Client, get=Mock(return_value=mock_response))
 
 
 ##############################################
@@ -25,10 +23,10 @@ def mock_sleep() -> Generator[Mock, None, None]:
 ##############################################
 
 
-def test_get_with_automatic_retry_successful_get_request(mock_sleep: Mock) -> None:
+def test_get_with_automatic_retry_successful_get_request(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
     """Test successful GET request on first attempt."""
-    mock_response = Mock(spec=httpx.Response, status_code=200)
-
     with patch("httpx.Client.get", return_value=mock_response):
         response = get_with_automatic_retry("https://api.example.com/data")
 
@@ -36,22 +34,21 @@ def test_get_with_automatic_retry_successful_get_request(mock_sleep: Mock) -> No
     assert response.status_code == 200
 
 
-def test_get_with_automatic_retry_successful_get_with_custom_client(mock_sleep: Mock) -> None:
+def test_get_with_automatic_retry_successful_get_with_custom_client(
+    mock_client: httpx.Client, mock_sleep: Mock
+) -> None:
     """Test successful GET request with custom client."""
-    mock_response = Mock(spec=httpx.Response, status_code=201)
-    mock_client = Mock(spec=httpx.Client, get=Mock(return_value=mock_response))
-
     response = get_with_automatic_retry("https://api.example.com/data", client=mock_client)
 
     mock_client.get.assert_called_once_with(url="https://api.example.com/data")
     mock_sleep.assert_not_called()
-    assert response.status_code == 201
+    assert response.status_code == 200
 
 
-def test_get_with_automatic_retry_get_with_json_payload(mock_sleep: Mock) -> None:
+def test_get_with_automatic_retry_get_with_json_payload(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
     """Test GET request with JSON data."""
-    mock_response = Mock(spec=httpx.Response, status_code=200)
-
     with patch("httpx.Client.get", return_value=mock_response) as mock_get:
         response = get_with_automatic_retry("https://api.example.com/data", json={"key": "value"})
 
@@ -60,24 +57,26 @@ def test_get_with_automatic_retry_get_with_json_payload(mock_sleep: Mock) -> Non
     assert response.status_code == 200
 
 
-def test_get_with_automatic_retry_retry_on_500_status(mock_sleep: Mock) -> None:
+def test_get_with_automatic_retry_retry_on_500_status(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
     """Test retry logic for 500 status code."""
     mock_response_fail = Mock(spec=httpx.Response, status_code=500)
-    mock_response_success = Mock(spec=httpx.Response, status_code=200)
 
-    with patch("httpx.Client.get", side_effect=[mock_response_fail, mock_response_success]):
+    with patch("httpx.Client.get", side_effect=[mock_response_fail, mock_response]):
         response = get_with_automatic_retry("https://api.example.com/data")
 
     assert response.status_code == 200
     mock_sleep.assert_called_once_with(0.3)
 
 
-def test_get_with_automatic_retry_retry_on_503_status(mock_sleep: Mock) -> None:
+def test_get_with_automatic_retry_retry_on_503_status(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
     """Test retry logic for 503 status code."""
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
-    mock_response_success = Mock(spec=httpx.Response, status_code=200)
 
-    with patch("httpx.Client.get", side_effect=[mock_response_fail, mock_response_success]):
+    with patch("httpx.Client.get", side_effect=[mock_response_fail, mock_response]):
         response = get_with_automatic_retry("https://api.example.com/data")
 
     assert response.status_code == 200
@@ -115,14 +114,14 @@ def test_get_with_automatic_retry_non_retryable_status_code(mock_sleep: Mock) ->
     mock_sleep.assert_not_called()
 
 
-def test_get_with_automatic_retry_exponential_backoff(mock_sleep: Mock) -> None:
+def test_get_with_automatic_retry_exponential_backoff(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
     """Test exponential backoff timing."""
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
-    mock_response_success = Mock(spec=httpx.Response, status_code=200)
 
     with patch(
-        "httpx.Client.get",
-        side_effect=[mock_response_fail, mock_response_fail, mock_response_success],
+        "httpx.Client.get", side_effect=[mock_response_fail, mock_response_fail, mock_response]
     ):
         get_with_automatic_retry("https://api.example.com/data", max_retries=3, backoff_factor=2.0)
 
@@ -200,44 +199,52 @@ def test_get_with_automatic_retry_zero_max_retries(mock_sleep: Mock) -> None:
     mock_sleep.assert_not_called()
 
 
-def test_get_with_automatic_retry_custom_status_forcelist(mock_sleep: Mock) -> None:
+def test_get_with_automatic_retry_custom_status_forcelist(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
     """Test custom status codes for retry."""
-    mock_response = Mock(spec=httpx.Response, status_code=404)
-    mock_response_success = Mock(spec=httpx.Response, status_code=200)
+    mock_response_fail = Mock(spec=httpx.Response, status_code=404)
 
-    with patch("httpx.Client.get", side_effect=[mock_response, mock_response_success]):
+    with patch("httpx.Client.get", side_effect=[mock_response_fail, mock_response]):
         response = get_with_automatic_retry("https://api.example.com/data", status_forcelist=(404,))
 
     assert response.status_code == 200
     mock_sleep.assert_called_once_with(0.3)
 
 
-def test_get_with_automatic_retry_client_close_when_owns_client() -> None:
-    """Test that client is closed when created internally."""
-    mock_response = Mock(spec=httpx.Response, status_code=200)
-    mock_client = Mock(spec=httpx.Client, get=Mock(return_value=mock_response))
+@pytest.mark.parametrize("status_code", RETRY_STATUS_CODES)
+def test_get_with_automatic_retry_default_retry_status_codes(
+    mock_response: httpx.Response, mock_sleep: Mock, status_code: int
+) -> None:
+    """Test custom status codes for retry."""
+    mock_response_fail = Mock(spec=httpx.Response, status_code=status_code)
 
+    with patch("httpx.Client.get", side_effect=[mock_response_fail, mock_response]):
+        response = get_with_automatic_retry("https://api.example.com/data")
+
+    assert response.status_code == 200
+    mock_sleep.assert_called_once_with(0.3)
+
+
+def test_get_with_automatic_retry_client_close_when_owns_client(mock_client: httpx.Client) -> None:
+    """Test that client is closed when created internally."""
     with patch("httpx.Client", return_value=mock_client):
         get_with_automatic_retry("https://api.example.com/data")
-
     mock_client.close.assert_called_once()
 
 
-def test_get_with_automatic_retry_client_not_closed_when_provided() -> None:
+def test_get_with_automatic_retry_client_not_closed_when_provided(
+    mock_client: httpx.Client,
+) -> None:
     """Test that external client is not closed."""
-    mock_response = Mock(spec=httpx.Response, status_code=200)
-    mock_client = Mock(spec=httpx.Client, get=Mock(return_value=mock_response))
-
     get_with_automatic_retry("https://api.example.com/data", client=mock_client)
-
     mock_client.close.assert_not_called()
 
 
-def test_get_with_automatic_retry_custom_timeout(mock_sleep: Mock) -> None:
+def test_get_with_automatic_retry_custom_timeout(
+    mock_client: httpx.Client, mock_sleep: Mock
+) -> None:
     """Test custom timeout parameter."""
-    mock_response = Mock(spec=httpx.Response, status_code=200)
-    mock_client = Mock(spec=httpx.Client, get=Mock(return_value=mock_response))
-
     with patch("httpx.Client") as mock_client_class:
         mock_client_class.return_value = mock_client
         get_with_automatic_retry("https://api.example.com/data", timeout=30.0)
