@@ -53,4 +53,168 @@
     <br/>
 </p>
 
-Python library focused on common HTTP request functionality
+## Overview
+
+`aresnet` is a Python library that provides resilient HTTP request functionality with automatic retry logic and exponential backoff. Built on top of the modern [httpx](https://www.python-httpx.org/) library, it simplifies handling transient failures in HTTP communications, making your applications more robust and fault-tolerant.
+
+## Key Features
+
+- **Automatic Retry Logic**: Automatically retries failed requests for configurable HTTP status codes (429, 500, 502, 503, 504 by default)
+- **Exponential Backoff**: Implements exponential backoff strategy to avoid overwhelming servers
+- **Built on httpx**: Leverages the modern, async-capable httpx library
+- **Configurable**: Customize timeout, retry attempts, backoff factors, and retryable status codes
+- **Type-Safe**: Fully typed with comprehensive type hints
+- **Well-Tested**: Extensive test coverage ensuring reliability
+
+## Installation
+
+```bash
+pip install aresnet
+```
+
+## Quick Start
+
+### Basic GET Request
+
+```python
+from aresnet import get_with_automatic_retry
+
+# Simple GET request with automatic retry
+response = get_with_automatic_retry("https://api.example.com/data")
+print(response.json())
+```
+
+### Basic POST Request
+
+```python
+from aresnet import post_with_automatic_retry
+
+# POST request with JSON payload
+response = post_with_automatic_retry(
+    "https://api.example.com/submit",
+    json={"key": "value"}
+)
+print(response.status_code)
+```
+
+### Customizing Retry Behavior
+
+```python
+from aresnet import get_with_automatic_retry
+
+# Custom retry configuration
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    max_retries=5,              # Retry up to 5 times
+    backoff_factor=1.0,         # Exponential backoff factor
+    timeout=30.0,               # 30 second timeout
+    status_forcelist=(429, 503) # Only retry on these status codes
+)
+```
+
+### Using a Custom httpx Client
+
+```python
+import httpx
+from aresnet import get_with_automatic_retry
+
+# Use your own httpx.Client for advanced configuration
+with httpx.Client(headers={"Authorization": "Bearer token"}) as client:
+    response = get_with_automatic_retry(
+        "https://api.example.com/protected",
+        client=client
+    )
+```
+
+### Error Handling
+
+```python
+from aresnet import get_with_automatic_retry, HttpRequestError
+
+try:
+    response = get_with_automatic_retry("https://api.example.com/data")
+except HttpRequestError as e:
+    print(f"Request failed: {e}")
+    print(f"Method: {e.method}")
+    print(f"URL: {e.url}")
+    print(f"Status Code: {e.status_code}")
+```
+
+## Configuration
+
+### Default Settings
+
+- **Timeout**: 10.0 seconds
+- **Max Retries**: 3 (4 total attempts including the initial request)
+- **Backoff Factor**: 0.3
+- **Retryable Status Codes**: 429 (Too Many Requests), 500 (Internal Server Error), 502 (Bad Gateway), 503 (Service Unavailable), 504 (Gateway Timeout)
+
+### Exponential Backoff Formula
+
+The wait time between retries is calculated as:
+```
+wait_time = backoff_factor * (2 ** retry_number)
+```
+
+For example, with `backoff_factor=0.3`:
+- 1st retry: 0.3 seconds
+- 2nd retry: 0.6 seconds
+- 3rd retry: 1.2 seconds
+
+## API Reference
+
+### `get_with_automatic_retry()`
+
+Performs an HTTP GET request with automatic retry logic.
+
+**Parameters:**
+- `url` (str): The URL to send the request to
+- `client` (httpx.Client | None): Optional httpx client to use
+- `timeout` (float | httpx.Timeout): Request timeout in seconds
+- `max_retries` (int): Maximum number of retry attempts
+- `backoff_factor` (float): Exponential backoff factor
+- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `**kwargs`: Additional arguments passed to `httpx.Client.get()`
+
+**Returns:** `httpx.Response`
+
+**Raises:**
+- `HttpRequestError`: If the request fails after all retries
+- `ValueError`: If parameters are invalid
+
+### `post_with_automatic_retry()`
+
+Performs an HTTP POST request with automatic retry logic.
+
+**Parameters:**
+- `url` (str): The URL to send the request to
+- `client` (httpx.Client | None): Optional httpx client to use
+- `timeout` (float | httpx.Timeout): Request timeout in seconds
+- `max_retries` (int): Maximum number of retry attempts
+- `backoff_factor` (float): Exponential backoff factor
+- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `**kwargs`: Additional arguments passed to `httpx.Client.post()`
+
+**Returns:** `httpx.Response`
+
+**Raises:**
+- `HttpRequestError`: If the request fails after all retries
+- `ValueError`: If parameters are invalid
+
+### `HttpRequestError`
+
+Exception raised when an HTTP request fails.
+
+**Attributes:**
+- `method` (str): HTTP method used
+- `url` (str): URL that was requested
+- `status_code` (int | None): HTTP status code (if available)
+- `response` (httpx.Response | None): Full response object (if available)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+`aresnet` is licensed under the BSD-3-Clause License. See the [LICENSE](LICENSE) file for details.

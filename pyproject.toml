@@ -19,15 +19,14 @@ authors = [
     { name = "Thibaut Durand", email = "durand.tibo+gh@gmail.com" },
 ]
 keywords = [
-    "equality",
-    "testing",
-    "jax",
-    "numpy",
-    "pandas",
-    "polars",
-    "pyarrow",
-    "pytorch",
-    "xarray",
+    "http",
+    "requests",
+    "httpx",
+    "retry",
+    "resilience",
+    "api",
+    "client",
+    "networking",
 ]
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]
