@@ -393,7 +393,10 @@ def test_get_with_automatic_retry_client_close_on_exception() -> None:
 
     with (
         patch("httpx.Client", return_value=mock_client),
-        pytest.raises(HttpRequestError),
+        pytest.raises(
+            HttpRequestError,
+            match=r"GET request to https://api.example.com/data timed out \(1 attempts\)",
+        ),
     ):
         get_with_automatic_retry(TEST_URL, max_retries=0)
 
