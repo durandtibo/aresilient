@@ -1,0 +1,29 @@
+# Cyclic import detection workflow.
+# Tests that the package can be imported without circular dependencies.
+# Validates key modules and submodules can be imported successfully.
+
+name: Cyclic Imports
+on:
+  workflow_call:
+  workflow_dispatch:  # to trigger manually
+
+permissions:
+  contents: read
+
+jobs:
+  cyclic-imports:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup python environment
+        uses: durandtibo/setup-venv-uv-action@v0.0.3
+
+      # Test main module imports to detect circular dependencies
+      - name: check aresnet
+        run: |
+          python -c "import aresnet"
+          python -c "from aresnet import get_with_automatic_retry"
+          python -c "from aresnet import post_with_automatic_retry"
