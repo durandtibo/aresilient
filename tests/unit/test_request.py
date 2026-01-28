@@ -70,6 +70,7 @@ def test_request_with_automatic_retry_with_kwargs(
         json={"key": "value"},
         headers={"Authorization": "Bearer token"},
     )
+    mock_sleep.assert_not_called()
 
 
 def test_request_with_automatic_retry_retry_on_retryable_status(
@@ -241,72 +242,69 @@ def test_request_with_automatic_retry_zero_backoff_factor(
     mock_sleep.assert_called_once_with(0.0)
 
 
+@pytest.mark.parametrize("status_code", [200, 201, 202, 204, 206])
 def test_request_with_automatic_retry_success_status_2xx(
-    mock_sleep: Mock,
+    mock_sleep: Mock, status_code: int
 ) -> None:
     """Test that various 2xx status codes are considered successful.
 
     This test uses default values for max_retries and backoff_factor,
     but specifies a custom status_forcelist.
     """
-    for status_code in [200, 201, 202, 204]:
-        mock_response = Mock(spec=httpx.Response, status_code=status_code)
-        mock_request_func = Mock(return_value=mock_response)
+    mock_response = Mock(spec=httpx.Response, status_code=status_code)
+    mock_request_func = Mock(return_value=mock_response)
 
-        response = request_with_automatic_retry(
-            url=TEST_URL,
-            method="GET",
-            request_func=mock_request_func,
-            status_forcelist=(500,),
-        )
+    response = request_with_automatic_retry(
+        url=TEST_URL,
+        method="GET",
+        request_func=mock_request_func,
+        status_forcelist=(500,),
+    )
 
-        assert response.status_code == status_code
-        mock_request_func.assert_called_once()
-
+    assert response.status_code == status_code
+    mock_request_func.assert_called_once()
     mock_sleep.assert_not_called()
 
 
+@pytest.mark.parametrize("status_code", [301, 302, 303, 304, 307, 308])
 def test_request_with_automatic_retry_success_status_3xx(
-    mock_sleep: Mock,
+    mock_sleep: Mock, status_code: int
 ) -> None:
     """Test that 3xx redirect status codes are considered successful.
 
     This test uses default values for max_retries and backoff_factor,
     but specifies a custom status_forcelist.
     """
-    for status_code in [301, 302, 304]:
-        mock_response = Mock(spec=httpx.Response, status_code=status_code)
-        mock_request_func = Mock(return_value=mock_response)
+    mock_response = Mock(spec=httpx.Response, status_code=status_code)
+    mock_request_func = Mock(return_value=mock_response)
 
-        response = request_with_automatic_retry(
-            url=TEST_URL,
-            method="GET",
-            request_func=mock_request_func,
-            status_forcelist=(500,),
-        )
+    response = request_with_automatic_retry(
+        url=TEST_URL,
+        method="GET",
+        request_func=mock_request_func,
+        status_forcelist=(500,),
+    )
 
-        assert response.status_code == status_code
-        mock_request_func.assert_called_once()
-
+    assert response.status_code == status_code
+    mock_request_func.assert_called_once()
     mock_sleep.assert_not_called()
 
 
+@pytest.mark.parametrize("method", ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"])
 def test_request_with_automatic_retry_custom_method_names(
-    mock_response: httpx.Response, mock_sleep: Mock
+    mock_response: httpx.Response, mock_sleep: Mock, method: str
 ) -> None:
     """Test that different HTTP method names are handled correctly.
 
     This test uses all default parameter values.
     """
-    for method in ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]:
-        mock_request_func = Mock(return_value=mock_response)
-        request_with_automatic_retry(
-            url=TEST_URL,
-            method=method,
-            request_func=mock_request_func,
-        )
-        mock_request_func.assert_called_once()
-
+    mock_request_func = Mock(return_value=mock_response)
+    request_with_automatic_retry(
+        url=TEST_URL,
+        method=method,
+        request_func=mock_request_func,
+    )
+    mock_request_func.assert_called_once()
     mock_sleep.assert_not_called()
 
 
@@ -353,6 +351,7 @@ def test_request_with_automatic_retry_preserves_response_object(mock_sleep: Mock
 
     assert exc_info.value.response == mock_fail_response
     assert exc_info.value.response.json() == {"error": "Service unavailable"}
+    mock_sleep.assert_not_called()
 
 
 def test_request_with_automatic_retry_large_backoff_factor(
@@ -403,7 +402,10 @@ def test_request_with_automatic_retry_uses_default_max_retries(mock_sleep: Mock)
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_request_func = Mock(return_value=mock_fail_response)
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://api.example.com/data failed with status 503 after 4 attempts",
+    ):
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",
@@ -412,7 +414,6 @@ def test_request_with_automatic_retry_uses_default_max_retries(mock_sleep: Mock)
 
     # With default max_retries=3, should attempt 4 times total (1 initial + 3 retries)
     assert mock_request_func.call_count == DEFAULT_MAX_RETRIES + 1
-    assert f"after {DEFAULT_MAX_RETRIES + 1} attempts" in str(exc_info.value)
     # Should have 3 sleep calls with exponential backoff using default backoff_factor (0.3)
     assert len(mock_sleep.call_args_list) == DEFAULT_MAX_RETRIES
 
@@ -436,29 +437,27 @@ def test_request_with_automatic_retry_uses_default_backoff_factor(
     mock_sleep.assert_called_once_with(DEFAULT_BACKOFF_FACTOR)
 
 
+@pytest.mark.parametrize("status_code", RETRY_STATUS_CODES)
 def test_request_with_automatic_retry_uses_default_status_forcelist(
-    mock_response: httpx.Response, mock_sleep: Mock
+    mock_response: httpx.Response, mock_sleep: Mock, status_code: int
 ) -> None:
     """Test that default RETRY_STATUS_CODES are used when not
     specified."""
     # Test each status code in the default RETRY_STATUS_CODES
-    for status_code in RETRY_STATUS_CODES:
-        mock_fail_response = Mock(spec=httpx.Response, status_code=status_code)
-        mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
+    mock_fail_response = Mock(spec=httpx.Response, status_code=status_code)
+    mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
 
-        response = request_with_automatic_retry(
-            url=TEST_URL,
-            method="GET",
-            request_func=mock_request_func,
-        )
+    response = request_with_automatic_retry(
+        url=TEST_URL,
+        method="GET",
+        request_func=mock_request_func,
+    )
 
-        assert response == mock_response
-        # Should retry since status_code is in default RETRY_STATUS_CODES
-        assert mock_request_func.call_count == 2
-        mock_request_func.reset_mock()
-
-    # Verify that we tested all expected status codes
-    assert len(mock_sleep.call_args_list) == len(RETRY_STATUS_CODES)
+    assert response == mock_response
+    # Should retry since status_code is in default RETRY_STATUS_CODES
+    assert mock_request_func.call_count == 2
+    mock_request_func.reset_mock()
+    mock_sleep.assert_called_once_with(0.3)
 
 
 def test_request_with_automatic_retry_all_defaults_successful(
