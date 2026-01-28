@@ -2,6 +2,8 @@ r"""Unit tests for configuration constants."""
 
 from __future__ import annotations
 
+import pytest
+
 from aresnet import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
@@ -84,11 +86,8 @@ def test_retry_status_codes_exact_value() -> None:
 
 def test_retry_status_codes_is_immutable() -> None:
     """Test that RETRY_STATUS_CODES is immutable (tuple)."""
-    try:
+    with pytest.raises(TypeError):
         RETRY_STATUS_CODES[0] = 999  # type: ignore
-        assert False, "RETRY_STATUS_CODES should be immutable"
-    except TypeError:
-        pass
 
 
 def test_retry_status_codes_are_sorted() -> None:

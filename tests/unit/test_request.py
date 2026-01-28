@@ -281,10 +281,11 @@ def test_request_with_automatic_retry_success_status_3xx(
 
 
 def test_request_with_automatic_retry_custom_method_names(
-    mock_response: httpx.Response, mock_request_func: Mock, mock_sleep: Mock
+    mock_response: httpx.Response, mock_sleep: Mock
 ) -> None:
     """Test that different HTTP method names are handled correctly."""
     for method in ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]:
+        mock_request_func = Mock(return_value=mock_response)
         request_with_automatic_retry(
             url="https://api.example.com/data",
             method=method,
@@ -293,6 +294,7 @@ def test_request_with_automatic_retry_custom_method_names(
             backoff_factor=0.3,
             status_forcelist=(500,),
         )
+        mock_request_func.assert_called_once()
 
     mock_sleep.assert_not_called()
 
