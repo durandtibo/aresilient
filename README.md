@@ -1,2 +1,2 @@
 # aresnet
-Python library focused on common HTTP request functionality 
+Python library focused on common HTTP request functionality

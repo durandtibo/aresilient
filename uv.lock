@@ -21,7 +21,6 @@ name = "aresnet"
 version = "0.0.1a0"
 source = { editable = "." }
 dependencies = [
-    { name = "coola" },
     { name = "httpx" },
 ]
 
@@ -49,10 +48,7 @@ docs = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "coola", specifier = ">=1.1.0a0,<2.0" },
-    { name = "httpx", specifier = ">=0.28,<1.0" },
-]
+requires-dist = [{ name = "httpx", specifier = ">=0.28,<1.0" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -279,15 +275,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
-]
-
-[[package]]
-name = "coola"
-version = "1.1.0a0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ac/5f/430e552a410082d2ac1e3a4db4cdb7e60dac02eeb0ccc572fd3781c0e3b6/coola-1.1.0a0.tar.gz", hash = "sha256:044a227d5dbf0ecffc9c4507a019d5042cc46ffa7bd9c5a707c8c194e79c0b1a", size = 81026, upload-time = "2026-01-27T14:50:55.342Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/6d/14b25429d2b871bce01a02370bd00384180bef2a07db331262106a2c4bfc/coola-1.1.0a0-py3-none-any.whl", hash = "sha256:0340e41dfcf37df391f6959b260f59e020343f61bc0510b5e6803a9233d271a5", size = 154049, upload-time = "2026-01-27T14:50:56.384Z" },
 ]
 
 [[package]]
