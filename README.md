@@ -145,8 +145,8 @@ except HttpRequestError as e:
 ### Default Settings
 
 - **Timeout**: 10.0 seconds
-- **Max Retries**: 3 attempts
-- **Backoff Factor**: 0.3 seconds
+- **Max Retries**: 3 (4 total attempts including the initial request)
+- **Backoff Factor**: 0.3
 - **Retryable Status Codes**: 429 (Too Many Requests), 500 (Internal Server Error), 502 (Bad Gateway), 503 (Service Unavailable), 504 (Gateway Timeout)
 
 ### Exponential Backoff Formula

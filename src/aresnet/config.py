@@ -1,4 +1,4 @@
-r"""Contain the default configurations for HTTP requests using the httpx
+r"""Contains the default configurations for HTTP requests using the httpx
 library."""
 
 from __future__ import annotations
