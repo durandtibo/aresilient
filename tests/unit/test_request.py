@@ -52,8 +52,9 @@ def test_request_with_automatic_retry_with_kwargs(
     mock_response: httpx.Response, mock_request_func: Mock, mock_sleep: Mock
 ) -> None:
     """Test that additional kwargs are passed to request function.
-    
-    This test uses default values for max_retries, backoff_factor, and status_forcelist.
+
+    This test uses default values for max_retries, backoff_factor, and
+    status_forcelist.
     """
     response = request_with_automatic_retry(
         url=TEST_URL,
@@ -142,9 +143,9 @@ def test_request_with_automatic_retry_non_retryable_status_raises_immediately(
     mock_sleep: Mock,
 ) -> None:
     """Test that non-retryable status codes raise immediately.
-    
-    404 is not in the default RETRY_STATUS_CODES, so it should raise immediately.
-    This test uses all default parameter values.
+
+    404 is not in the default RETRY_STATUS_CODES, so it should raise
+    immediately. This test uses all default parameter values.
     """
     mock_fail_response = Mock(spec=httpx.Response, status_code=404)
     mock_fail_response.raise_for_status.side_effect = httpx.HTTPStatusError(
@@ -244,7 +245,7 @@ def test_request_with_automatic_retry_success_status_2xx(
     mock_sleep: Mock,
 ) -> None:
     """Test that various 2xx status codes are considered successful.
-    
+
     This test uses default values for max_retries and backoff_factor,
     but specifies a custom status_forcelist.
     """
@@ -269,7 +270,7 @@ def test_request_with_automatic_retry_success_status_3xx(
     mock_sleep: Mock,
 ) -> None:
     """Test that 3xx redirect status codes are considered successful.
-    
+
     This test uses default values for max_retries and backoff_factor,
     but specifies a custom status_forcelist.
     """
@@ -294,7 +295,7 @@ def test_request_with_automatic_retry_custom_method_names(
     mock_response: httpx.Response, mock_sleep: Mock
 ) -> None:
     """Test that different HTTP method names are handled correctly.
-    
+
     This test uses all default parameter values.
     """
     for method in ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]:
@@ -419,7 +420,8 @@ def test_request_with_automatic_retry_uses_default_max_retries(mock_sleep: Mock)
 def test_request_with_automatic_retry_uses_default_backoff_factor(
     mock_response: httpx.Response, mock_sleep: Mock
 ) -> None:
-    """Test that default backoff_factor (0.3) is used when not specified."""
+    """Test that default backoff_factor (0.3) is used when not
+    specified."""
     mock_fail_response = Mock(spec=httpx.Response, status_code=500)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
 
@@ -437,23 +439,24 @@ def test_request_with_automatic_retry_uses_default_backoff_factor(
 def test_request_with_automatic_retry_uses_default_status_forcelist(
     mock_response: httpx.Response, mock_sleep: Mock
 ) -> None:
-    """Test that default RETRY_STATUS_CODES are used when not specified."""
+    """Test that default RETRY_STATUS_CODES are used when not
+    specified."""
     # Test each status code in the default RETRY_STATUS_CODES
     for status_code in RETRY_STATUS_CODES:
         mock_fail_response = Mock(spec=httpx.Response, status_code=status_code)
         mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
-        
+
         response = request_with_automatic_retry(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
         )
-        
+
         assert response == mock_response
         # Should retry since status_code is in default RETRY_STATUS_CODES
         assert mock_request_func.call_count == 2
         mock_request_func.reset_mock()
-    
+
     # Verify that we tested all expected status codes
     assert len(mock_sleep.call_args_list) == len(RETRY_STATUS_CODES)
 

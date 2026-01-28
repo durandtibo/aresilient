@@ -418,4 +418,4 @@ def test_get_with_automatic_retry_mixed_error_and_status_failures(
         response = get_with_automatic_retry(TEST_URL, max_retries=5)
 
     assert response.status_code == 200
-    assert len(mock_sleep.call_args_list) == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
