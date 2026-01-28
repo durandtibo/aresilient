@@ -266,3 +266,152 @@ def test_get_with_automatic_retry_all_retries_with_429(mock_sleep: Mock) -> None
     assert exc_info.value.status_code == 429
     assert "failed with status 429 after 2 attempts" in str(exc_info.value)
     assert mock_sleep.call_args_list == [call(0.3)]
+
+
+def test_get_with_automatic_retry_with_httpx_timeout_object(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
+    """Test GET request with httpx.Timeout object."""
+    timeout_config = httpx.Timeout(10.0, connect=5.0)
+
+    with patch("httpx.Client") as mock_client_class:
+        mock_client_instance = Mock()
+        mock_client_instance.get = Mock(return_value=mock_response)
+        mock_client_instance.close = Mock()
+        mock_client_class.return_value = mock_client_instance
+        response = get_with_automatic_retry("https://api.example.com/data", timeout=timeout_config)
+
+    mock_client_class.assert_called_once_with(timeout=timeout_config)
+    assert response.status_code == 200
+    mock_sleep.assert_not_called()
+
+
+def test_get_with_automatic_retry_recovery_after_multiple_failures(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
+    """Test successful recovery after multiple transient failures."""
+    mock_502 = Mock(spec=httpx.Response, status_code=502)
+    mock_503 = Mock(spec=httpx.Response, status_code=503)
+    mock_504 = Mock(spec=httpx.Response, status_code=504)
+
+    with patch("httpx.Client.get", side_effect=[mock_502, mock_503, mock_504, mock_response]):
+        response = get_with_automatic_retry("https://api.example.com/data", max_retries=5)
+
+    assert response.status_code == 200
+    # Should have slept 3 times (after each failure)
+    assert len(mock_sleep.call_args_list) == 3
+
+
+def test_get_with_automatic_retry_successful_2xx_status_codes(mock_sleep: Mock) -> None:
+    """Test that various 2xx status codes are considered successful."""
+    for status_code in [200, 201, 202, 204, 206]:
+        mock_response = Mock(spec=httpx.Response, status_code=status_code)
+        with patch("httpx.Client.get", return_value=mock_response):
+            response = get_with_automatic_retry("https://api.example.com/data")
+            assert response.status_code == status_code
+
+    mock_sleep.assert_not_called()
+
+
+def test_get_with_automatic_retry_successful_3xx_status_codes(mock_sleep: Mock) -> None:
+    """Test that 3xx redirect status codes are considered successful."""
+    for status_code in [301, 302, 303, 304, 307, 308]:
+        mock_response = Mock(spec=httpx.Response, status_code=status_code)
+        with patch("httpx.Client.get", return_value=mock_response):
+            response = get_with_automatic_retry("https://api.example.com/data")
+            assert response.status_code == status_code
+
+    mock_sleep.assert_not_called()
+
+
+def test_get_with_automatic_retry_with_headers(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
+    """Test GET request with custom headers."""
+    with patch("httpx.Client.get", return_value=mock_response) as mock_get:
+        response = get_with_automatic_retry(
+            "https://api.example.com/data",
+            headers={"Authorization": "Bearer token123", "Accept": "application/json"},
+        )
+
+    mock_get.assert_called_once_with(
+        url="https://api.example.com/data",
+        headers={"Authorization": "Bearer token123", "Accept": "application/json"},
+    )
+    assert response.status_code == 200
+    mock_sleep.assert_not_called()
+
+
+def test_get_with_automatic_retry_with_params(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
+    """Test GET request with query parameters."""
+    with patch("httpx.Client.get", return_value=mock_response) as mock_get:
+        response = get_with_automatic_retry(
+            "https://api.example.com/data", params={"page": 1, "limit": 10}
+        )
+
+    mock_get.assert_called_once_with(url="https://api.example.com/data", params={"page": 1, "limit": 10})
+    assert response.status_code == 200
+    mock_sleep.assert_not_called()
+
+
+def test_get_with_automatic_retry_error_message_includes_url() -> None:
+    """Test that error message includes the URL."""
+    mock_response = Mock(spec=httpx.Response, status_code=503)
+
+    with (
+        patch("httpx.Client.get", return_value=mock_response),
+        pytest.raises(HttpRequestError) as exc_info,
+    ):
+        get_with_automatic_retry("https://api.example.com/special-endpoint", max_retries=0)
+
+    assert "https://api.example.com/special-endpoint" in str(exc_info.value)
+
+
+def test_get_with_automatic_retry_error_includes_method() -> None:
+    """Test that error message includes the HTTP method."""
+    mock_response = Mock(spec=httpx.Response, status_code=500)
+
+    with (
+        patch("httpx.Client.get", return_value=mock_response),
+        pytest.raises(HttpRequestError) as exc_info,
+    ):
+        get_with_automatic_retry("https://api.example.com/data", max_retries=0)
+
+    assert exc_info.value.method == "GET"
+
+
+def test_get_with_automatic_retry_client_close_on_exception() -> None:
+    """Test that client is closed even when exception occurs."""
+    mock_client = Mock(spec=httpx.Client)
+    mock_client.get.side_effect = httpx.TimeoutException("Timeout")
+
+    with (
+        patch("httpx.Client", return_value=mock_client),
+        pytest.raises(HttpRequestError),
+    ):
+        get_with_automatic_retry("https://api.example.com/data", max_retries=0)
+
+    mock_client.close.assert_called_once()
+
+
+def test_get_with_automatic_retry_mixed_error_and_status_failures(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
+    """Test recovery from mix of errors and retryable status codes."""
+    mock_503 = Mock(spec=httpx.Response, status_code=503)
+
+    with patch(
+        "httpx.Client.get",
+        side_effect=[
+            httpx.TimeoutException("Timeout"),
+            mock_503,
+            httpx.RequestError("Connection failed"),
+            mock_response,
+        ],
+    ):
+        response = get_with_automatic_retry("https://api.example.com/data", max_retries=5)
+
+    assert response.status_code == 200
+    assert len(mock_sleep.call_args_list) == 3
