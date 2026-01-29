@@ -10,6 +10,7 @@ __all__ = [
     "HttpRequestError",
     "__version__",
     "delete_with_automatic_retry",
+    "delete_with_automatic_retry_async",
     "get_with_automatic_retry",
     "patch_with_automatic_retry",
     "post_with_automatic_retry",
@@ -28,6 +29,7 @@ from aresnet.config import (
     RETRY_STATUS_CODES,
 )
 from aresnet.delete import delete_with_automatic_retry
+from aresnet.delete_async import delete_with_automatic_retry_async
 from aresnet.exceptions import HttpRequestError
 from aresnet.get import get_with_automatic_retry
 from aresnet.patch import patch_with_automatic_retry
