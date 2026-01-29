@@ -28,9 +28,9 @@ def mock_request_func(mock_response: httpx.Response) -> Mock:
     return Mock(return_value=mock_response)
 
 
-#######################################################
-#     Tests for request_with_automatic_retry         #
-#######################################################
+##################################################
+#     Tests for request_with_automatic_retry     #
+##################################################
 
 
 def test_request_with_automatic_retry_successful_request(
