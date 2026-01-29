@@ -65,6 +65,7 @@ HTTP communications, making your applications more robust and fault-tolerant.
 - **Automatic Retry Logic**: Automatically retries failed requests for configurable HTTP status
   codes (429, 500, 502, 503, 504 by default)
 - **Exponential Backoff**: Implements exponential backoff strategy to avoid overwhelming servers
+- **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH)
 - **Built on httpx**: Leverages the modern, async-capable httpx library
 - **Configurable**: Customize timeout, retry attempts, backoff factors, and retryable status codes
 - **Type-Safe**: Fully typed with comprehensive type hints
@@ -132,6 +133,27 @@ with httpx.Client(headers={"Authorization": "Bearer token"}) as client:
     response = get_with_automatic_retry(
         "https://api.example.com/protected", client=client
     )
+```
+
+### Other HTTP Methods
+
+```python
+from aresnet import put_with_automatic_retry, delete_with_automatic_retry, patch_with_automatic_retry
+
+# PUT request to update a resource
+response = put_with_automatic_retry(
+    "https://api.example.com/resource/123",
+    json={"name": "updated"}
+)
+
+# DELETE request to remove a resource
+response = delete_with_automatic_retry("https://api.example.com/resource/123")
+
+# PATCH request to partially update a resource
+response = patch_with_automatic_retry(
+    "https://api.example.com/resource/123",
+    json={"status": "active"}
+)
 ```
 
 ### Error Handling
@@ -208,6 +230,69 @@ Performs an HTTP POST request with automatic retry logic.
 - `backoff_factor` (float): Exponential backoff factor
 - `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
 - `**kwargs`: Additional arguments passed to `httpx.Client.post()`
+
+**Returns:** `httpx.Response`
+
+**Raises:**
+
+- `HttpRequestError`: If the request fails after all retries
+- `ValueError`: If parameters are invalid
+
+### `put_with_automatic_retry()`
+
+Performs an HTTP PUT request with automatic retry logic.
+
+**Parameters:**
+
+- `url` (str): The URL to send the request to
+- `client` (httpx.Client | None): Optional httpx client to use
+- `timeout` (float | httpx.Timeout): Request timeout in seconds
+- `max_retries` (int): Maximum number of retry attempts
+- `backoff_factor` (float): Exponential backoff factor
+- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `**kwargs`: Additional arguments passed to `httpx.Client.put()`
+
+**Returns:** `httpx.Response`
+
+**Raises:**
+
+- `HttpRequestError`: If the request fails after all retries
+- `ValueError`: If parameters are invalid
+
+### `delete_with_automatic_retry()`
+
+Performs an HTTP DELETE request with automatic retry logic.
+
+**Parameters:**
+
+- `url` (str): The URL to send the request to
+- `client` (httpx.Client | None): Optional httpx client to use
+- `timeout` (float | httpx.Timeout): Request timeout in seconds
+- `max_retries` (int): Maximum number of retry attempts
+- `backoff_factor` (float): Exponential backoff factor
+- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `**kwargs`: Additional arguments passed to `httpx.Client.delete()`
+
+**Returns:** `httpx.Response`
+
+**Raises:**
+
+- `HttpRequestError`: If the request fails after all retries
+- `ValueError`: If parameters are invalid
+
+### `patch_with_automatic_retry()`
+
+Performs an HTTP PATCH request with automatic retry logic.
+
+**Parameters:**
+
+- `url` (str): The URL to send the request to
+- `client` (httpx.Client | None): Optional httpx client to use
+- `timeout` (float | httpx.Timeout): Request timeout in seconds
+- `max_retries` (int): Maximum number of retry attempts
+- `backoff_factor` (float): Exponential backoff factor
+- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `**kwargs`: Additional arguments passed to `httpx.Client.patch()`
 
 **Returns:** `httpx.Response`
 
