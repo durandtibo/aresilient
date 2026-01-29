@@ -18,6 +18,7 @@ __all__ = [
     "post_with_automatic_retry",
     "post_with_automatic_retry_async",
     "put_with_automatic_retry",
+    "put_with_automatic_retry_async",
     "request_with_automatic_retry",
     "request_with_automatic_retry_async",
 ]
@@ -40,6 +41,7 @@ from aresnet.patch_async import patch_with_automatic_retry_async
 from aresnet.post import post_with_automatic_retry
 from aresnet.post_async import post_with_automatic_retry_async
 from aresnet.put import put_with_automatic_retry
+from aresnet.put_async import put_with_automatic_retry_async
 from aresnet.request import request_with_automatic_retry
 from aresnet.request_async import request_with_automatic_retry_async
 
