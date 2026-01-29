@@ -5,7 +5,11 @@ from unittest.mock import AsyncMock, Mock, call, patch
 import httpx
 import pytest
 
-from aresnet import RETRY_STATUS_CODES, HttpRequestError, post_with_automatic_retry_async
+from aresnet import (
+    RETRY_STATUS_CODES,
+    HttpRequestError,
+    post_with_automatic_retry_async,
+)
 
 TEST_URL = "https://api.example.com/data"
 
@@ -24,9 +28,9 @@ def mock_client(mock_response: httpx.Response) -> httpx.AsyncClient:
     )
 
 
-####################################################
+#####################################################
 #     Tests for post_with_automatic_retry_async     #
-####################################################
+#####################################################
 
 
 @pytest.mark.asyncio

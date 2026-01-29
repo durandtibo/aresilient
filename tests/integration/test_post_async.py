@@ -9,9 +9,9 @@ from aresnet import post_with_automatic_retry_async
 HTTPBIN_URL = "https://httpbin.org"
 
 
-###################################################
+#####################################################
 #     Tests for post_with_automatic_retry_async     #
-###################################################
+#####################################################
 
 
 @pytest.mark.asyncio
