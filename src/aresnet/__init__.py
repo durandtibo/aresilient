@@ -11,6 +11,7 @@ __all__ = [
     "__version__",
     "get_with_automatic_retry",
     "post_with_automatic_retry",
+    "request_with_automatic_retry",
 ]
 
 from importlib.metadata import PackageNotFoundError, version
@@ -24,6 +25,7 @@ from aresnet.config import (
 from aresnet.exception import HttpRequestError
 from aresnet.get import get_with_automatic_retry
 from aresnet.post import post_with_automatic_retry
+from aresnet.request import request_with_automatic_retry
 
 try:
     __version__ = version(__name__)
