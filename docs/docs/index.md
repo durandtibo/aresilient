@@ -55,69 +55,72 @@
 
 ## Overview
 
-A Python library for general purpose object factories.
-In particular, it focuses on dynamic object factory implementations where objects can be registered
-dynamically without changing the code of the factory.
-An object factory can be used to instantiate an object from its configuration.
-The current implementation contains both abstract factory and registry approaches.
+`aresnet` is a Python library that provides resilient HTTP request functionality with automatic
+retry logic and exponential backoff. Built on top of the
+modern [httpx](https://www.python-httpx.org/) library, it simplifies handling transient failures in
+HTTP communications, making your applications more robust and fault-tolerant.
 
-**factory**
+## Key Features
 
-```python
-from aresnet import factory
+- **Automatic Retry Logic**: Automatically retries failed requests for configurable HTTP status
+  codes (429, 500, 502, 503, 504 by default)
+- **Exponential Backoff**: Implements exponential backoff strategy to avoid overwhelming servers
+- **Built on httpx**: Leverages the modern, async-capable httpx library
+- **Configurable**: Customize timeout, retry attempts, backoff factors, and retryable status codes
+- **Type-Safe**: Fully typed with comprehensive type hints
+- **Well-Tested**: Extensive test coverage ensuring reliability
 
+## Quick Examples
 
-class MyClass:
-    pass
-
-
-obj = factory("MyClass")
-print(obj)
-```
-
-**[abstract factory](user/abstract_factory.md)**
+### Basic GET Request
 
 ```python
-from aresnet import AbstractFactory
+from aresnet import get_with_automatic_retry
 
-
-class BaseClass(metaclass=AbstractFactory):
-    pass
-
-
-class MyClass(BaseClass):
-    pass
-
-
-obj = BaseClass.factory("MyClass")
-print(obj)
+# Simple GET request with automatic retry
+response = get_with_automatic_retry("https://api.example.com/data")
+print(response.json())
 ```
 
-*Output*:
-
-```textmate
-<__main__.MyClass object at 0x...>
-```
-
-**[registry](user/registry.md)**
+### Basic POST Request
 
 ```python
-from aresnet import Registry
+from aresnet import post_with_automatic_retry
 
-registry = Registry()
-
-
-@registry.register()
-class MyClass:
-    pass
-
-
-obj = registry.factory("MyClass")
-print(obj)
+# POST request with JSON payload
+response = post_with_automatic_retry(
+    "https://api.example.com/submit", json={"key": "value"}
+)
+print(response.status_code)
 ```
 
-```textmate
-<__main__.MyClass object at 0x...>
+### Customizing Retry Behavior
+
+```python
+from aresnet import get_with_automatic_retry
+
+# Custom retry configuration
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    max_retries=5,  # Retry up to 5 times
+    backoff_factor=1.0,  # Exponential backoff factor
+    timeout=30.0,  # 30 second timeout
+    status_forcelist=(429, 503),  # Only retry on these status codes
+)
+```
+
+## Installation
+
+Install using `uv` (recommended):
+
+```bash
+uv pip install aresnet
+```
+
+Or using `pip`:
+
+```bash
+pip install aresnet
 ```
 
 ## API stability
@@ -126,8 +129,7 @@ print(obj)
 release to the next.
 In fact, it is very likely that the API will change multiple times before a stable 1.0.0 release.
 In practice, this means that upgrading `aresnet` to a new version will possibly break any code
-that
-was using the old version of `aresnet`.
+that was using the old version of `aresnet`.
 
 ## License
 

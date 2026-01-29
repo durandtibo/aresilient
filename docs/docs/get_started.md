@@ -55,11 +55,14 @@ python -c "import aresnet; print(aresnet.__version__)"
 Or try a simple example:
 
 ```python
-from aresnet import factory
+from aresnet import get_with_automatic_retry
 
-# Create a Counter object from the standard library
-counter = factory("collections.Counter", [1, 2, 1, 3])
-print(counter)  # Output: Counter({1: 2, 2: 1, 3: 1})
+# Make a simple GET request (this is a safe example that won't actually execute)
+# response = get_with_automatic_retry("https://api.example.com/data")
+# print(response.json())
+
+# Verify the module is properly imported
+print("aresnet imported successfully!")
 ```
 
 ## Installing from source

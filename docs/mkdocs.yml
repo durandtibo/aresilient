@@ -18,9 +18,10 @@ theme:
 
 nav:
   - Home: index.md
-  - get_started.md
+  - Get Started: get_started.md
+  - User Guide: user_guide.md
   - Reference:
-      - refs/index.md
+      - API Reference: refs/index.md
   - GitHub: https://github.com/durandtibo/aresnet
 
 repo_url: https://github.com/durandtibo/aresnet
