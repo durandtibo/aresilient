@@ -235,7 +235,7 @@ def test_http_request_error_long_url() -> None:
 def test_http_request_error_unicode_in_message() -> None:
     """Test initialization with unicode characters in message."""
     error = HttpRequestError(
-        method="GET", url="https://example.com", message="Error: 文字化け or émojis 🚀"
+        method="GET", url="https://example.com", message="Error: 文字化け or emojis 🚀"
     )
     assert "文字化け" in str(error)
     assert "🚀" in str(error)

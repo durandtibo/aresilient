@@ -31,7 +31,7 @@ This document provides:
   - `src/aresnet/request_async.py`
 
 **Why this change?**
-- `exceptions.py` (plural) is the Python convention (see stdlib: `import collections.exceptions`)
+- `exceptions.py` (plural) is the Python convention (e.g., many libraries use `exceptions.py`)
 - Maintains the flat structure which is optimal for this library size
 - Minimal disruption, maximum consistency
 
