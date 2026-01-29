@@ -425,7 +425,7 @@ def test_get_with_automatic_retry_network_error(mock_sleep: Mock) -> None:
     ):
         get_with_automatic_retry(TEST_URL, max_retries=3)
 
-    assert mock_sleep.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
 def test_get_with_automatic_retry_read_error(mock_sleep: Mock) -> None:
@@ -439,7 +439,7 @@ def test_get_with_automatic_retry_read_error(mock_sleep: Mock) -> None:
     ):
         get_with_automatic_retry(TEST_URL, max_retries=3)
 
-    assert mock_sleep.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
 def test_get_with_automatic_retry_write_error(mock_sleep: Mock) -> None:
@@ -453,7 +453,7 @@ def test_get_with_automatic_retry_write_error(mock_sleep: Mock) -> None:
     ):
         get_with_automatic_retry(TEST_URL, max_retries=3)
 
-    assert mock_sleep.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
 def test_get_with_automatic_retry_connect_timeout(mock_sleep: Mock) -> None:
@@ -467,7 +467,7 @@ def test_get_with_automatic_retry_connect_timeout(mock_sleep: Mock) -> None:
     ):
         get_with_automatic_retry(TEST_URL, max_retries=3)
 
-    assert mock_sleep.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
 def test_get_with_automatic_retry_read_timeout(mock_sleep: Mock) -> None:
@@ -481,7 +481,7 @@ def test_get_with_automatic_retry_read_timeout(mock_sleep: Mock) -> None:
     ):
         get_with_automatic_retry(TEST_URL, max_retries=3)
 
-    assert mock_sleep.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
 def test_get_with_automatic_retry_pool_timeout(mock_sleep: Mock) -> None:
@@ -495,7 +495,7 @@ def test_get_with_automatic_retry_pool_timeout(mock_sleep: Mock) -> None:
     ):
         get_with_automatic_retry(TEST_URL, max_retries=3)
 
-    assert mock_sleep.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
 def test_get_with_automatic_retry_proxy_error(mock_sleep: Mock) -> None:
@@ -509,4 +509,4 @@ def test_get_with_automatic_retry_proxy_error(mock_sleep: Mock) -> None:
     ):
         get_with_automatic_retry(TEST_URL, max_retries=3)
 
-    assert mock_sleep.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]

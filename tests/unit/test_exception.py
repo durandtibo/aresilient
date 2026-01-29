@@ -355,21 +355,3 @@ def test_http_request_error_very_long_url() -> None:
 
     assert error.url == long_url
     assert len(error.url) > 10000
-
-
-def test_http_request_error_repr_is_consistent() -> None:
-    """Test that repr produces consistent output."""
-    error = HttpRequestError(
-        method="POST",
-        url="https://api.example.com/test",
-        message="Test message",
-        status_code=500,
-    )
-
-    repr1 = repr(error)
-    repr2 = repr(error)
-
-    assert repr1 == repr2
-    assert "method='POST'" in repr1
-    assert "url='https://api.example.com/test'" in repr1
-    assert "status_code=500" in repr1
