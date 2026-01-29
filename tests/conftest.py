@@ -14,3 +14,10 @@ def mock_sleep() -> Generator[Mock, None, None]:
     """Patch time.sleep to make tests run faster."""
     with patch("time.sleep", return_value=None) as mock:
         yield mock
+
+
+@pytest.fixture
+def mock_asleep() -> Generator[Mock, None, None]:
+    """Patch asyncio.sleep to make tests run faster."""
+    with patch("asyncio.sleep", return_value=None) as mock:
+        yield mock
