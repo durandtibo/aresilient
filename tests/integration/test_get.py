@@ -34,8 +34,11 @@ def test_get_with_automatic_retry_successful_request_without_client() -> None:
 def test_get_with_non_retryable_status_fails_immediately() -> None:
     """Test that 404 (non-retryable) fails immediately without
     retries."""
-    with pytest.raises(httpx.HTTPStatusError):
-        get_with_automatic_retry(url=f"{HTTPBIN_URL}/status/404")
+    with (
+        httpx.Client() as client,
+        pytest.raises(httpx.HTTPStatusError, match="Client error '404 NOT FOUND'"),
+    ):
+        get_with_automatic_retry(url=f"{HTTPBIN_URL}/status/404", client=client)
 
 
 def test_get_with_automatic_retry_redirect_chain() -> None:
@@ -54,7 +57,8 @@ def test_get_with_automatic_retry_redirect_chain() -> None:
 def test_get_with_automatic_retry_large_response() -> None:
     """Test GET request with large response body."""
     # Request a large amount of bytes (10KB)
-    response = get_with_automatic_retry(url=f"{HTTPBIN_URL}/bytes/10240")
+    with httpx.Client() as client:
+        response = get_with_automatic_retry(url=f"{HTTPBIN_URL}/bytes/10240", client=client)
 
     assert response.status_code == 200
     assert len(response.content) == 10240
@@ -62,11 +66,11 @@ def test_get_with_automatic_retry_large_response() -> None:
 
 def test_get_with_automatic_retry_with_headers() -> None:
     """Test GET request with custom headers."""
-    custom_headers = {"X-Custom-Header": "test-value", "User-Agent": "aresnet-test"}
-
     with httpx.Client() as client:
         response = get_with_automatic_retry(
-            url=f"{HTTPBIN_URL}/headers", client=client, headers=custom_headers
+            url=f"{HTTPBIN_URL}/headers",
+            client=client,
+            headers={"X-Custom-Header": "test-value", "User-Agent": "aresnet-test"},
         )
 
     assert response.status_code == 200
@@ -77,11 +81,11 @@ def test_get_with_automatic_retry_with_headers() -> None:
 
 def test_get_with_automatic_retry_with_query_params() -> None:
     """Test GET request with query parameters."""
-    params = {"param1": "value1", "param2": "value2"}
-
-    response = get_with_automatic_retry(url=f"{HTTPBIN_URL}/get", params=params)
+    with httpx.Client() as client:
+        response = get_with_automatic_retry(
+            url=f"{HTTPBIN_URL}/get", params={"param1": "value1", "param2": "value2"}, client=client
+        )
 
     assert response.status_code == 200
     response_data = response.json()
-    assert response_data["args"]["param1"] == "value1"
-    assert response_data["args"]["param2"] == "value2"
+    assert response_data["args"] == {"param1": "value1", "param2": "value2"}
