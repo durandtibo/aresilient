@@ -351,9 +351,7 @@ def test_get_with_automatic_retry_successful_3xx_status_codes(
     mock_sleep.assert_not_called()
 
 
-def test_get_with_automatic_retry_with_headers(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_get_with_automatic_retry_with_headers(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test GET request with custom headers."""
     response = get_with_automatic_retry(
         TEST_URL,
@@ -369,11 +367,11 @@ def test_get_with_automatic_retry_with_headers(
     mock_sleep.assert_not_called()
 
 
-def test_get_with_automatic_retry_with_params(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_get_with_automatic_retry_with_params(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test GET request with query parameters."""
-    response = get_with_automatic_retry(TEST_URL, client=mock_client, params={"page": 1, "limit": 10})
+    response = get_with_automatic_retry(
+        TEST_URL, client=mock_client, params={"page": 1, "limit": 10}
+    )
 
     assert response.status_code == 200
     mock_client.get.assert_called_once_with(url=TEST_URL, params={"page": 1, "limit": 10})
@@ -493,9 +491,7 @@ def test_get_with_automatic_retry_connect_timeout(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_get_with_automatic_retry_read_timeout(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_get_with_automatic_retry_read_timeout(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test that ReadTimeout is retried appropriately."""
     mock_client.get.side_effect = httpx.ReadTimeout("Read timeout")
 
@@ -510,9 +506,7 @@ def test_get_with_automatic_retry_read_timeout(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_get_with_automatic_retry_pool_timeout(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_get_with_automatic_retry_pool_timeout(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test that PoolTimeout is retried appropriately."""
     mock_client.get.side_effect = httpx.PoolTimeout("Connection pool exhausted")
 
