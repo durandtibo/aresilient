@@ -64,7 +64,7 @@ async def put_with_automatic_retry_async(
         >>> from aresnet import put_with_automatic_retry_async
         >>> async def example():
         ...     response = await put_with_automatic_retry_async(
-        ...         "https://api.example.com/resource", json={"key": "value"}
+        ...         "https://api.example.com/data", json={"key": "value"}
         ...     )
         ...     return response.json()
         ...
