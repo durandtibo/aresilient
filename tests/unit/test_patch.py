@@ -35,9 +35,7 @@ def test_patch_with_automatic_retry_with_json_payload(
     mock_client: httpx.Client, mock_sleep: Mock
 ) -> None:
     """Test PATCH request with JSON data."""
-    response = patch_with_automatic_retry(
-        TEST_URL, json={"status": "updated"}, client=mock_client
-    )
+    response = patch_with_automatic_retry(TEST_URL, json={"status": "updated"}, client=mock_client)
 
     assert response.status_code == 200
     mock_client.patch.assert_called_once_with(url=TEST_URL, json={"status": "updated"})
@@ -60,7 +58,8 @@ def test_patch_with_automatic_retry_retry_on_429_status(
 def test_patch_with_automatic_retry_max_retries_exceeded(
     mock_client: httpx.Client, mock_sleep: Mock
 ) -> None:
-    """Test that HttpRequestError is raised when max retries exceeded."""
+    """Test that HttpRequestError is raised when max retries
+    exceeded."""
     mock_response = Mock(spec=httpx.Response, status_code=502)
     mock_client.patch.return_value = mock_response
 
@@ -75,7 +74,7 @@ def test_patch_with_automatic_retry_validates_negative_max_retries(
     mock_client: httpx.Client,
 ) -> None:
     """Test that ValueError is raised for negative max_retries."""
-    with pytest.raises(ValueError, match="max_retries must be >= 0"):
+    with pytest.raises(ValueError, match=r"max_retries must be >= 0"):
         patch_with_automatic_retry(TEST_URL, client=mock_client, max_retries=-1)
 
 
@@ -83,5 +82,5 @@ def test_patch_with_automatic_retry_validates_negative_backoff_factor(
     mock_client: httpx.Client,
 ) -> None:
     """Test that ValueError is raised for negative backoff_factor."""
-    with pytest.raises(ValueError, match="backoff_factor must be >= 0"):
+    with pytest.raises(ValueError, match=r"backoff_factor must be >= 0"):
         patch_with_automatic_retry(TEST_URL, client=mock_client, backoff_factor=-0.5)

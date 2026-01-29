@@ -28,8 +28,8 @@ def put_with_automatic_retry(
     status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
     **kwargs: Any,
 ) -> httpx.Response:
-    r"""Send an HTTP PUT request with automatic retry logic for
-    transient errors.
+    r"""Send an HTTP PUT request with automatic retry logic for transient
+    errors.
 
     This function performs an HTTP PUT request with a configured retry policy
     for transient server errors (429, 500, 502, 503, 504). It applies an

@@ -80,7 +80,7 @@ async def test_request_with_automatic_retry_async_non_retryable_status_code_rais
     )
     mock_request_func = AsyncMock(return_value=mock_response)
 
-    with pytest.raises(httpx.HTTPStatusError, match="Not Found"):
+    with pytest.raises(httpx.HTTPStatusError, match=r"Not Found"):
         await request_with_automatic_retry_async(
             url="https://example.com",
             method="GET",

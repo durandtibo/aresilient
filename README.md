@@ -138,12 +138,15 @@ with httpx.Client(headers={"Authorization": "Bearer token"}) as client:
 ### Other HTTP Methods
 
 ```python
-from aresnet import put_with_automatic_retry, delete_with_automatic_retry, patch_with_automatic_retry
+from aresnet import (
+    put_with_automatic_retry,
+    delete_with_automatic_retry,
+    patch_with_automatic_retry,
+)
 
 # PUT request to update a resource
 response = put_with_automatic_retry(
-    "https://api.example.com/resource/123",
-    json={"name": "updated"}
+    "https://api.example.com/resource/123", json={"name": "updated"}
 )
 
 # DELETE request to remove a resource
@@ -151,8 +154,7 @@ response = delete_with_automatic_retry("https://api.example.com/resource/123")
 
 # PATCH request to partially update a resource
 response = patch_with_automatic_retry(
-    "https://api.example.com/resource/123",
-    json={"status": "active"}
+    "https://api.example.com/resource/123", json={"status": "active"}
 )
 ```
 

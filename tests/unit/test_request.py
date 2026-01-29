@@ -157,7 +157,7 @@ def test_request_with_automatic_retry_non_retryable_status_raises_immediately(
     )
     mock_request_func = Mock(return_value=mock_fail_response)
 
-    with pytest.raises(httpx.HTTPStatusError, match="Not Found"):
+    with pytest.raises(httpx.HTTPStatusError, match=r"Not Found"):
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",
@@ -241,7 +241,7 @@ def test_request_with_automatic_retry_request_error_with_retries(mock_sleep: Moc
     """Test handling of general request errors with retries."""
     mock_request_func = Mock(side_effect=httpx.RequestError("Connection failed"))
 
-    with pytest.raises(HttpRequestError, match="failed after 2 attempts"):
+    with pytest.raises(HttpRequestError, match=r"failed after 2 attempts"):
         request_with_automatic_retry(
             url=TEST_URL,
             method="DELETE",
@@ -259,7 +259,7 @@ def test_request_with_automatic_retry_zero_max_retries(mock_sleep: Mock) -> None
     mock_fail_response = Mock(spec=httpx.Response, status_code=500)
     mock_request_func = Mock(return_value=mock_fail_response)
 
-    with pytest.raises(HttpRequestError, match="after 1 attempts"):
+    with pytest.raises(HttpRequestError, match=r"after 1 attempts"):
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",
@@ -364,7 +364,7 @@ def test_request_with_automatic_retry_empty_status_forcelist(
     )
     mock_request_func = Mock(return_value=mock_fail_response)
 
-    with pytest.raises(httpx.HTTPStatusError, match="Server Error"):
+    with pytest.raises(httpx.HTTPStatusError, match=r"Server Error"):
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",

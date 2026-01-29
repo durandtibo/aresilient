@@ -1,4 +1,5 @@
-r"""Contain synchronous HTTP PATCH request with automatic retry logic."""
+r"""Contain synchronous HTTP PATCH request with automatic retry
+logic."""
 
 from __future__ import annotations
 

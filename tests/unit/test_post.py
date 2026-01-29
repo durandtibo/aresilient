@@ -111,7 +111,7 @@ def test_post_with_automatic_retry_non_retryable_status_code(
     )
     mock_client.post.return_value = mock_response
 
-    with pytest.raises(httpx.HTTPStatusError, match="Not Found"):
+    with pytest.raises(httpx.HTTPStatusError, match=r"Not Found"):
         post_with_automatic_retry(TEST_URL, client=mock_client)
 
     mock_sleep.assert_not_called()
@@ -186,7 +186,7 @@ def test_post_with_automatic_retry_request_error_with_retries(
     """Test handling of general request errors."""
     mock_client.post.side_effect = httpx.RequestError("Connection failed")
 
-    with pytest.raises(HttpRequestError, match="failed after 3 attempts"):
+    with pytest.raises(HttpRequestError, match=r"failed after 3 attempts"):
         post_with_automatic_retry(TEST_URL, client=mock_client, max_retries=2)
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
@@ -194,13 +194,13 @@ def test_post_with_automatic_retry_request_error_with_retries(
 
 def test_post_with_automatic_retry_negative_max_retries() -> None:
     """Test that negative max_retries raises ValueError."""
-    with pytest.raises(ValueError, match="max_retries must be >= 0"):
+    with pytest.raises(ValueError, match=r"max_retries must be >= 0"):
         post_with_automatic_retry(TEST_URL, max_retries=-1)
 
 
 def test_post_with_automatic_retry_negative_backoff_factor() -> None:
     """Test that negative backoff_factor raises ValueError."""
-    with pytest.raises(ValueError, match="backoff_factor must be >= 0"):
+    with pytest.raises(ValueError, match=r"backoff_factor must be >= 0"):
         post_with_automatic_retry(TEST_URL, backoff_factor=-1.0)
 
 
