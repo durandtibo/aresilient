@@ -41,7 +41,9 @@ def test_get_with_non_retryable_status_fails_immediately() -> None:
 def test_get_with_automatic_retry_redirect_chain() -> None:
     """Test GET request that follows a redirect chain."""
     # httpbin.org supports redirects: /redirect/n redirects n times
-    response = get_with_automatic_retry(url=f"{HTTPBIN_URL}/redirect/3")
+    # Create a client with follow_redirects=True to handle the redirect chain
+    with httpx.Client(follow_redirects=True) as client:
+        response = get_with_automatic_retry(url=f"{HTTPBIN_URL}/redirect/3", client=client)
 
     assert response.status_code == 200
     # After redirects, we should end up at /get

@@ -75,7 +75,7 @@ def get_with_automatic_retry(
         raise ValueError(msg)
 
     owns_client = client is None
-    client = client or httpx.Client(timeout=timeout, follow_redirects=True)
+    client = client or httpx.Client(timeout=timeout)
     try:
         return request_with_automatic_retry(
             url=url,
