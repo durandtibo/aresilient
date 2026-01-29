@@ -1,5 +1,4 @@
-r"""Contain asynchronous HTTP GET request with automatic retry
-logic."""
+r"""Contain asynchronous HTTP GET request with automatic retry logic."""
 
 from __future__ import annotations
 
@@ -63,9 +62,7 @@ async def get_with_automatic_retry_async(
         >>> import asyncio
         >>> from aresnet import get_with_automatic_retry_async
         >>> async def example():
-        ...     response = await get_with_automatic_retry_async(
-        ...         "https://api.example.com/data"
-        ...     )
+        ...     response = await get_with_automatic_retry_async("https://api.example.com/data")
         ...     return response.json()
         ...
         >>> asyncio.run(example())  # doctest: +SKIP
