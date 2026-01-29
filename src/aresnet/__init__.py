@@ -11,6 +11,7 @@ __all__ = [
     "__version__",
     "delete_with_automatic_retry",
     "get_with_automatic_retry",
+    "get_with_automatic_retry_async",
     "patch_with_automatic_retry",
     "post_with_automatic_retry",
     "post_with_automatic_retry_async",
@@ -30,6 +31,7 @@ from aresnet.config import (
 from aresnet.delete import delete_with_automatic_retry
 from aresnet.exceptions import HttpRequestError
 from aresnet.get import get_with_automatic_retry
+from aresnet.get_async import get_with_automatic_retry_async
 from aresnet.patch import patch_with_automatic_retry
 from aresnet.post import post_with_automatic_retry
 from aresnet.post_async import post_with_automatic_retry_async
