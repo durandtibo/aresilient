@@ -35,14 +35,13 @@ from aresnet import post_with_automatic_retry
 # POST with JSON payload
 response = post_with_automatic_retry(
     "https://api.example.com/users",
-    json={"name": "John Doe", "email": "john@example.com"}
+    json={"name": "John Doe", "email": "john@example.com"},
 )
 print(response.status_code)
 
 # POST with form data
 response = post_with_automatic_retry(
-    "https://api.example.com/submit",
-    data={"field1": "value1", "field2": "value2"}
+    "https://api.example.com/submit", data={"field1": "value1", "field2": "value2"}
 )
 ```
 
@@ -54,10 +53,10 @@ response = post_with_automatic_retry(
 
 ```python
 from aresnet import (
-    DEFAULT_TIMEOUT,         # 10.0 seconds
-    DEFAULT_MAX_RETRIES,     # 3 retries (4 total attempts)
+    DEFAULT_TIMEOUT,  # 10.0 seconds
+    DEFAULT_MAX_RETRIES,  # 3 retries (4 total attempts)
     DEFAULT_BACKOFF_FACTOR,  # 0.3 seconds
-    RETRY_STATUS_CODES,      # (429, 500, 502, 503, 504)
+    RETRY_STATUS_CODES,  # (429, 500, 502, 503, 504)
 )
 
 print(f"Timeout: {DEFAULT_TIMEOUT}")
@@ -75,14 +74,12 @@ from aresnet import get_with_automatic_retry
 
 # Short timeout for quick responses
 response = get_with_automatic_retry(
-    "https://api.example.com/health",
-    timeout=5.0  # 5 seconds
+    "https://api.example.com/health", timeout=5.0  # 5 seconds
 )
 
 # Longer timeout for slow endpoints
 response = get_with_automatic_retry(
-    "https://api.example.com/slow-endpoint",
-    timeout=60.0  # 60 seconds
+    "https://api.example.com/slow-endpoint", timeout=60.0  # 60 seconds
 )
 ```
 
@@ -94,16 +91,13 @@ from aresnet import get_with_automatic_retry
 
 # Different timeouts for different operations
 timeout = httpx.Timeout(
-    connect=5.0,   # 5 seconds to establish connection
-    read=30.0,     # 30 seconds to read response
-    write=10.0,    # 10 seconds to send request
-    pool=5.0       # 5 seconds to get connection from pool
+    connect=5.0,  # 5 seconds to establish connection
+    read=30.0,  # 30 seconds to read response
+    write=10.0,  # 10 seconds to send request
+    pool=5.0,  # 5 seconds to get connection from pool
 )
 
-response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    timeout=timeout
-)
+response = get_with_automatic_retry("https://api.example.com/data", timeout=timeout)
 ```
 
 ### Customizing Retry Behavior
@@ -116,21 +110,20 @@ from aresnet import get_with_automatic_retry
 # More aggressive retry
 response = get_with_automatic_retry(
     "https://api.example.com/data",
-    max_retries=5,        # Retry up to 5 times
-    backoff_factor=0.5    # Longer waits between retries
+    max_retries=5,  # Retry up to 5 times
+    backoff_factor=0.5,  # Longer waits between retries
 )
 
 # Less aggressive retry
 response = get_with_automatic_retry(
     "https://api.example.com/data",
-    max_retries=1,        # Only retry once
-    backoff_factor=0.1    # Shorter waits between retries
+    max_retries=1,  # Only retry once
+    backoff_factor=0.1,  # Shorter waits between retries
 )
 
 # No retry
 response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    max_retries=0  # No retries, fail immediately
+    "https://api.example.com/data", max_retries=0  # No retries, fail immediately
 )
 ```
 
@@ -165,20 +158,18 @@ from aresnet import get_with_automatic_retry
 
 # Only retry on rate limiting
 response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    status_forcelist=(429,)
+    "https://api.example.com/data", status_forcelist=(429,)
 )
 
 # Retry on server errors and rate limiting
 response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    status_forcelist=(429, 500, 502, 503, 504)
+    "https://api.example.com/data", status_forcelist=(429, 500, 502, 503, 504)
 )
 
 # Add custom status codes
 response = get_with_automatic_retry(
     "https://api.example.com/data",
-    status_forcelist=(408, 429, 500, 502, 503, 504)  # Include 408 Request Timeout
+    status_forcelist=(408, 429, 500, 502, 503, 504),  # Include 408 Request Timeout
 )
 ```
 
@@ -194,14 +185,10 @@ from aresnet import get_with_automatic_retry
 
 # Create a client with custom headers
 with httpx.Client(
-    headers={
-        "User-Agent": "MyApp/1.0",
-        "Authorization": "Bearer your-token-here"
-    }
+    headers={"User-Agent": "MyApp/1.0", "Authorization": "Bearer your-token-here"}
 ) as client:
     response = get_with_automatic_retry(
-        "https://api.example.com/protected",
-        client=client
+        "https://api.example.com/protected", client=client
     )
     print(response.json())
 ```
@@ -214,25 +201,14 @@ When making multiple requests, reuse the same client for better performance:
 import httpx
 from aresnet import get_with_automatic_retry, post_with_automatic_retry
 
-with httpx.Client(
-    headers={"Authorization": "Bearer token"},
-    timeout=30.0
-) as client:
+with httpx.Client(headers={"Authorization": "Bearer token"}, timeout=30.0) as client:
     # Multiple requests using the same client
-    users = get_with_automatic_retry(
-        "https://api.example.com/users",
-        client=client
-    )
-    
-    posts = get_with_automatic_retry(
-        "https://api.example.com/posts",
-        client=client
-    )
-    
+    users = get_with_automatic_retry("https://api.example.com/users", client=client)
+
+    posts = get_with_automatic_retry("https://api.example.com/posts", client=client)
+
     result = post_with_automatic_retry(
-        "https://api.example.com/data",
-        client=client,
-        json={"data": "value"}
+        "https://api.example.com/data", client=client, json={"data": "value"}
     )
 ```
 
@@ -245,28 +221,25 @@ from aresnet import get_with_automatic_retry, post_with_automatic_retry
 
 # GET with query parameters
 response = get_with_automatic_retry(
-    "https://api.example.com/search",
-    params={"q": "python", "page": 1}
+    "https://api.example.com/search", params={"q": "python", "page": 1}
 )
 
 # GET with custom headers (without custom client)
 response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    headers={"X-Custom-Header": "value"}
+    "https://api.example.com/data", headers={"X-Custom-Header": "value"}
 )
 
 # POST with files
 with open("document.pdf", "rb") as f:
     response = post_with_automatic_retry(
-        "https://api.example.com/upload",
-        files={"file": f}
+        "https://api.example.com/upload", files={"file": f}
     )
 
 # POST with both data and files
 response = post_with_automatic_retry(
     "https://api.example.com/submit",
     data={"title": "My Document"},
-    files={"attachment": open("file.txt", "rb")}
+    files={"attachment": open("file.txt", "rb")},
 )
 ```
 
@@ -283,9 +256,9 @@ try:
     response = get_with_automatic_retry("https://api.example.com/data")
 except HttpRequestError as e:
     print(f"Request failed: {e}")
-    print(f"Method: {e.method}")          # 'GET'
-    print(f"URL: {e.url}")                # 'https://api.example.com/data'
-    print(f"Status Code: {e.status_code}") # e.g., 500
+    print(f"Method: {e.method}")  # 'GET'
+    print(f"URL: {e.url}")  # 'https://api.example.com/data'
+    print(f"Status Code: {e.status_code}")  # e.g., 500
     if e.response:
         print(f"Response body: {e.response.text}")
 ```
@@ -301,9 +274,7 @@ from aresnet import get_with_automatic_retry, HttpRequestError
 
 try:
     response = get_with_automatic_retry(
-        "https://slow-api.example.com/data",
-        timeout=1.0,
-        max_retries=2
+        "https://slow-api.example.com/data", timeout=1.0, max_retries=2
     )
 except HttpRequestError as e:
     # status_code will be None for timeout errors
@@ -352,15 +323,15 @@ from aresnet import get_with_automatic_retry, HttpRequestError
 
 try:
     response = get_with_automatic_retry("https://api.example.com/data")
-    
+
     # Response is automatically successful (2xx or 3xx)
     # if we get here
     data = response.json()
-    
+
     # Additional validation if needed
     if "error" in data:
         print(f"API returned an error: {data['error']}")
-        
+
 except HttpRequestError as e:
     print(f"Request failed: {e}")
 except ValueError as e:
@@ -375,15 +346,11 @@ Set timeouts based on your expected response times:
 
 ```python
 # Quick health check
-response = get_with_automatic_retry(
-    "https://api.example.com/health",
-    timeout=5.0
-)
+response = get_with_automatic_retry("https://api.example.com/health", timeout=5.0)
 
 # Large data download
 response = get_with_automatic_retry(
-    "https://api.example.com/large-dataset",
-    timeout=120.0
+    "https://api.example.com/large-dataset", timeout=120.0
 )
 ```
 
@@ -414,9 +381,7 @@ For user-facing operations, use fewer retries for faster failure:
 ```python
 # User-facing: fail fast
 response = get_with_automatic_retry(
-    "https://api.example.com/user-data",
-    max_retries=1,
-    timeout=10.0
+    "https://api.example.com/user-data", max_retries=1, timeout=10.0
 )
 ```
 
@@ -428,7 +393,7 @@ response = get_with_automatic_retry(
     "https://api.example.com/batch-process",
     max_retries=5,
     backoff_factor=1.0,
-    timeout=60.0
+    timeout=60.0,
 )
 ```
 
@@ -442,7 +407,7 @@ response = get_with_automatic_retry(
     "https://api.example.com/rate-limited",
     max_retries=5,
     backoff_factor=2.0,  # Longer waits
-    status_forcelist=(429,)  # Only retry on rate limit
+    status_forcelist=(429,),  # Only retry on rate limit
 )
 ```
 
