@@ -84,14 +84,12 @@ def test_request_with_automatic_retry_retry_on_retryable_status(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        max_retries=3,
-        backoff_factor=0.5,
         status_forcelist=(503,),
     )
 
     assert response == mock_response
-    assert mock_request_func.call_count == 2
-    mock_sleep.assert_called_once_with(0.5)
+    assert mock_request_func.call_args_list == [call(url=TEST_URL), call(url=TEST_URL)]
+    mock_sleep.assert_called_once_with(0.3)
 
 
 def test_request_with_automatic_retry_multiple_retries_before_success(
@@ -107,15 +105,17 @@ def test_request_with_automatic_retry_multiple_retries_before_success(
         url=TEST_URL,
         method="POST",
         request_func=mock_request_func,
-        max_retries=5,
-        backoff_factor=1.0,
         status_forcelist=(500,),
     )
 
     assert response == mock_response
-    assert mock_request_func.call_count == 4
-    # Exponential backoff: 1.0 * 2^0, 1.0 * 2^1, 1.0 * 2^2
-    assert mock_sleep.call_args_list == [call(1.0), call(2.0), call(4.0)]
+    assert mock_request_func.call_args_list == [
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+    ]
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
 def test_request_with_automatic_retry_max_retries_exceeded(mock_sleep: Mock) -> None:
@@ -130,14 +130,17 @@ def test_request_with_automatic_retry_max_retries_exceeded(mock_sleep: Mock) -> 
             method="GET",
             request_func=mock_request_func,
             max_retries=2,
-            backoff_factor=0.2,
             status_forcelist=(502,),
         )
 
     assert exc_info.value.status_code == 502
     assert "failed with status 502 after 3 attempts" in str(exc_info.value)
-    assert mock_request_func.call_count == 3
-    assert mock_sleep.call_args_list == [call(0.2), call(0.4)]
+    assert mock_request_func.call_args_list == [
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+    ]
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
 def test_request_with_automatic_retry_non_retryable_status_raises_immediately(
@@ -178,11 +181,10 @@ def test_request_with_automatic_retry_timeout_exception(mock_sleep: Mock) -> Non
             method="PUT",
             request_func=mock_request_func,
             max_retries=0,
-            backoff_factor=0.5,
             status_forcelist=(500,),
         )
 
-    mock_request_func.assert_called_once()
+    mock_request_func.assert_called_once_with(url=TEST_URL)
     mock_sleep.assert_not_called()
 
 
@@ -201,12 +203,15 @@ def test_request_with_automatic_retry_timeout_exception_with_retries(
             method="PUT",
             request_func=mock_request_func,
             max_retries=2,
-            backoff_factor=0.5,
             status_forcelist=(500,),
         )
 
-    assert mock_request_func.call_count == 3
-    assert mock_sleep.call_args_list == [call(0.5), call(1.0)]
+    assert mock_request_func.call_args_list == [
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+    ]
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
 def test_request_with_automatic_retry_request_error(mock_sleep: Mock) -> None:
@@ -225,11 +230,10 @@ def test_request_with_automatic_retry_request_error(mock_sleep: Mock) -> None:
             method="DELETE",
             request_func=mock_request_func,
             max_retries=0,
-            backoff_factor=0.1,
             status_forcelist=(500,),
         )
 
-    mock_request_func.assert_called_once()
+    mock_request_func.assert_called_once_with(url=TEST_URL)
     mock_sleep.assert_not_called()
 
 
@@ -243,12 +247,11 @@ def test_request_with_automatic_retry_request_error_with_retries(mock_sleep: Moc
             method="DELETE",
             request_func=mock_request_func,
             max_retries=1,
-            backoff_factor=0.1,
             status_forcelist=(500,),
         )
 
-    assert mock_request_func.call_count == 2
-    assert mock_sleep.call_args_list == [call(0.1)]
+    assert mock_request_func.call_args_list == [call(url=TEST_URL), call(url=TEST_URL)]
+    assert mock_sleep.call_args_list == [call(0.3)]
 
 
 def test_request_with_automatic_retry_zero_max_retries(mock_sleep: Mock) -> None:
@@ -262,7 +265,6 @@ def test_request_with_automatic_retry_zero_max_retries(mock_sleep: Mock) -> None
             method="GET",
             request_func=mock_request_func,
             max_retries=0,
-            backoff_factor=0.3,
             status_forcelist=(500,),
         )
 
@@ -270,9 +272,7 @@ def test_request_with_automatic_retry_zero_max_retries(mock_sleep: Mock) -> None
     mock_sleep.assert_not_called()
 
 
-def test_request_with_automatic_retry_zero_backoff_factor(
-    mock_response: httpx.Response, mock_sleep: Mock
-) -> None:
+def test_request_with_automatic_retry_zero_backoff_factor(mock_response: httpx.Response) -> None:
     """Test with zero backoff_factor - should not sleep."""
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
@@ -281,13 +281,11 @@ def test_request_with_automatic_retry_zero_backoff_factor(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        max_retries=3,
         backoff_factor=0.0,
         status_forcelist=(503,),
     )
 
     assert response == mock_response
-    mock_sleep.assert_called_once_with(0.0)
 
 
 @pytest.mark.parametrize("status_code", [200, 201, 202, 204, 206])
@@ -371,8 +369,6 @@ def test_request_with_automatic_retry_empty_status_forcelist(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            max_retries=3,
-            backoff_factor=0.3,
             status_forcelist=(),
         )
 
@@ -393,7 +389,6 @@ def test_request_with_automatic_retry_preserves_response_object(mock_sleep: Mock
             method="GET",
             request_func=mock_request_func,
             max_retries=0,
-            backoff_factor=0.3,
             status_forcelist=(503,),
         )
 
@@ -436,13 +431,36 @@ def test_request_with_automatic_retry_high_max_retries(
         method="GET",
         request_func=mock_request_func,
         max_retries=10,
-        backoff_factor=0.1,
+        backoff_factor=1.0,
         status_forcelist=(500,),
     )
 
     assert response == mock_response
     assert mock_request_func.call_count == 10
-    assert len(mock_sleep.call_args_list) == 9
+    assert mock_request_func.call_args_list == [
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+        call(url=TEST_URL),
+    ]
+    assert mock_sleep.call_count == 9
+    assert mock_sleep.call_args_list == [
+        call(1.0),
+        call(2.0),
+        call(4.0),
+        call(8.0),
+        call(16.0),
+        call(32.0),
+        call(64.0),
+        call(128.0),
+        call(256.0),
+    ]
 
 
 def test_request_with_automatic_retry_uses_default_max_retries(mock_sleep: Mock) -> None:
@@ -460,7 +478,7 @@ def test_request_with_automatic_retry_uses_default_max_retries(mock_sleep: Mock)
             request_func=mock_request_func,
         )
 
-    # With default max_retries=3, should attempt 4 times total (1 initial + 3 retries)
+    # With default  should attempt 4 times total (1 initial + 3 retries)
     assert mock_request_func.call_count == DEFAULT_MAX_RETRIES + 1
     # Should have 3 sleep calls with exponential backoff using default backoff_factor (0.3)
     assert len(mock_sleep.call_args_list) == DEFAULT_MAX_RETRIES
@@ -502,9 +520,7 @@ def test_request_with_automatic_retry_uses_default_status_forcelist(
     )
 
     assert response == mock_response
-    # Should retry since status_code is in default RETRY_STATUS_CODES
-    assert mock_request_func.call_count == 2
-    mock_request_func.reset_mock()
+    assert mock_request_func.call_args_list == [call(url=TEST_URL), call(url=TEST_URL)]
     mock_sleep.assert_called_once_with(0.3)
 
 
@@ -541,7 +557,6 @@ def test_request_with_automatic_retry_mixed_error_and_status_failures(
         method="GET",
         request_func=mock_request_func,
         max_retries=5,
-        backoff_factor=0.3,
         status_forcelist=(502,),
     )
 
@@ -561,8 +576,6 @@ def test_request_with_automatic_retry_network_error(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            max_retries=3,
-            backoff_factor=0.3,
             status_forcelist=(500,),
         )
 
@@ -581,8 +594,6 @@ def test_request_with_automatic_retry_read_error(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            max_retries=3,
-            backoff_factor=0.3,
             status_forcelist=(500,),
         )
 
@@ -601,8 +612,6 @@ def test_request_with_automatic_retry_write_error(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="POST",
             request_func=mock_request_func,
-            max_retries=3,
-            backoff_factor=0.3,
             status_forcelist=(500,),
         )
 
@@ -621,8 +630,6 @@ def test_request_with_automatic_retry_connect_timeout(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="POST",
             request_func=mock_request_func,
-            max_retries=3,
-            backoff_factor=0.3,
             status_forcelist=(500,),
         )
 
@@ -641,8 +648,6 @@ def test_request_with_automatic_retry_read_timeout(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="DELETE",
             request_func=mock_request_func,
-            max_retries=3,
-            backoff_factor=0.3,
             status_forcelist=(500,),
         )
 
@@ -661,8 +666,6 @@ def test_request_with_automatic_retry_pool_timeout(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="PATCH",
             request_func=mock_request_func,
-            max_retries=3,
-            backoff_factor=0.3,
             status_forcelist=(500,),
         )
 
@@ -681,8 +684,6 @@ def test_request_with_automatic_retry_proxy_error(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="HEAD",
             request_func=mock_request_func,
-            max_retries=3,
-            backoff_factor=0.3,
             status_forcelist=(500,),
         )
 
@@ -707,7 +708,6 @@ def test_request_with_automatic_retry_recovery_after_multiple_failures(
         method="GET",
         request_func=mock_request_func,
         max_retries=5,
-        backoff_factor=0.3,
         status_forcelist=(429, 500, 503),
     )
 
@@ -732,7 +732,6 @@ def test_request_with_automatic_retry_error_message_includes_url(mock_sleep: Moc
             method="GET",
             request_func=mock_request_func,
             max_retries=0,
-            backoff_factor=0.3,
             status_forcelist=(503,),
         )
 
