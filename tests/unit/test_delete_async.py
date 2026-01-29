@@ -67,7 +67,9 @@ async def test_delete_with_automatic_retry_async_delete_with_headers(
     )
 
     assert response.status_code == 200
-    mock_client.delete.assert_called_once_with(url=TEST_URL, headers={"Authorization": "Bearer token"})
+    mock_client.delete.assert_called_once_with(
+        url=TEST_URL, headers={"Authorization": "Bearer token"}
+    )
     mock_asleep.assert_not_called()
 
 
