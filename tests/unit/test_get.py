@@ -251,7 +251,7 @@ def test_get_with_automatic_retry_custom_timeout(
         mock_client_class.return_value = mock_client
         get_with_automatic_retry(TEST_URL, timeout=30.0)
 
-    mock_client_class.assert_called_once_with(timeout=30.0)
+    mock_client_class.assert_called_once_with(timeout=30.0, follow_redirects=True)
     mock_sleep.assert_not_called()
 
 
@@ -283,7 +283,7 @@ def test_get_with_automatic_retry_with_httpx_timeout_object(
         mock_client_class.return_value = mock_client_instance
         response = get_with_automatic_retry(TEST_URL, timeout=timeout_config)
 
-    mock_client_class.assert_called_once_with(timeout=timeout_config)
+    mock_client_class.assert_called_once_with(timeout=timeout_config, follow_redirects=True)
     assert response.status_code == 200
     mock_sleep.assert_not_called()
 
