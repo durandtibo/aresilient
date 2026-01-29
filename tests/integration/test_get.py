@@ -1,5 +1,3 @@
-r"""Integration tests for get_with_automatic_retry function."""
-
 from __future__ import annotations
 
 import httpx
@@ -11,9 +9,9 @@ from aresnet import get_with_automatic_retry
 HTTPBIN_URL = "https://httpbin.org"
 
 
-###################################################
+##############################################
 #     Tests for get_with_automatic_retry     #
-###################################################
+##############################################
 
 
 def test_get_with_automatic_retry_successful_request() -> None:
