@@ -41,7 +41,7 @@ def test_post_with_non_retryable_status_fails_immediately() -> None:
     retries."""
     with (
         httpx.Client() as client,
-        pytest.raises(httpx.HTTPStatusError, match="Client error '404 NOT FOUND'"),
+        pytest.raises(httpx.HTTPStatusError, match=r"Client error '404 NOT FOUND'"),
     ):
         post_with_automatic_retry(url=f"{HTTPBIN_URL}/status/404", client=client)
 

@@ -1,8 +1,9 @@
-r"""Contain synchronous HTTP GET request with automatic retry logic."""
+r"""Contain synchronous HTTP PATCH request with automatic retry
+logic."""
 
 from __future__ import annotations
 
-__all__ = ["get_with_automatic_retry"]
+__all__ = ["patch_with_automatic_retry"]
 
 from typing import Any
 
@@ -18,7 +19,7 @@ from aresnet.request import request_with_automatic_retry
 from aresnet.utils import validate_retry_params
 
 
-def get_with_automatic_retry(
+def patch_with_automatic_retry(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -28,16 +29,16 @@ def get_with_automatic_retry(
     status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
     **kwargs: Any,
 ) -> httpx.Response:
-    r"""Send an HTTP GET request with automatic retry logic for transient
-    errors.
+    r"""Send an HTTP PATCH request with automatic retry logic for
+    transient errors.
 
-    This function performs an HTTP GET request with a configured retry policy
+    This function performs an HTTP PATCH request with a configured retry policy
     for transient server errors (429, 500, 502, 503, 504). It applies an
     exponential backoff retry strategy. The function validates the HTTP
     response and raises detailed errors for failures.
 
     Args:
-        url: The URL to send the GET request to.
+        url: The URL to send the PATCH request to.
         client: An optional httpx.Client object to use for making requests.
             If None, a new client will be created and closed after use.
         timeout: Maximum seconds to wait for the server response.
@@ -48,7 +49,7 @@ def get_with_automatic_retry(
             time is calculated as: {backoff_factor} * (2 ** retry_number) seconds.
             Must be >= 0.
         status_forcelist: Tuple of HTTP status codes that should trigger a retry.
-        **kwargs: Additional keyword arguments passed to ``httpx.Client.get()``.
+        **kwargs: Additional keyword arguments passed to ``httpx.Client.patch()``.
 
     Returns:
         An httpx.Response object containing the server's HTTP response.
@@ -60,9 +61,9 @@ def get_with_automatic_retry(
 
     Example:
         ```pycon
-        >>> from aresnet import get_with_automatic_retry
-        >>> response = get_with_automatic_retry(
-        ...     "https://api.example.com/data", json={"key": "value"}
+        >>> from aresnet import patch_with_automatic_retry
+        >>> response = patch_with_automatic_retry(
+        ...     "https://api.example.com/resource/123", json={"status": "updated"}
         ... )  # doctest: +SKIP
         >>> response.json()  # doctest: +SKIP
         ```
@@ -75,8 +76,8 @@ def get_with_automatic_retry(
     try:
         return request_with_automatic_retry(
             url=url,
-            method="GET",
-            request_func=client.get,
+            method="PATCH",
+            request_func=client.patch,
             max_retries=max_retries,
             backoff_factor=backoff_factor,
             status_forcelist=status_forcelist,

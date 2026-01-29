@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 import httpx
 
-from aresnet.exception import HttpRequestError
+from aresnet.exceptions import HttpRequestError
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -99,6 +99,9 @@ def request_with_automatic_retry(
 
         except httpx.TimeoutException as exc:
             # Request timed out - retry if attempts remain
+            logger.debug(
+                f"{method} request to {url} timed out on attempt {attempt + 1}/{max_retries + 1}"
+            )
             if attempt == max_retries:
                 raise HttpRequestError(
                     method=method,
@@ -109,6 +112,9 @@ def request_with_automatic_retry(
 
         except httpx.RequestError as exc:
             # Network error (connection failed, DNS failure, etc.) - retry if attempts remain
+            logger.debug(
+                f"{method} request to {url} encountered network error on attempt {attempt + 1}/{max_retries + 1}: {exc}"
+            )
             if attempt == max_retries:
                 raise HttpRequestError(
                     method=method,

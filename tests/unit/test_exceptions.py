@@ -74,7 +74,7 @@ def test_http_request_error_initialization_with_all_parameters(
 
 def test_http_request_error_initialization_with_keyword_only_arguments() -> None:
     """Test that all arguments must be passed as keyword arguments."""
-    with pytest.raises(TypeError, match="takes 1 positional argument"):
+    with pytest.raises(TypeError, match=r"takes 1 positional argument"):
         HttpRequestError("GET", "https://example.com", "Error message")
 
 
@@ -304,7 +304,7 @@ def test_http_request_error_raising_and_catching() -> None:
 
 def test_http_request_error_exception_message_in_traceback() -> None:
     """Test that the error message appears in the traceback."""
-    with pytest.raises(HttpRequestError, match="Custom error message"):
+    with pytest.raises(HttpRequestError, match=r"Custom error message"):
         raise HttpRequestError(
             method="GET", url="https://example.com", message="Custom error message"
         )
