@@ -513,6 +513,7 @@ def test_put_with_automatic_retry_pool_timeout(mock_client: httpx.Client, mock_s
 def test_put_with_automatic_retry_proxy_error(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test that ProxyError is retried appropriately."""
     mock_client.put.side_effect = httpx.ProxyError("Proxy error")
+
     with pytest.raises(
         HttpRequestError,
         match=r"PUT request to https://api.example.com/resource failed after 4 attempts",

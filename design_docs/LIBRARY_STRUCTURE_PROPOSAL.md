@@ -194,7 +194,7 @@ src/aresnet/
    ```python
    # Current (Good)
    from aresnet import get_with_automatic_retry
-   
+
    # With sub-packages (More complex, no clear benefit)
    from aresnet.requests import get_with_automatic_retry
    ```

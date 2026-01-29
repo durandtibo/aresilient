@@ -523,6 +523,7 @@ def test_patch_with_automatic_retry_proxy_error(
 ) -> None:
     """Test that ProxyError is retried appropriately."""
     mock_client.patch.side_effect = httpx.ProxyError("Proxy error")
+
     with pytest.raises(
         HttpRequestError,
         match=r"PATCH request to https://api.example.com/resource/123 failed after 4 attempts",

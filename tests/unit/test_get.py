@@ -523,6 +523,7 @@ def test_get_with_automatic_retry_pool_timeout(mock_client: httpx.Client, mock_s
 def test_get_with_automatic_retry_proxy_error(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test that ProxyError is retried appropriately."""
     mock_client.get.side_effect = httpx.ProxyError("Proxy connection failed")
+
     with (
         pytest.raises(
             HttpRequestError,

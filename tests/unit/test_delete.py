@@ -527,6 +527,7 @@ def test_delete_with_automatic_retry_proxy_error(
 ) -> None:
     """Test that ProxyError is retried appropriately."""
     mock_client.delete.side_effect = httpx.ProxyError("Proxy error")
+
     with pytest.raises(
         HttpRequestError,
         match=r"DELETE request to https://api.example.com/resource/123 failed after 4 attempts",
