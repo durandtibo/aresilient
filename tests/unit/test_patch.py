@@ -87,7 +87,8 @@ def test_patch_with_automatic_retry_retry_on_503_status(
 def test_patch_with_automatic_retry_max_retries_exceeded(
     mock_client: httpx.Client, mock_sleep: Mock
 ) -> None:
-    """Test that HttpRequestError is raised when max retries exceeded."""
+    """Test that HttpRequestError is raised when max retries
+    exceeded."""
     mock_response = Mock(spec=httpx.Response, status_code=503)
     mock_client.patch.return_value = mock_response
 
@@ -367,9 +368,7 @@ def test_patch_with_automatic_retry_with_headers(
     mock_sleep.assert_not_called()
 
 
-def test_patch_with_automatic_retry_with_data(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_patch_with_automatic_retry_with_data(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test PATCH request with form data."""
     response = patch_with_automatic_retry(
         TEST_URL, client=mock_client, data={"field1": "value1", "field2": "value2"}
@@ -451,9 +450,7 @@ def test_patch_with_automatic_retry_network_error(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_patch_with_automatic_retry_read_error(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_patch_with_automatic_retry_read_error(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test that ReadError is retried appropriately."""
     mock_client.patch.side_effect = httpx.ReadError("Read error")
     with pytest.raises(

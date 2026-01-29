@@ -51,7 +51,9 @@ def test_delete_with_automatic_retry_with_json_payload(
     mock_client: httpx.Client, mock_sleep: Mock
 ) -> None:
     """Test DELETE request with JSON data."""
-    response = delete_with_automatic_retry(TEST_URL, json={"reason": "deprecated"}, client=mock_client)
+    response = delete_with_automatic_retry(
+        TEST_URL, json={"reason": "deprecated"}, client=mock_client
+    )
 
     assert response.status_code == 204
     mock_client.delete.assert_called_once_with(url=TEST_URL, json={"reason": "deprecated"})
@@ -87,7 +89,8 @@ def test_delete_with_automatic_retry_retry_on_503_status(
 def test_delete_with_automatic_retry_max_retries_exceeded(
     mock_client: httpx.Client, mock_sleep: Mock
 ) -> None:
-    """Test that HttpRequestError is raised when max retries exceeded."""
+    """Test that HttpRequestError is raised when max retries
+    exceeded."""
     mock_response = Mock(spec=httpx.Response, status_code=503)
     mock_client.delete.return_value = mock_response
 
@@ -367,9 +370,7 @@ def test_delete_with_automatic_retry_with_headers(
     mock_sleep.assert_not_called()
 
 
-def test_delete_with_automatic_retry_with_data(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_delete_with_automatic_retry_with_data(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test DELETE request with form data."""
     response = delete_with_automatic_retry(
         TEST_URL, client=mock_client, data={"reason": "deprecated", "permanent": "true"}

@@ -87,7 +87,8 @@ def test_put_with_automatic_retry_retry_on_503_status(
 def test_put_with_automatic_retry_max_retries_exceeded(
     mock_client: httpx.Client, mock_sleep: Mock
 ) -> None:
-    """Test that HttpRequestError is raised when max retries exceeded."""
+    """Test that HttpRequestError is raised when max retries
+    exceeded."""
     mock_response = Mock(spec=httpx.Response, status_code=503)
     mock_client.put.return_value = mock_response
 
@@ -349,9 +350,7 @@ def test_put_with_automatic_retry_successful_3xx_status_codes(
     mock_sleep.assert_not_called()
 
 
-def test_put_with_automatic_retry_with_headers(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_put_with_automatic_retry_with_headers(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test PUT request with custom headers."""
     response = put_with_automatic_retry(
         TEST_URL,
@@ -367,9 +366,7 @@ def test_put_with_automatic_retry_with_headers(
     mock_sleep.assert_not_called()
 
 
-def test_put_with_automatic_retry_with_data(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_put_with_automatic_retry_with_data(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test PUT request with form data."""
     response = put_with_automatic_retry(
         TEST_URL, client=mock_client, data={"field1": "value1", "field2": "value2"}
@@ -451,9 +448,7 @@ def test_put_with_automatic_retry_network_error(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_put_with_automatic_retry_read_error(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_put_with_automatic_retry_read_error(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test that ReadError is retried appropriately."""
     mock_client.put.side_effect = httpx.ReadError("Read error")
     with pytest.raises(
@@ -465,9 +460,7 @@ def test_put_with_automatic_retry_read_error(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_put_with_automatic_retry_write_error(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_put_with_automatic_retry_write_error(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test that WriteError is retried appropriately."""
     mock_client.put.side_effect = httpx.WriteError("Write error")
     with pytest.raises(
@@ -493,9 +486,7 @@ def test_put_with_automatic_retry_connect_timeout(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_put_with_automatic_retry_read_timeout(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_put_with_automatic_retry_read_timeout(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test that ReadTimeout is retried appropriately."""
     mock_client.put.side_effect = httpx.ReadTimeout("Read timeout")
     with pytest.raises(
@@ -507,9 +498,7 @@ def test_put_with_automatic_retry_read_timeout(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_put_with_automatic_retry_pool_timeout(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_put_with_automatic_retry_pool_timeout(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test that PoolTimeout is retried appropriately."""
     mock_client.put.side_effect = httpx.PoolTimeout("Pool timeout")
     with pytest.raises(
@@ -521,9 +510,7 @@ def test_put_with_automatic_retry_pool_timeout(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_put_with_automatic_retry_proxy_error(
-    mock_client: httpx.Client, mock_sleep: Mock
-) -> None:
+def test_put_with_automatic_retry_proxy_error(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test that ProxyError is retried appropriately."""
     mock_client.put.side_effect = httpx.ProxyError("Proxy error")
     with pytest.raises(
