@@ -92,8 +92,11 @@ def request_with_automatic_retry(
     2. Timeout exceptions (httpx.TimeoutException)
     3. General network errors (httpx.RequestError)
 
-    Exponential backoff wait time: backoff_factor * (2 ** attempt)
-    where attempt is 0-indexed (0, 1, 2, ...).
+    Backoff Strategy:
+    - Exponential backoff: backoff_factor * (2 ** attempt)
+    - Jitter: Up to 10% randomization added to prevent thundering herd
+    - Retry-After header: If present in the response (429/503), the server's
+      suggested wait time is used instead of exponential backoff
 
     Args:
         url: The URL to send the request to.
@@ -104,7 +107,9 @@ def request_with_automatic_retry(
             Must be >= 0.
         backoff_factor: Factor for exponential backoff between retries. The wait
             time is calculated as: {backoff_factor} * (2 ** attempt) seconds,
-            where attempt is 0-indexed (0, 1, 2, ...).
+            where attempt is 0-indexed (0, 1, 2, ...). Jitter of up to 10% is
+            added to this base value to prevent synchronized retries across
+            multiple clients.
         status_forcelist: Tuple of HTTP status codes that should trigger a retry.
         **kwargs: Additional keyword arguments passed to the request function.
 
