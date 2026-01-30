@@ -4,10 +4,10 @@ from __future__ import annotations
 
 __all__ = ["put_with_automatic_retry"]
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    import httpx
+import httpx
+
 
 from aresnet.config import (
     DEFAULT_BACKOFF_FACTOR,
@@ -16,7 +16,7 @@ from aresnet.config import (
     RETRY_STATUS_CODES,
 )
 from aresnet.request import request_with_automatic_retry
-from aresnet.utils import http_method_with_retry_wrapper
+from aresnet.utils import http_method_with_retry_wrapper, validate_retry_params
 
 
 def put_with_automatic_retry(
@@ -68,15 +68,22 @@ def put_with_automatic_retry(
 
         ```
     """
-    return http_method_with_retry_wrapper(
-        url=url,
-        method="PUT",
-        client_method_name="put",
-        request_with_retry=request_with_automatic_retry,
-        client=client,
-        timeout=timeout,
-        max_retries=max_retries,
-        backoff_factor=backoff_factor,
-        status_forcelist=status_forcelist,
-        **kwargs,
-    )
+    # Input validation
+    validate_retry_params(max_retries, backoff_factor)
+
+    owns_client = client is None
+    client = client or httpx.Client(timeout=timeout)
+    try:
+        return http_method_with_retry_wrapper(
+            url=url,
+            method="PUT",
+            request_func=client.put,
+            request_with_retry=request_with_automatic_retry,
+            max_retries=max_retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=status_forcelist,
+            **kwargs,
+        )
+    finally:
+        if owns_client:
+            client.close()
