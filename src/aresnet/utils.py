@@ -2,14 +2,18 @@ r"""Contain utility functions for HTTP requests."""
 
 from __future__ import annotations
 
-__all__ = ["validate_retry_params", "http_method_with_retry_wrapper", "http_method_with_retry_wrapper_async"]
+__all__ = [
+    "http_method_with_retry_wrapper",
+    "http_method_with_retry_wrapper_async",
+    "validate_retry_params",
+]
 
 from typing import TYPE_CHECKING, Any
 
+import httpx
+
 if TYPE_CHECKING:
     from collections.abc import Callable
-
-    import httpx
 
 from aresnet.config import (
     DEFAULT_BACKOFF_FACTOR,
@@ -60,7 +64,7 @@ def http_method_with_retry_wrapper(
     status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
     **kwargs: Any,
 ) -> httpx.Response:
-    """Common wrapper for HTTP methods with automatic retry logic.
+    """Wrap HTTP methods with automatic retry logic.
 
     This function provides the common implementation used by all HTTP method
     functions (GET, POST, PUT, DELETE, PATCH) to reduce code duplication.
@@ -91,8 +95,6 @@ def http_method_with_retry_wrapper(
             or fails after exhausting all retries.
         ValueError: If max_retries or backoff_factor are negative.
     """
-    import httpx
-
     # Input validation
     validate_retry_params(max_retries, backoff_factor)
 
@@ -127,7 +129,7 @@ async def http_method_with_retry_wrapper_async(
     status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
     **kwargs: Any,
 ) -> httpx.Response:
-    """Common async wrapper for HTTP methods with automatic retry logic.
+    """Wrap async HTTP methods with automatic retry logic.
 
     This function provides the common implementation used by all async HTTP method
     functions (GET, POST, PUT, DELETE, PATCH) to reduce code duplication.
@@ -158,8 +160,6 @@ async def http_method_with_retry_wrapper_async(
             or fails after exhausting all retries.
         ValueError: If max_retries or backoff_factor are negative.
     """
-    import httpx
-
     # Input validation
     validate_retry_params(max_retries, backoff_factor)
 
