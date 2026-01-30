@@ -66,6 +66,7 @@ HTTP communications, making your applications more robust and fault-tolerant.
   codes (429, 500, 502, 503, 504 by default)
 - **Exponential Backoff**: Implements exponential backoff strategy to avoid overwhelming servers
 - **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH)
+- **Async Support**: Fully supports asynchronous requests for high-performance applications
 - **Built on httpx**: Leverages the modern, async-capable httpx library
 - **Configurable**: Customize timeout, retry attempts, backoff factors, and retryable status codes
 - **Type-Safe**: Fully typed with comprehensive type hints
@@ -170,6 +171,49 @@ except HttpRequestError as e:
     print(f"Method: {e.method}")
     print(f"URL: {e.url}")
     print(f"Status Code: {e.status_code}")
+```
+
+### Using Async
+
+All HTTP methods have async versions for concurrent request processing:
+
+```python
+import asyncio
+from aresnet import get_with_automatic_retry_async
+
+
+async def fetch_data():
+    response = await get_with_automatic_retry_async("https://api.example.com/data")
+    return response.json()
+
+
+# Run the async function
+data = asyncio.run(fetch_data())
+print(data)
+```
+
+### Concurrent Async Requests
+
+Process multiple requests concurrently for better performance:
+
+```python
+import asyncio
+from aresnet import get_with_automatic_retry_async
+
+
+async def fetch_multiple():
+    urls = [
+        "https://api.example.com/data1",
+        "https://api.example.com/data2",
+        "https://api.example.com/data3",
+    ]
+    tasks = [get_with_automatic_retry_async(url) for url in urls]
+    responses = await asyncio.gather(*tasks)
+    return [r.json() for r in responses]
+
+
+# Fetch multiple URLs concurrently
+results = asyncio.run(fetch_multiple())
 ```
 
 ## Configuration
@@ -302,6 +346,29 @@ Performs an HTTP PATCH request with automatic retry logic.
 
 - `HttpRequestError`: If the request fails after all retries
 - `ValueError`: If parameters are invalid
+
+### Async Versions
+
+All synchronous functions have async counterparts with identical parameters:
+
+- `get_with_automatic_retry_async()` - Async version of GET
+- `post_with_automatic_retry_async()` - Async version of POST
+- `put_with_automatic_retry_async()` - Async version of PUT
+- `delete_with_automatic_retry_async()` - Async version of DELETE
+- `patch_with_automatic_retry_async()` - Async version of PATCH
+
+These functions work exactly like their synchronous counterparts but must be awaited and use
+`httpx.AsyncClient` instead of `httpx.Client`.
+
+### Low-Level Functions
+
+For custom HTTP methods or advanced use cases:
+
+- `request_with_automatic_retry()` - Generic synchronous request with retry logic
+- `request_with_automatic_retry_async()` - Generic async request with retry logic
+
+These functions allow you to specify any HTTP method (e.g., HEAD, OPTIONS) and provide your own
+request function from an httpx client.
 
 ### `HttpRequestError`
 

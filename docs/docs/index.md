@@ -65,6 +65,8 @@ HTTP communications, making your applications more robust and fault-tolerant.
 - **Automatic Retry Logic**: Automatically retries failed requests for configurable HTTP status
   codes (429, 500, 502, 503, 504 by default)
 - **Exponential Backoff**: Implements exponential backoff strategy to avoid overwhelming servers
+- **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH)
+- **Async Support**: Fully supports asynchronous requests for high-performance applications
 - **Built on httpx**: Leverages the modern, async-capable httpx library
 - **Configurable**: Customize timeout, retry attempts, backoff factors, and retryable status codes
 - **Type-Safe**: Fully typed with comprehensive type hints
@@ -107,6 +109,45 @@ response = get_with_automatic_retry(
     timeout=30.0,  # 30 second timeout
     status_forcelist=(429, 503),  # Only retry on these status codes
 )
+```
+
+### Using Async
+
+```python
+import asyncio
+from aresnet import get_with_automatic_retry_async
+
+
+async def fetch_data():
+    response = await get_with_automatic_retry_async("https://api.example.com/data")
+    return response.json()
+
+
+# Run the async function
+data = asyncio.run(fetch_data())
+print(data)
+```
+
+### Async with Multiple Requests
+
+```python
+import asyncio
+from aresnet import get_with_automatic_retry_async
+
+
+async def fetch_multiple():
+    urls = [
+        "https://api.example.com/data1",
+        "https://api.example.com/data2",
+        "https://api.example.com/data3",
+    ]
+    tasks = [get_with_automatic_retry_async(url) for url in urls]
+    responses = await asyncio.gather(*tasks)
+    return [r.json() for r in responses]
+
+
+# Fetch multiple URLs concurrently
+results = asyncio.run(fetch_multiple())
 ```
 
 ## Installation

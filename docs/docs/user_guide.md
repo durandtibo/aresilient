@@ -6,9 +6,11 @@ requests with automatic retry logic.
 ## Table of Contents
 
 - [Basic Usage](#basic-usage)
+- [Async Usage](#async-usage)
 - [Configuration Options](#configuration-options)
 - [Advanced Usage](#advanced-usage)
 - [Error Handling](#error-handling)
+- [Custom HTTP Methods](#custom-http-methods)
 - [Best Practices](#best-practices)
 
 ## Basic Usage
@@ -43,6 +45,139 @@ print(response.status_code)
 response = post_with_automatic_retry(
     "https://api.example.com/submit", data={"field1": "value1", "field2": "value2"}
 )
+```
+
+### Other HTTP Methods
+
+`aresnet` supports all common HTTP methods:
+
+```python
+from aresnet import (
+    put_with_automatic_retry,
+    delete_with_automatic_retry,
+    patch_with_automatic_retry,
+)
+
+# PUT request to update a resource
+response = put_with_automatic_retry(
+    "https://api.example.com/resource/123", json={"name": "updated"}
+)
+
+# DELETE request to remove a resource
+response = delete_with_automatic_retry("https://api.example.com/resource/123")
+
+# PATCH request to partially update a resource
+response = patch_with_automatic_retry(
+    "https://api.example.com/resource/123", json={"status": "active"}
+)
+```
+
+## Async Usage
+
+`aresnet` provides asynchronous versions of all HTTP methods for use in async applications.
+All async functions have the same parameters as their synchronous counterparts.
+
+### Making Async GET Requests
+
+```python
+import asyncio
+from aresnet import get_with_automatic_retry_async
+
+
+async def fetch_data():
+    response = await get_with_automatic_retry_async("https://api.example.com/data")
+    return response.json()
+
+
+# Run the async function
+data = asyncio.run(fetch_data())
+print(data)
+```
+
+### Making Async POST Requests
+
+```python
+import asyncio
+from aresnet import post_with_automatic_retry_async
+
+
+async def create_user():
+    response = await post_with_automatic_retry_async(
+        "https://api.example.com/users",
+        json={"name": "Jane Doe", "email": "jane@example.com"},
+    )
+    return response.status_code
+
+
+# Run the async function
+status = asyncio.run(create_user())
+print(f"Status: {status}")
+```
+
+### Other Async HTTP Methods
+
+All HTTP methods have async versions:
+
+```python
+from aresnet import (
+    put_with_automatic_retry_async,
+    delete_with_automatic_retry_async,
+    patch_with_automatic_retry_async,
+)
+```
+
+### Using Async with httpx.AsyncClient
+
+For better performance with multiple async requests, reuse an `httpx.AsyncClient`:
+
+```python
+import asyncio
+import httpx
+from aresnet import get_with_automatic_retry_async, post_with_automatic_retry_async
+
+
+async def fetch_multiple_resources():
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        # Make multiple concurrent requests
+        users_task = get_with_automatic_retry_async(
+            "https://api.example.com/users", client=client
+        )
+        posts_task = get_with_automatic_retry_async(
+            "https://api.example.com/posts", client=client
+        )
+
+        # Wait for both requests to complete
+        users, posts = await asyncio.gather(users_task, posts_task)
+
+        return users.json(), posts.json()
+
+
+# Run the async function
+users_data, posts_data = asyncio.run(fetch_multiple_resources())
+```
+
+### Concurrent Async Requests
+
+Process multiple URLs concurrently for better performance:
+
+```python
+import asyncio
+from aresnet import get_with_automatic_retry_async
+
+
+async def fetch_all(urls):
+    tasks = [get_with_automatic_retry_async(url) for url in urls]
+    responses = await asyncio.gather(*tasks, return_exceptions=True)
+    return responses
+
+
+# Fetch multiple URLs concurrently
+urls = [
+    "https://api.example.com/data1",
+    "https://api.example.com/data2",
+    "https://api.example.com/data3",
+]
+responses = asyncio.run(fetch_all(urls))
 ```
 
 ## Configuration Options
@@ -338,6 +473,106 @@ except ValueError as e:
     print(f"Invalid JSON response: {e}")
 ```
 
+### Error Handling with Async
+
+Error handling works the same way with async functions:
+
+```python
+import asyncio
+from aresnet import get_with_automatic_retry_async, HttpRequestError
+
+
+async def fetch_with_error_handling():
+    try:
+        response = await get_with_automatic_retry_async("https://api.example.com/data")
+        return response.json()
+    except HttpRequestError as e:
+        print(f"Async request failed: {e}")
+        print(f"Status Code: {e.status_code}")
+        return None
+
+
+result = asyncio.run(fetch_with_error_handling())
+```
+
+## Custom HTTP Methods
+
+For HTTP methods not directly supported or for custom needs, use the
+`request_with_automatic_retry` and `request_with_automatic_retry_async` functions.
+
+### Synchronous Custom Requests
+
+```python
+import httpx
+from aresnet import request_with_automatic_retry
+
+# Example: Using HEAD method
+with httpx.Client() as client:
+    response = request_with_automatic_retry(
+        url="https://api.example.com/resource",
+        method="HEAD",
+        request_func=client.head,
+        max_retries=3,
+    )
+    print(f"Content-Length: {response.headers.get('content-length')}")
+
+# Example: Using OPTIONS method
+with httpx.Client() as client:
+    response = request_with_automatic_retry(
+        url="https://api.example.com/resource",
+        method="OPTIONS",
+        request_func=client.options,
+    )
+    print(f"Allowed methods: {response.headers.get('allow')}")
+```
+
+### Async Custom Requests
+
+```python
+import asyncio
+import httpx
+from aresnet import request_with_automatic_retry_async
+
+
+async def make_custom_request():
+    async with httpx.AsyncClient() as client:
+        # Using HEAD method asynchronously
+        response = await request_with_automatic_retry_async(
+            url="https://api.example.com/resource",
+            method="HEAD",
+            request_func=client.head,
+            max_retries=3,
+        )
+        return response.headers.get("content-length")
+
+
+content_length = asyncio.run(make_custom_request())
+```
+
+### Advanced Custom Request Example
+
+```python
+import httpx
+from aresnet import request_with_automatic_retry
+
+
+def custom_api_call():
+    with httpx.Client(timeout=30.0) as client:
+        # Custom request with specific retry configuration
+        response = request_with_automatic_retry(
+            url="https://api.example.com/custom-endpoint",
+            method="PATCH",
+            request_func=client.patch,
+            max_retries=5,
+            backoff_factor=1.0,
+            status_forcelist=(429, 503),
+            # Additional kwargs passed to client.patch
+            json={"operation": "update", "value": 42},
+            headers={"X-API-Version": "2.0"},
+        )
+        return response.json()
+```
+
 ## Best Practices
 
 ### 1. Use Appropriate Timeouts
@@ -409,6 +644,66 @@ response = get_with_automatic_retry(
     backoff_factor=2.0,  # Longer waits
     status_forcelist=(429,),  # Only retry on rate limit
 )
+```
+
+### 5. Use Async for I/O-Bound Operations
+
+When making multiple HTTP requests, async can significantly improve performance:
+
+```python
+import asyncio
+import httpx
+from aresnet import get_with_automatic_retry_async
+
+
+async def fetch_all_data(urls):
+    async with httpx.AsyncClient() as client:
+        tasks = [get_with_automatic_retry_async(url, client=client) for url in urls]
+        responses = await asyncio.gather(*tasks)
+        return [r.json() for r in responses]
+
+
+# Fetch 10 URLs concurrently instead of sequentially
+urls = [f"https://api.example.com/item/{i}" for i in range(10)]
+results = asyncio.run(fetch_all_data(urls))
+```
+
+### 6. Choose Between Sync and Async Based on Your Application
+
+**Use synchronous functions when:**
+
+- Your application is not using asyncio
+- You're making single, occasional requests
+- Your code is primarily synchronous
+- You're writing simple scripts or command-line tools
+
+**Use async functions when:**
+
+- Your application already uses asyncio
+- You need to make multiple concurrent requests
+- You're building a web application (e.g., FastAPI, Sanic)
+- Performance and scalability are critical
+
+```python
+# Synchronous example - simple script
+from aresnet import get_with_automatic_retry
+
+response = get_with_automatic_retry("https://api.example.com/data")
+print(response.json())
+```
+
+```python
+# Async example - FastAPI application
+from fastapi import FastAPI
+from aresnet import get_with_automatic_retry_async
+
+app = FastAPI()
+
+
+@app.get("/fetch-data")
+async def fetch_data():
+    response = await get_with_automatic_retry_async("https://api.example.com/data")
+    return response.json()
 ```
 
 ## Additional Resources
