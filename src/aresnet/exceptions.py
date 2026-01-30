@@ -65,7 +65,7 @@ class HttpRequestError(RuntimeError):
         message: str,
         status_code: int | None = None,
         response: httpx.Response | None = None,
-        cause: Exception | None = None,
+        cause: BaseException | None = None,
     ) -> None:
         super().__init__(message)
         self.method = method
