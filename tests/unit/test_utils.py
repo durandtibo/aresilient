@@ -17,9 +17,9 @@ from aresnet.utils import (
 TEST_URL = "https://api.example.com/data"
 
 
-###########################################
+##################################################
 #     Tests for validate_retry_params     #
-###########################################
+##################################################
 
 
 @pytest.mark.parametrize(("max_retries", "backoff_factor"), [(0, 0.0), (3, 0.3), (10, 1.5)])
@@ -49,9 +49,9 @@ def test_validate_retry_params_rejects_both_negative() -> None:
         validate_retry_params(-1, -0.5)
 
 
-##########################################
+##################################################
 #     Tests for calculate_sleep_time     #
-##########################################
+##################################################
 
 
 @pytest.mark.parametrize(("attempt", "sleep_time"), [(0, 0.3), (1, 0.6), (2, 1.2)])
@@ -140,9 +140,9 @@ def test_calculate_sleep_time_invalid_retry_after() -> None:
     )
 
 
-#####################################
+##################################################
 #     Tests for handle_response     #
-#####################################
+##################################################
 
 
 def test_handle_response_retryable_status() -> None:
@@ -178,9 +178,9 @@ def test_handle_response_various_non_retryable_codes(status_code: int) -> None:
     assert exc_info.value.status_code == status_code
 
 
-##############################################
+##################################################
 #     Tests for handle_timeout_exception     #
-##############################################
+##################################################
 
 
 @pytest.mark.parametrize("attempt", [0, 1, 2])
@@ -232,9 +232,9 @@ def test_handle_timeout_exception_preserves_cause() -> None:
     assert exc_info.value.__cause__ == exc
 
 
-##########################################
+##################################################
 #     Tests for handle_request_error     #
-##########################################
+##################################################
 
 
 @pytest.mark.parametrize("attempt", [0, 1, 2])

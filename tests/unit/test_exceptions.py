@@ -34,9 +34,9 @@ def mock_response() -> httpx.Response:
     return httpx.Response(status_code=500, request=request, json={"error": "Internal server error"})
 
 
-######################################
+##################################################
 #     Tests for HttpRequestError     #
-######################################
+##################################################
 
 
 def test_http_request_error_basic_initialization() -> None:

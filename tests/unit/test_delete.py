@@ -1,3 +1,5 @@
+r"""Unit tests for delete_with_automatic_retry function."""
+
 from __future__ import annotations
 
 from unittest.mock import Mock, call, patch
@@ -20,9 +22,9 @@ def mock_client(mock_response: httpx.Response) -> httpx.Client:
     return Mock(spec=httpx.Client, delete=Mock(return_value=mock_response))
 
 
-#################################################
+##################################################
 #     Tests for delete_with_automatic_retry     #
-#################################################
+##################################################
 
 
 def test_delete_with_automatic_retry_successful_delete(

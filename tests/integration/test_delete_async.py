@@ -9,9 +9,9 @@ from aresnet import HttpRequestError, delete_with_automatic_retry_async
 HTTPBIN_URL = "https://httpbin.org"
 
 
-#######################################################
+##################################################
 #     Tests for delete_with_automatic_retry_async     #
-#######################################################
+##################################################
 
 
 @pytest.mark.asyncio

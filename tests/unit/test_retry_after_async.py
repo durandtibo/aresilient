@@ -15,7 +15,7 @@ TEST_URL = "https://api.example.com/data"
 
 
 ##################################################
-#     Tests for parse_retry_after               #
+#     Tests for parse_retry_after     #
 ##################################################
 
 
@@ -156,7 +156,7 @@ async def test_request_with_retry_after_mixed_with_backoff_async(mock_asleep: Mo
 
 
 ##################################################
-#     Tests for jitter functionality             #
+#     Tests for jitter functionality     #
 ##################################################
 
 

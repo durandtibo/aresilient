@@ -1,3 +1,5 @@
+r"""Unit tests for delete_with_automatic_retry_async function."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, Mock, call, patch
@@ -28,9 +30,9 @@ def mock_client(mock_response: httpx.Response) -> httpx.AsyncClient:
     )
 
 
-#######################################################
+##################################################
 #     Tests for delete_with_automatic_retry_async     #
-#######################################################
+##################################################
 
 
 @pytest.mark.asyncio

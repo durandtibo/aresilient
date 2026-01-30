@@ -15,9 +15,9 @@ from aresnet.utils import parse_retry_after
 TEST_URL = "https://api.example.com/data"
 
 
-#######################################
+##################################################
 #     Tests for parse_retry_after     #
-#######################################
+##################################################
 
 
 @pytest.mark.parametrize(
@@ -55,9 +55,9 @@ def test_parse_retry_after_http_date() -> None:
         assert 59.0 <= result <= 61.0
 
 
-################################################
+##################################################
 #     Tests for Retry-After in retry logic     #
-################################################
+##################################################
 
 
 def test_request_with_retry_after_header_integer(mock_sleep: Mock) -> None:
@@ -149,9 +149,9 @@ def test_request_with_retry_after_mixed_with_backoff(mock_sleep: Mock) -> None:
     assert mock_sleep.call_args_list == [call(45.0), call(0.6)]
 
 
-##########################################
+##################################################
 #     Tests for jitter functionality     #
-##########################################
+##################################################
 
 
 def test_request_with_jitter_applied(mock_sleep: Mock) -> None:

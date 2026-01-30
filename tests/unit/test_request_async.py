@@ -20,9 +20,9 @@ def mock_request_func(mock_response: httpx.Response) -> AsyncMock:
     return AsyncMock(return_value=mock_response)
 
 
-########################################################
+##################################################
 #     Tests for request_with_automatic_retry_async     #
-########################################################
+##################################################
 
 
 @pytest.mark.asyncio

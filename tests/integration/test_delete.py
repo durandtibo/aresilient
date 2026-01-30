@@ -9,9 +9,9 @@ from aresnet import HttpRequestError, delete_with_automatic_retry
 HTTPBIN_URL = "https://httpbin.org"
 
 
-#################################################
+##################################################
 #     Tests for delete_with_automatic_retry     #
-#################################################
+##################################################
 
 
 def test_delete_with_automatic_retry_successful_request() -> None:

@@ -9,9 +9,9 @@ from aresnet import HttpRequestError, patch_with_automatic_retry
 HTTPBIN_URL = "https://httpbin.org"
 
 
-################################################
+##################################################
 #     Tests for patch_with_automatic_retry     #
-################################################
+##################################################
 
 
 def test_patch_with_automatic_retry_successful_request() -> None:

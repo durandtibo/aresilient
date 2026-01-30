@@ -1,3 +1,5 @@
+r"""Unit tests for get_with_automatic_retry_async function."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, Mock, call, patch
@@ -24,9 +26,9 @@ def mock_client(mock_response: httpx.Response) -> httpx.AsyncClient:
     )
 
 
-####################################################
+##################################################
 #     Tests for get_with_automatic_retry_async     #
-####################################################
+##################################################
 
 
 @pytest.mark.asyncio
