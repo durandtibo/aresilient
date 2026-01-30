@@ -1,4 +1,6 @@
-# Library Structure Proposal for aresnet
+# Library Structure Proposal for aresnet (2025)
+
+> **⚠️ SUPERSEDED**: This document has been superseded by [LIBRARY_STRUCTURE_PROPOSAL_2026.md](LIBRARY_STRUCTURE_PROPOSAL_2026.md) which reflects the current state of the library including async support. This document is kept for historical reference.
 
 ## Executive Summary
 
