@@ -4,9 +4,10 @@ from __future__ import annotations
 
 __all__ = ["put_with_automatic_retry_async"]
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import httpx
+if TYPE_CHECKING:
+    import httpx
 
 from aresnet.config import (
     DEFAULT_BACKOFF_FACTOR,
