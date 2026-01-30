@@ -2,40 +2,92 @@
 
 ## Executive Summary
 
-After analyzing the current codebase (~900 lines, 12 modules), **I recommend keeping the current flat structure** with minor improvements. The library is still small and focused enough that a flat structure provides better discoverability and simplicity.
+After analyzing the current codebase (~1,350 lines, 16 modules), **I recommend continuing with the flat structure**. The library has grown with comprehensive async support but remains appropriately sized for a flat architecture. The `*_async.py` naming convention provides clear sync/async separation while maintaining excellent discoverability and simplicity.
 
 ## Current Structure Analysis
 
 ### Current Layout
+
 ```
 src/aresnet/
-├── __init__.py          (42 lines)  - Main public API
-├── config.py            (27 lines)  - Configuration constants
-├── exception.py         (97 lines)  - Custom exceptions
-├── utils.py             (25 lines)  - Utility functions
-├── request.py          (142 lines)  - Core retry logic (sync)
-├── request_async.py    (142 lines)  - Core retry logic (async)
-├── get.py               (87 lines)  - GET request wrapper
-├── post.py              (87 lines)  - POST request wrapper
-├── put.py               (87 lines)  - PUT request wrapper
-├── delete.py            (89 lines)  - DELETE request wrapper
-└── patch.py             (88 lines)  - PATCH request wrapper
+├── __init__.py          (52 lines)   - Main public API (18 exports)
+├── config.py            (27 lines)   - Configuration constants
+├── exceptions.py        (81 lines)   - Custom exception classes
+├── utils.py             (33 lines)   - Utility/validation functions
+├── request.py          (169 lines)   - Core retry logic (sync)
+├── request_async.py    (173 lines)   - Core retry logic (async)
+├── get.py               (85 lines)   - GET request wrapper (sync)
+├── get_async.py         (90 lines)   - GET request wrapper (async)
+├── post.py              (87 lines)   - POST request wrapper (sync)
+├── post_async.py        (93 lines)   - POST request wrapper (async)
+├── put.py               (90 lines)   - PUT request wrapper (sync)
+├── put_async.py         (92 lines)   - PUT request wrapper (async)
+├── delete.py            (89 lines)   - DELETE request wrapper (sync)
+├── delete_async.py      (93 lines)   - DELETE request wrapper (async)
+├── patch.py             (88 lines)   - PATCH request wrapper (sync)
+└── patch_async.py       (93 lines)   - PATCH request wrapper (async)
+
+Total: 16 Python files, ~1,350 lines
 ```
 
 ### Strengths of Current Structure
-1. **Excellent discoverability**: All modules visible at `aresnet.*` level
-2. **Clean separation**: Each HTTP method in its own file
-3. **Simple imports**: `from aresnet import get_with_automatic_retry`
-4. **Small codebase**: ~900 lines total - well below complexity threshold
-5. **Clear responsibilities**: No module exceeds 150 lines
-6. **Consistent patterns**: All HTTP method modules follow same structure
 
-### Weaknesses
-1. **Slightly cluttered namespace**: 12 files in one directory
-2. **HTTP methods could be grouped**: GET/POST/PUT/DELETE/PATCH are similar
-3. **Naming inconsistency**: `exception.py` vs. `exceptions` (plural)
+1. ✅ **Excellent discoverability**: All modules visible at `aresnet.*` level
+2. ✅ **Clear sync/async separation**: `*_async.py` naming convention is intuitive
+3. ✅ **Consistent patterns**: All HTTP method modules follow identical structure
+4. ✅ **Simple imports**: `from aresnet import get_with_automatic_retry`
+5. ✅ **Manageable size**: ~1,350 lines is still small for a library
+6. ✅ **Clean responsibilities**: Each file has a single, focused purpose
+7. ✅ **Parallel structure**: Easy to find async equivalents of sync functions
+8. ✅ **No file exceeds 175 lines**: All modules remain readable and maintainable
 
-## Alternative Structure Proposals
+### Current Weaknesses
+
+1. ⚠️ **16 files in one directory**: Getting close to cognitive overload threshold (~20 files)
+2. ⚠️ **Duplication**: Sync and async files are nearly identical (could be more DRY)
+3. ⚠️ **Namespace growth**: Will become cluttered if more features are added
+4. ⚠️ **No visual grouping**: Related files (sync/async pairs) are alphabetically separated in some editors
+5. ⚠️ **Limited headroom**: Only ~4-5 more file pairs before restructuring becomes necessary
+
+## Public API Overview
+
+### Exported Functions (18 total)
+
+**HTTP Method Functions:**
+- Sync: `get_with_automatic_retry`, `post_with_automatic_retry`, `put_with_automatic_retry`, `delete_with_automatic_retry`, `patch_with_automatic_retry`
+- Async: `get_with_automatic_retry_async`, `post_with_automatic_retry_async`, `put_with_automatic_retry_async`, `delete_with_automatic_retry_async`, `patch_with_automatic_retry_async`
+
+**Core Request Functions:**
+- `request_with_automatic_retry` (sync)
+- `request_with_automatic_retry_async` (async)
+
+**Configuration Constants:**
+- `DEFAULT_TIMEOUT`
+- `DEFAULT_MAX_RETRIES`
+- `DEFAULT_BACKOFF_FACTOR`
+- `RETRY_STATUS_CODES`
+
+**Exceptions:**
+- `HttpRequestError`
+
+### Import Patterns
+
+```python
+# Method-specific (most common)
+from aresnet import get_with_automatic_retry
+from aresnet import get_with_automatic_retry_async
+
+# Core request function (advanced)
+from aresnet import request_with_automatic_retry
+
+# Configuration
+from aresnet import DEFAULT_TIMEOUT, RETRY_STATUS_CODES
+
+# Exceptions
+from aresnet import HttpRequestError
+```
+
+## Structure Options
 
 ### Option A: Keep Flat Structure (RECOMMENDED)
 
@@ -44,78 +96,39 @@ src/aresnet/
 src/aresnet/
 ├── __init__.py
 ├── config.py
-├── exceptions.py     # Renamed from exception.py (plural)
+├── exceptions.py
 ├── utils.py
-├── request.py        # Core sync retry logic
-├── request_async.py  # Core async retry logic
+├── request.py
+├── request_async.py
 ├── get.py
+├── get_async.py
 ├── post.py
+├── post_async.py
 ├── put.py
+├── put_async.py
 ├── delete.py
-└── patch.py
+├── delete_async.py
+├── patch.py
+└── patch_async.py
 ```
 
 **Pros:**
-- ✅ Minimal changes required
-- ✅ Maximum discoverability
-- ✅ Simple imports: `from aresnet import get_with_automatic_retry`
+- ✅ Zero changes required - already optimal
+- ✅ Maintains all current benefits
+- ✅ Simple imports for users
+- ✅ Easy to navigate with alphabetical sorting (pairs are grouped: delete/delete_async)
 - ✅ Follows Python's "flat is better than nested" principle
-- ✅ Easy navigation for newcomers
-- ✅ No import complexity
+- ✅ No breaking changes for existing users
 
 **Cons:**
-- ⚠️ Moderate number of files in root (acceptable for library this size)
+- ⚠️ Will need restructuring if library grows significantly
+- ⚠️ Approaching the ~20 file threshold for flat structures
 
-**Changes Required:**
-1. Rename `exception.py` → `exceptions.py` (standard Python convention)
-2. Update imports in `__init__.py` and other modules
+**Recommendation:** Stay with this structure until the library reaches **2,500+ lines** or **20+ files**, or when adding major new feature categories (auth, middleware, caching, webhooks, etc.).
 
 ---
 
-### Option B: Modular Sub-packages
-
-**Structure:**
-```
-src/aresnet/
-├── __init__.py          # Re-exports all public APIs
-├── core/
-│   ├── __init__.py
-│   ├── config.py        # Configuration constants
-│   ├── exceptions.py    # Custom exceptions
-│   └── utils.py         # Utility functions
-├── requests/
-│   ├── __init__.py
-│   ├── base.py          # Core retry logic (request.py + request_async.py)
-│   ├── get.py
-│   ├── post.py
-│   ├── put.py
-│   ├── delete.py
-│   └── patch.py
-```
-
-**Pros:**
-- ✅ Logical grouping of related functionality
-- ✅ Clearer separation between core utilities and HTTP methods
-- ✅ Scalable if library grows significantly
-- ✅ Easier to add new categories (e.g., `middleware/`, `auth/`)
-
-**Cons:**
-- ❌ More complex imports: `from aresnet.requests import get_with_automatic_retry`
-- ❌ Requires careful re-export in `__init__.py` to maintain simple API
-- ❌ More files and directories to navigate
-- ❌ Overkill for current codebase size
-- ❌ Breaking change for users if they import from sub-modules
-
-**Changes Required:**
-1. Create new directory structure
-2. Move and update all files
-3. Update all imports throughout codebase
-4. Update tests to match new structure
-5. Maintain backward compatibility via re-exports
-
----
-
-### Option C: Simplified Sub-packages
+### Option B: Minimal Sub-package Structure (Future consideration)
 
 **Structure:**
 ```
@@ -123,37 +136,49 @@ src/aresnet/
 ├── __init__.py          # Re-exports all public APIs
 ├── config.py            # Keep at root (frequently accessed)
 ├── exceptions.py        # Keep at root (frequently accessed)
-├── utils.py             # Keep at root (small utility module)
-└── requests/
-    ├── __init__.py
-    ├── base.py          # Core retry logic
-    ├── get.py
-    ├── post.py
-    ├── put.py
-    ├── delete.py
-    └── patch.py
+├── utils.py             # Keep at root (small utility)
+└── methods/
+    ├── __init__.py      # Re-exports for convenience
+    ├── sync/
+    │   ├── __init__.py
+    │   ├── core.py      # request_with_automatic_retry
+    │   ├── get.py
+    │   ├── post.py
+    │   ├── put.py
+    │   ├── delete.py
+    │   └── patch.py
+    └── async_/          # Note: async_ to avoid reserved keyword
+        ├── __init__.py
+        ├── core.py      # request_with_automatic_retry_async
+        ├── get.py
+        ├── post.py
+        ├── put.py
+        ├── delete.py
+        └── patch.py
 ```
 
 **Pros:**
-- ✅ Groups HTTP method implementations together
-- ✅ Keeps commonly accessed modules at root
-- ✅ Moderate complexity increase
-- ✅ Good balance between organization and simplicity
+- ✅ Clear sync/async separation
+- ✅ Better scalability for future features
+- ✅ Logical grouping reduces root-level clutter
+- ✅ Easy to add middleware, auth, etc., as sibling packages
 
 **Cons:**
-- ⚠️ Hybrid approach may feel inconsistent
-- ⚠️ Still requires import updates
-- ⚠️ Minimal benefit over flat structure for this size
+- ❌ More complex file structure
+- ❌ Requires careful re-exports in `__init__.py` to maintain simple API
+- ❌ Overkill for current size (~1,350 lines)
+- ❌ May confuse users if they import from sub-modules directly
 
 **Changes Required:**
-1. Create `requests/` directory
-2. Move HTTP method files
-3. Update imports
+1. Create directory structure
+2. Move files to appropriate locations
+3. Update all internal imports
 4. Update tests
+5. Maintain backward compatibility via comprehensive re-exports
 
 ---
 
-### Option D: Functional Grouping
+### Option C: Hybrid Flat Structure (Alternative)
 
 **Structure:**
 ```
@@ -162,103 +187,175 @@ src/aresnet/
 ├── config.py
 ├── exceptions.py
 ├── utils.py
-└── methods/            # or http/ or api/
+├── sync/
+│   ├── __init__.py
+│   ├── request.py      # Core retry logic
+│   ├── get.py
+│   ├── post.py
+│   ├── put.py
+│   ├── delete.py
+│   └── patch.py
+└── async_/
     ├── __init__.py
-    ├── sync.py        # All sync methods (GET, POST, etc.)
-    ├── async_.py      # All async methods
-    └── core.py        # Shared retry logic
+    ├── request.py      # Core retry logic
+    ├── get.py
+    ├── post.py
+    ├── put.py
+    ├── delete.py
+    └── patch.py
 ```
 
 **Pros:**
-- ✅ Further reduces number of files
-- ✅ Groups related functionality
-- ✅ Clear sync vs. async separation
+- ✅ Clean sync/async separation
+- ✅ Reduced root-level files
+- ✅ Removes `_async` suffix from filenames
 
 **Cons:**
-- ❌ Larger files (~400-500 lines each for sync.py)
-- ❌ Harder to navigate to specific methods
-- ❌ Less modular
-- ❌ Worse for git blame/history
+- ❌ Moderate complexity increase
+- ❌ Import paths become longer if not re-exported
+- ❌ Not worth the effort for current size
 
 ---
 
-## Recommendation: Option A (Keep Flat with Minor Improvements)
+### Option D: Combined Modules (Not Recommended)
+
+**Structure:**
+```
+src/aresnet/
+├── __init__.py
+├── config.py
+├── exceptions.py
+├── utils.py
+├── request.py          # Both sync and async
+├── get.py              # Both sync and async
+├── post.py             # Both sync and async
+├── put.py              # Both sync and async
+├── delete.py           # Both sync and async
+└── patch.py            # Both sync and async
+```
+
+**Pros:**
+- ✅ Fewer files (11 instead of 16)
+- ✅ Related functionality co-located
+
+**Cons:**
+- ❌ Larger files (~170-180 lines each)
+- ❌ Harder to navigate (scroll to find sync vs async)
+- ❌ Mixing sync/async paradigms in same file is confusing
+- ❌ Worse for code review and git blame
+- ❌ Goes against Python's preference for focused modules
+
+---
+
+## Recommendation: Option A (Continue with Flat Structure)
 
 ### Rationale
 
-1. **Library Size**: At ~900 lines, this library is well below the threshold where nested structure provides benefits. Most successful Python libraries keep flat structures until 2000-5000+ lines.
+1. **Library Size**: At ~1,350 lines across 16 files, the library is still well below the threshold where nested structures provide clear benefits. Most successful Python libraries maintain flat structures until **2,500-5,000+ lines** or **20-30+ files**.
 
-2. **Python Philosophy**: "Flat is better than nested" (Zen of Python). The current structure is already well-organized.
+2. **Current Structure Works Well**: The `*_async.py` naming convention provides clear visual separation between sync and async variants while maintaining discoverability.
 
-3. **User Experience**: Simpler imports mean better developer experience:
+3. **User Experience**: Simple imports are critical for developer happiness:
    ```python
-   # Current (Good)
-   from aresnet import get_with_automatic_retry
+   # Current (Excellent)
+   from aresnet import get_with_automatic_retry, get_with_automatic_retry_async
 
-   # With sub-packages (More complex, no clear benefit)
-   from aresnet.requests import get_with_automatic_retry
+   # With sub-packages (More verbose, no clear benefit at this size)
+   from aresnet.methods.sync import get_with_automatic_retry
+   from aresnet.methods.async_ import get_with_automatic_retry_async
    ```
 
-4. **Real-World Examples**: Similar-sized libraries maintain flat structures:
-   - `httpx` core: Flat structure with ~30+ modules in root
+4. **Python Philosophy**: "Flat is better than nested" (Zen of Python). The current structure embodies this principle.
+
+5. **Real-World Examples**: Comparable libraries maintain flat structures:
+   - `httpx` core: Flat structure with 40+ modules
    - `requests`: Flat structure for core functionality
-   - `urllib3`: Flat-ish structure despite being larger
+   - `aiohttp`: Minimal nesting despite large size
 
-5. **Discoverability**: Developers can see all available modules at a glance without navigating subdirectories.
-
-6. **Maintenance**: Fewer directories = less cognitive overhead for maintainers.
+6. **Stability**: No breaking changes for users who may import from specific modules.
 
 ### When to Reconsider
 
-Consider moving to Option B or C if:
-- Library grows beyond 3000-5000 lines
-- Adding major new feature categories (auth, middleware, caching, etc.)
-- Number of modules exceeds 20-25
-- Community feedback indicates confusion with flat structure
+Trigger a restructuring (move to Option B) when **any** of these conditions are met:
 
-## Implementation Plan for Option A
+1. **Size threshold**: Library exceeds **2,500 lines** or **20 files**
+2. **New feature categories**: Adding major new capabilities like:
+   - Authentication/authorization modules
+   - Middleware/interceptors
+   - Response caching
+   - WebSocket support
+   - Connection pooling abstractions
+   - Rate limiting decorators
+   - Circuit breakers
+3. **User feedback**: Community reports confusion with current structure
+4. **Maintenance burden**: Team finds navigation difficult
 
-### Phase 1: Naming Consistency
-1. Rename `exception.py` → `exceptions.py` (follows Python convention)
-2. Update import in `__init__.py`:
-   ```python
-   from aresnet.exceptions import HttpRequestError  # was: from aresnet.exception
-   ```
-3. Update imports in other modules (`request.py`, `request_async.py`, etc.)
-4. Update all tests
+### Immediate Action Items
 
-### Phase 2: Documentation
-1. Add module docstrings if missing
-2. Ensure `__all__` is defined in each module
-3. Update README if needed
+**No structural changes recommended.** Instead, focus on:
 
-### Phase 3: Optional Enhancements
-1. Consider combining `request.py` and `request_async.py` if the duplication is significant
-2. Add a simple module dependency diagram to docs
+1. ✅ **Documentation**:
+   - Ensure all module docstrings are comprehensive
+   - Verify `__all__` exports are correct in all modules
+
+2. ✅ **Code quality**:
+   - Audit for DRY violations between sync/async pairs
+   - Consider helper functions for common patterns
+   - Ensure consistent docstring style across all modules
+
+3. ✅ **Testing**:
+   - Verify test coverage for all 18 exported functions
+   - Add integration tests for common usage patterns
+
+4. ✅ **Future-proofing**:
+   - Document the restructuring threshold in CONTRIBUTING.md
+   - Create a migration guide template for when restructuring becomes necessary
 
 ## Comparison Table
 
-| Aspect | Flat (A) | Modular (B) | Simplified (C) | Functional (D) |
-|--------|----------|-------------|----------------|----------------|
-| Import simplicity | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| Discoverability | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| Scalability | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| Simplicity | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| Maintenance effort | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| Navigation | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| Current size fit | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Total** | **33/35** | **24/35** | **28/35** | **28/35** |
+| Aspect               | Flat (A)    | Minimal Sub (B) | Hybrid (C)  | Combined (D) |
+|----------------------|-------------|-----------------|-------------|--------------|
+| Import simplicity    | ⭐⭐⭐⭐⭐ | ⭐⭐⭐          | ⭐⭐⭐⭐    | ⭐⭐⭐⭐⭐    |
+| Discoverability      | ⭐⭐⭐⭐⭐ | ⭐⭐⭐          | ⭐⭐⭐⭐    | ⭐⭐⭐⭐     |
+| Scalability          | ⭐⭐⭐     | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐    | ⭐⭐         |
+| Simplicity           | ⭐⭐⭐⭐⭐ | ⭐⭐⭐          | ⭐⭐⭐⭐    | ⭐⭐⭐⭐     |
+| Maintenance          | ⭐⭐⭐⭐⭐ | ⭐⭐⭐          | ⭐⭐⭐⭐    | ⭐⭐⭐       |
+| Navigation           | ⭐⭐⭐⭐   | ⭐⭐⭐⭐        | ⭐⭐⭐⭐    | ⭐⭐⭐⭐⭐    |
+| Current size fit     | ⭐⭐⭐⭐⭐ | ⭐⭐            | ⭐⭐⭐      | ⭐⭐⭐⭐     |
+| Sync/async clarity   | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐⭐  | ⭐⭐⭐       |
+| **Total**            | **36/40**   | **28/40**       | **32/40**   | **30/40**    |
+
+## Evolution Timeline
+
+### Phase 1: Current
+- **Status**: ~1,350 lines, 16 files
+- **Structure**: Flat with `*_async.py` pattern
+- **Action**: Continue with current structure ✅
+
+### Phase 2: Growth (~2,500-3,000 lines or 20+ files)
+- **Trigger**: Adding 1-2 major feature categories
+- **Action**: Evaluate Option B (minimal sub-packages)
+- **Example additions**: Authentication, middleware, or caching
+
+### Phase 3: Mature (~5,000+ lines or 30+ files)
+- **Trigger**: Multiple feature categories, complex interdependencies
+- **Action**: Full modular architecture with clear sub-packages
+- **Structure**: Similar to `httpx`, `aiohttp` organization
 
 ## Conclusion
 
-**Keep the flat structure (Option A) with just one improvement: rename `exception.py` to `exceptions.py` for consistency with Python conventions.**
+**Continue with the current flat structure (Option A).** The library is well-organized, appropriately sized, and provides excellent user experience. The `*_async.py` naming convention elegantly handles the dual sync/async architecture without introducing unnecessary complexity.
 
-The current structure is already well-designed for a library of this size. The proposed sub-package structures would add complexity without providing meaningful benefits at the current scale. Save the reorganization effort for when the library genuinely needs it (3000+ lines or major new feature categories).
+### Summary of Recommendations
 
-### Immediate Action Items
-1. ✅ Rename `exception.py` → `exceptions.py`
-2. ✅ Update all imports
-3. ✅ Run tests to verify
-4. ✅ Update any documentation references
+1. ✅ **Keep current structure** - No changes needed
+2. ✅ **Monitor growth** - Set clear thresholds for future restructuring
+3. ✅ **Focus on quality** - Improve docs, tests, and consistency
+4. ⏳ **Plan for future** - Be ready to restructure at 2,500+ lines
 
-This minimal change improves consistency while maintaining all the benefits of the current structure.
+This minimal-change approach maintains stability for users while preserving all the benefits of the current structure. Save the reorganization effort for when the library genuinely needs it.
+
+---
+
+**Last Updated**: January 2026
+**Next Review**: When library reaches 2,000 lines or 18 files (before restructuring threshold)
