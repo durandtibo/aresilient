@@ -603,3 +603,23 @@ async def test_post_with_automatic_retry_async_proxy_error(
         await post_with_automatic_retry_async(TEST_URL, client=mock_client, max_retries=3)
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
+
+
+@pytest.mark.asyncio
+async def test_post_with_automatic_retry_async_validation_negative_max_retries(
+    mock_client: httpx.AsyncClient,
+) -> None:
+    """Test that negative max_retries raises ValueError."""
+    with pytest.raises(ValueError, match=r"max_retries must be >= 0"):
+        await post_with_automatic_retry_async(TEST_URL, client=mock_client, max_retries=-1)
+
+
+@pytest.mark.asyncio
+async def test_post_with_automatic_retry_async_validation_negative_backoff_factor(
+    mock_client: httpx.AsyncClient,
+) -> None:
+    """Test that negative backoff_factor raises ValueError."""
+    with pytest.raises(ValueError, match=r"backoff_factor must be >= 0"):
+        await post_with_automatic_retry_async(
+            TEST_URL, client=mock_client, backoff_factor=-0.5
+        )
