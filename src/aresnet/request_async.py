@@ -134,9 +134,7 @@ def _handle_timeout_exception(
     Raises:
         HttpRequestError: If max retries have been exhausted.
     """
-    logger.debug(
-        f"{method} request to {url} timed out on attempt {attempt + 1}/{max_retries + 1}"
-    )
+    logger.debug(f"{method} request to {url} timed out on attempt {attempt + 1}/{max_retries + 1}")
     if attempt == max_retries:
         raise HttpRequestError(
             method=method,
