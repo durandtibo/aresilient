@@ -129,7 +129,7 @@ def calculate_sleep_time(
     """
     # Check for Retry-After header in the response (if available)
     retry_after_sleep: float | None = None
-    if response is not None:
+    if response is not None and hasattr(response, "headers"):
         retry_after_header = response.headers.get("Retry-After")
         retry_after_sleep = parse_retry_after(retry_after_header)
 
