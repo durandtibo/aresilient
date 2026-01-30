@@ -328,17 +328,17 @@ Trigger a restructuring (move to Option B) when **any** of these conditions are 
 
 ## Comparison Table
 
-| Aspect | Flat (A) | Minimal Sub (B) | Hybrid (C) | Combined (D) |
-|--------|----------|-----------------|------------|--------------|
-| Import simplicity | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| Discoverability | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| Scalability | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
-| Simplicity | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| Maintenance | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| Navigation | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| Current size fit | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
-| Sync/async clarity | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Total** | **36/40** | **27/40** | **31/40** | **29/40** |
+| Aspect               | Flat (A)    | Minimal Sub (B) | Hybrid (C)  | Combined (D) |
+|----------------------|-------------|-----------------|-------------|--------------|
+| Import simplicity    | ⭐⭐⭐⭐⭐ | ⭐⭐⭐          | ⭐⭐⭐⭐    | ⭐⭐⭐⭐⭐    |
+| Discoverability      | ⭐⭐⭐⭐⭐ | ⭐⭐⭐          | ⭐⭐⭐⭐    | ⭐⭐⭐⭐     |
+| Scalability          | ⭐⭐⭐     | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐    | ⭐⭐         |
+| Simplicity           | ⭐⭐⭐⭐⭐ | ⭐⭐⭐          | ⭐⭐⭐⭐    | ⭐⭐⭐⭐     |
+| Maintenance          | ⭐⭐⭐⭐⭐ | ⭐⭐⭐          | ⭐⭐⭐⭐    | ⭐⭐⭐       |
+| Navigation           | ⭐⭐⭐⭐   | ⭐⭐⭐⭐        | ⭐⭐⭐⭐    | ⭐⭐⭐⭐⭐    |
+| Current size fit     | ⭐⭐⭐⭐⭐ | ⭐⭐            | ⭐⭐⭐      | ⭐⭐⭐⭐     |
+| Sync/async clarity   | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐⭐  | ⭐⭐⭐       |
+| **Total**            | **36/40**   | **27/40**       | **31/40**   | **29/40**    |
 
 ## Evolution Timeline
 
