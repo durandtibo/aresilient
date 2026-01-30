@@ -46,6 +46,7 @@ class HttpRequestError(RuntimeError):
         Raising an error for a failed GET request:
 
         ```pycon
+        >>> from aresnet import HttpRequestError
         >>> raise HttpRequestError(
         ...     method="GET",
         ...     url="https://api.example.com/data",
@@ -55,20 +56,18 @@ class HttpRequestError(RuntimeError):
 
         ```
 
-        Chaining with an original exception:
+        Catching and handling HTTP request errors:
 
         ```pycon
+        >>> from aresnet import get_with_automatic_retry, HttpRequestError
         >>> try:
-        ...     # Some httpx request
-        ...     pass
-        ... except httpx.RequestError as e:
-        ...     raise HttpRequestError(
-        ...         method="POST",
-        ...         url="https://api.example.com/submit",
-        ...         message="Connection failed",
-        ...         cause=e,
-        ...     )
-        ...
+        ...     response = get_with_automatic_retry("https://api.example.com/data")
+        ... except HttpRequestError as e:
+        ...     print(f"Request failed: {e}")
+        ...     print(f"Method: {e.method}")
+        ...     print(f"URL: {e.url}")
+        ...     print(f"Status Code: {e.status_code}")
+        ...  # doctest: +SKIP
 
         ```
     """

@@ -68,6 +68,26 @@ async def request_with_automatic_retry_async(
     Raises:
         HttpRequestError: If the request times out, encounters network errors,
             or fails after exhausting all retries.
+
+    Example:
+        ```pycon
+        >>> import asyncio
+        >>> import httpx
+        >>> from aresnet import request_with_automatic_retry_async
+        >>> async def example():
+        ...     async with httpx.AsyncClient() as client:
+        ...         response = await request_with_automatic_retry_async(
+        ...             url="https://api.example.com/data",
+        ...             method="GET",
+        ...             request_func=client.get,
+        ...             max_retries=5,
+        ...             backoff_factor=1.0,
+        ...         )
+        ...         return response.status_code
+        ...
+        >>> asyncio.run(example())  # doctest: +SKIP
+
+        ```
     """
     response: httpx.Response | None = None
 
