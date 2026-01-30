@@ -15,6 +15,7 @@ from aresnet.config import (
     RETRY_STATUS_CODES,
 )
 from aresnet.request_async import request_with_automatic_retry_async
+from aresnet.utils import validate_retry_params
 
 
 async def get_with_automatic_retry_async(
@@ -70,12 +71,7 @@ async def get_with_automatic_retry_async(
         ```
     """
     # Input validation
-    if max_retries < 0:
-        msg = f"max_retries must be >= 0, got {max_retries}"
-        raise ValueError(msg)
-    if backoff_factor < 0:
-        msg = f"backoff_factor must be >= 0, got {backoff_factor}"
-        raise ValueError(msg)
+    validate_retry_params(max_retries, backoff_factor)
 
     owns_client = client is None
     client = client or httpx.AsyncClient(timeout=timeout)
