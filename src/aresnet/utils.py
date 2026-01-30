@@ -1,4 +1,10 @@
-r"""Contain utility functions for HTTP requests."""
+r"""Utility functions for HTTP request handling and retry logic.
+
+This module provides helper functions for managing HTTP request retries,
+including parameter validation, sleep time calculation with exponential backoff
+and jitter, Retry-After header parsing, and error handling for various HTTP
+failure scenarios.
+"""
 
 from __future__ import annotations
 
@@ -26,22 +32,31 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 def validate_retry_params(max_retries: int, backoff_factor: float) -> None:
-    """Validate retry parameters.
+    """Validate retry parameters for HTTP requests.
+
+    This function ensures that retry configuration parameters are valid before
+    attempting HTTP requests. It checks that both max_retries and backoff_factor
+    are non-negative values, which are required for the retry logic to work
+    correctly.
 
     Args:
         max_retries: Maximum number of retry attempts for failed requests.
-            Must be >= 0.
+            Must be >= 0. A value of 0 means no retries (only the initial attempt).
         backoff_factor: Factor for exponential backoff between retries.
-            Must be >= 0.
+            Must be >= 0. A value of 0 means no delay between retries.
 
     Raises:
-        ValueError: If max_retries or backoff_factor are negative.
+        ValueError: If max_retries is negative.
+        ValueError: If backoff_factor is negative.
 
     Example:
         ```pycon
         >>> from aresnet.utils import validate_retry_params
         >>> validate_retry_params(max_retries=3, backoff_factor=0.5)
         >>> validate_retry_params(max_retries=-1, backoff_factor=0.5)  # doctest: +SKIP
+        Traceback (most recent call last):
+            ...
+        ValueError: max_retries must be >= 0, got -1
 
         ```
     """
@@ -56,26 +71,35 @@ def validate_retry_params(max_retries: int, backoff_factor: float) -> None:
 def parse_retry_after(retry_after_header: str | None) -> float | None:
     """Parse the Retry-After header value from an HTTP response.
 
-    The Retry-After header can be specified in two formats:
-    1. An integer representing the number of seconds to wait
-    2. An HTTP-date in RFC 5322 format
+    The Retry-After header can be specified in two formats according to RFC 7231:
+    1. An integer representing the number of seconds to wait (e.g., "120")
+    2. An HTTP-date in RFC 5322 format (e.g., "Wed, 21 Oct 2015 07:28:00 GMT")
+
+    This function attempts to parse both formats and returns the number of seconds
+    to wait. If parsing fails or the header is absent, it returns None to allow
+    the caller to use the default exponential backoff strategy.
 
     Args:
-        retry_after_header: The value of the Retry-After header, or None
-            if the header is not present.
+        retry_after_header: The value of the Retry-After header as a string,
+            or None if the header is not present in the response.
 
     Returns:
-        The number of seconds to wait before retrying, or None if the
-        header is absent or cannot be parsed.
+        The number of seconds to wait before retrying, or None if:
+        - The header is not present (retry_after_header is None)
+        - The header value cannot be parsed as either an integer or HTTP-date
+        For HTTP-date format, negative values (dates in the past) are clamped to 0.0.
 
     Example:
         ```pycon
         >>> from aresnet.utils import parse_retry_after
+        >>> # Parse integer seconds
         >>> parse_retry_after("120")
         120.0
         >>> parse_retry_after("0")
         0.0
+        >>> # No header present
         >>> parse_retry_after(None)
+        >>> # Invalid format
         >>> parse_retry_after("invalid")
 
         ```
@@ -107,17 +131,49 @@ def calculate_sleep_time(
     jitter_factor: float,
     response: httpx.Response | None,
 ) -> float:
-    """Calculate sleep time for retry with exponential backoff and
-    jitter.
+    """Calculate sleep time for retry with exponential backoff and jitter.
+
+    This function implements an exponential backoff strategy with optional
+    jitter for retrying failed HTTP requests. It also supports the Retry-After
+    header when present in the server response, which takes precedence over
+    the exponential backoff calculation.
+
+    The sleep time is calculated using the formula:
+        base_sleep_time = backoff_factor * (2 ** attempt)
+        jitter = random.uniform(0, jitter_factor) * base_sleep_time
+        total_sleep_time = base_sleep_time + jitter
+
+    If the response contains a Retry-After header, that value is used instead
+    of the exponential backoff base time, but jitter is still applied.
 
     Args:
-        attempt: The current attempt number (0-indexed).
+        attempt: The current attempt number (0-indexed). For example,
+            attempt=0 is the first retry, attempt=1 is the second retry, etc.
         backoff_factor: Factor for exponential backoff between retries.
+            The base wait time is calculated as: backoff_factor * (2 ** attempt).
         jitter_factor: Factor for adding random jitter to backoff delays.
-        response: The HTTP response object (if available).
+            The jitter is calculated as: random.uniform(0, jitter_factor) * base_sleep_time.
+            Set to 0 to disable jitter. Recommended value is 0.1 for 10% jitter.
+        response: The HTTP response object (if available). Used to extract
+            the Retry-After header if present.
 
     Returns:
-        The calculated sleep time in seconds.
+        The calculated sleep time in seconds, including any jitter applied.
+
+    Example:
+        ```pycon
+        >>> from aresnet.utils import calculate_sleep_time
+        >>> # First retry with backoff_factor=0.3, no jitter
+        >>> calculate_sleep_time(0, 0.3, 0.0, None)
+        0.3
+        >>> # Second retry
+        >>> calculate_sleep_time(1, 0.3, 0.0, None)
+        0.6
+        >>> # Third retry
+        >>> calculate_sleep_time(2, 0.3, 0.0, None)
+        1.2
+
+        ```
     """
     # Check for Retry-After header in the response (if available)
     retry_after_sleep: float | None = None
@@ -152,16 +208,34 @@ def handle_response(
     method: str,
     status_forcelist: tuple[int, ...],
 ) -> None:
-    """Handle HTTP response based on status code.
+    """Handle HTTP response and raise error for non-retryable status codes.
+
+    This function checks the HTTP response status code and raises an error if
+    the status code is not in the retryable status list. This allows the retry
+    logic to distinguish between transient errors (e.g., 503 Service Unavailable)
+    that should be retried and permanent errors (e.g., 404 Not Found) that should
+    fail immediately.
 
     Args:
-        response: The HTTP response object.
-        url: The URL that was requested.
-        method: The HTTP method name.
-        status_forcelist: Tuple of HTTP status codes that should trigger a retry.
+        response: The HTTP response object to validate.
+        url: The URL that was requested, used in error messages.
+        method: The HTTP method name (e.g., "GET", "POST"), used in error messages.
+        status_forcelist: Tuple of HTTP status codes that are considered
+            retryable (e.g., (429, 500, 502, 503, 504)). If the response status
+            code is not in this tuple, an error is raised.
 
     Raises:
-        HttpRequestError: If the status code is not retryable (not in status_forcelist).
+        HttpRequestError: If the response status code is not in status_forcelist,
+            indicating a non-retryable error (e.g., 404, 401, 403).
+
+    Example:
+        ```pycon
+        >>> import httpx
+        >>> from aresnet.utils import handle_response
+        >>> # This would pass for a retryable status code
+        >>> # handle_response(response, "https://api.example.com", "GET", (429, 503))
+
+        ```
     """
     # Non-retryable HTTP error (e.g., 404, 401, 403)
     if response.status_code not in status_forcelist:
@@ -184,17 +258,34 @@ def handle_timeout_exception(
     attempt: int,
     max_retries: int,
 ) -> None:
-    """Handle timeout exceptions during request.
+    """Handle timeout exceptions during HTTP requests.
+
+    This function processes timeout exceptions that occur during HTTP requests.
+    It logs the timeout event and raises an HttpRequestError if all retry
+    attempts have been exhausted. If there are remaining retries, the function
+    returns silently to allow the retry loop to continue.
 
     Args:
-        exc: The timeout exception that was raised.
-        url: The URL that was requested.
-        method: The HTTP method name.
-        attempt: The current attempt number (0-indexed).
-        max_retries: Maximum number of retry attempts.
+        exc: The timeout exception that was raised (typically httpx.TimeoutException).
+        url: The URL that was requested, used in error messages.
+        method: The HTTP method name (e.g., "GET", "POST"), used in error messages.
+        attempt: The current attempt number (0-indexed). For example, attempt=0
+            is the initial request, attempt=1 is the first retry, etc.
+        max_retries: Maximum number of retry attempts configured. The total number
+            of attempts is max_retries + 1 (including the initial attempt).
 
     Raises:
-        HttpRequestError: If max retries have been exhausted.
+        HttpRequestError: If attempt == max_retries, indicating that all retry
+            attempts have been exhausted. The original exception is chained as
+            the cause.
+
+    Example:
+        ```pycon
+        >>> from aresnet.utils import handle_timeout_exception
+        >>> # This would raise an error on the last attempt
+        >>> # handle_timeout_exception(exc, "https://api.example.com", "GET", 3, 3)
+
+        ```
     """
     logger.debug(f"{method} request to {url} timed out on attempt {attempt + 1}/{max_retries + 1}")
     if attempt == max_retries:
@@ -213,17 +304,35 @@ def handle_request_error(
     attempt: int,
     max_retries: int,
 ) -> None:
-    """Handle request errors during request.
+    """Handle network and connection errors during HTTP requests.
+
+    This function processes various request errors that can occur during HTTP
+    requests, such as connection errors, network errors, or other httpx.RequestError
+    exceptions. It logs the error with detailed information including the error type
+    and raises an HttpRequestError if all retry attempts have been exhausted.
 
     Args:
-        exc: The request error that was raised.
-        url: The URL that was requested.
-        method: The HTTP method name.
-        attempt: The current attempt number (0-indexed).
-        max_retries: Maximum number of retry attempts.
+        exc: The request error that was raised (typically httpx.RequestError or
+            a subclass like httpx.ConnectError, httpx.PoolTimeout, etc.).
+        url: The URL that was requested, used in error messages.
+        method: The HTTP method name (e.g., "GET", "POST"), used in error messages.
+        attempt: The current attempt number (0-indexed). For example, attempt=0
+            is the initial request, attempt=1 is the first retry, etc.
+        max_retries: Maximum number of retry attempts configured. The total number
+            of attempts is max_retries + 1 (including the initial attempt).
 
     Raises:
-        HttpRequestError: If max retries have been exhausted.
+        HttpRequestError: If attempt == max_retries, indicating that all retry
+            attempts have been exhausted. The original exception is chained as
+            the cause.
+
+    Example:
+        ```pycon
+        >>> from aresnet.utils import handle_request_error
+        >>> # This would raise an error on the last attempt
+        >>> # handle_request_error(exc, "https://api.example.com", "GET", 3, 3)
+
+        ```
     """
     error_type = type(exc).__name__
     logger.debug(
