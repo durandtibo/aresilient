@@ -147,8 +147,11 @@ def request_with_automatic_retry(
 
     # All retries exhausted with retryable status code - raise final error
     # Note: response should never be None here as this code path is only reached
-    # when all attempts return retryable status codes. The assertion is for type safety.
-    assert response is not None, "response should not be None after retry loop"
+    # when all attempts return retryable status codes. The check is for type safety.
+    if response is None:  # pragma: no cover
+        # This should never happen, but handle it for type safety
+        msg = f"{method} request to {url} failed after {max_retries + 1} attempts"
+        raise RuntimeError(msg)
     raise HttpRequestError(
         method=method,
         url=url,
