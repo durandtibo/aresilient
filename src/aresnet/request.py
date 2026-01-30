@@ -6,7 +6,6 @@ from __future__ import annotations
 __all__ = ["request_with_automatic_retry"]
 
 import logging
-import random
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -15,7 +14,12 @@ from aresnet.config import (
     DEFAULT_MAX_RETRIES,
     RETRY_STATUS_CODES,
 )
-from aresnet.utils import parse_retry_after
+from aresnet.utils import (
+    calculate_sleep_time,
+    handle_request_error,
+    handle_response,
+    handle_timeout_exception,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -110,18 +114,7 @@ def request_with_automatic_retry(
                 return response
 
             # Client/Server error: check if it's retryable
-            # Non-retryable HTTP error (e.g., 404, 401, 403)
-            if response.status_code not in status_forcelist:
-                logger.debug(
-                    f"{method} request to {url} failed with non-retryable status {response.status_code}"
-                )
-                raise HttpRequestError(
-                    method=method,
-                    url=url,
-                    message=f"{method} request to {url} failed with status {response.status_code}",
-                    status_code=response.status_code,
-                    response=response,
-                )
+            handle_response(response, url, method, status_forcelist)
 
             # Retryable HTTP status - log and continue to retry
             logger.debug(
@@ -130,60 +123,15 @@ def request_with_automatic_retry(
             )
 
         except httpx.TimeoutException as exc:
-            # Request timed out - retry if attempts remain
-            logger.debug(
-                f"{method} request to {url} timed out on attempt {attempt + 1}/{max_retries + 1}"
-            )
-            if attempt == max_retries:
-                raise HttpRequestError(
-                    method=method,
-                    url=url,
-                    message=f"{method} request to {url} timed out ({max_retries + 1} attempts)",
-                    cause=exc,
-                ) from exc
+            handle_timeout_exception(exc, url, method, attempt, max_retries)
 
         except httpx.RequestError as exc:
-            # Network error (connection failed, DNS failure, etc.) - retry if attempts remain
-            error_type = type(exc).__name__
-            logger.debug(
-                f"{method} request to {url} encountered {error_type} on attempt "
-                f"{attempt + 1}/{max_retries + 1}: {exc}"
-            )
-            if attempt == max_retries:
-                raise HttpRequestError(
-                    method=method,
-                    url=url,
-                    message=f"{method} request to {url} failed after {max_retries + 1} attempts: {exc}",
-                    cause=exc,
-                ) from exc
+            handle_request_error(exc, url, method, attempt, max_retries)
 
         # Exponential backoff with jitter before next retry (skip on last attempt since we're about to fail)
         if attempt < max_retries:
-            # Check for Retry-After header in the response (if available)
-            retry_after_sleep: float | None = None
-            if response is not None and hasattr(response, "headers"):
-                retry_after_header = response.headers.get("Retry-After")
-                retry_after_sleep = parse_retry_after(retry_after_header)
-
-            # Use Retry-After if available, otherwise use exponential backoff
-            if retry_after_sleep is not None:
-                sleep_time = retry_after_sleep
-                logger.debug(f"Using Retry-After header value: {sleep_time:.2f}s")
-            else:
-                sleep_time = backoff_factor * (2**attempt)
-
-            # Add jitter if jitter_factor is configured
-            if jitter_factor > 0:
-                jitter = random.uniform(0, jitter_factor) * sleep_time
-                total_sleep_time = sleep_time + jitter
-                logger.debug(
-                    f"Waiting {total_sleep_time:.2f}s before retry (base={sleep_time:.2f}s, jitter={jitter:.2f}s)"
-                )
-            else:
-                total_sleep_time = sleep_time
-                logger.debug(f"Waiting {total_sleep_time:.2f}s before retry")
-
-            time.sleep(total_sleep_time)
+            sleep_time = calculate_sleep_time(attempt, backoff_factor, jitter_factor, response)
+            time.sleep(sleep_time)
 
     # All retries exhausted with retryable status code - raise final error
     # Note: response cannot be None here because if all attempts raised exceptions,

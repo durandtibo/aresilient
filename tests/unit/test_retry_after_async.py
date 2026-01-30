@@ -169,7 +169,7 @@ async def test_request_with_jitter_applied_async(mock_asleep: Mock) -> None:
     mock_request_func = AsyncMock(side_effect=[mock_fail_response, mock_success_response])
 
     # Mock random.uniform to return a specific jitter value
-    with patch("aresnet.request_async.random.uniform", return_value=0.05):  # 5% jitter
+    with patch("aresnet.utils.random.uniform", return_value=0.05):  # 5% jitter
         response = await request_with_automatic_retry_async(
             url=TEST_URL,
             method="GET",
@@ -198,7 +198,7 @@ async def test_request_jitter_range_async(mock_asleep: Mock) -> None:
         mock_asleep.reset_mock()
         mock_request_func = AsyncMock(side_effect=[mock_fail_response, mock_success_response])
 
-        with patch("aresnet.request_async.random.uniform", return_value=jitter_multiplier):
+        with patch("aresnet.utils.random.uniform", return_value=jitter_multiplier):
             response = await request_with_automatic_retry_async(
                 url=TEST_URL,
                 method="GET",
@@ -227,7 +227,7 @@ async def test_request_jitter_with_retry_after_async(mock_asleep: Mock) -> None:
     mock_request_func = AsyncMock(side_effect=[mock_fail_response, mock_success_response])
 
     # Mock jitter to 10% (maximum)
-    with patch("aresnet.request_async.random.uniform", return_value=0.1):
+    with patch("aresnet.utils.random.uniform", return_value=0.1):
         response = await request_with_automatic_retry_async(
             url=TEST_URL,
             method="GET",

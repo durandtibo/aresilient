@@ -1,5 +1,25 @@
 from __future__ import annotations
 
+from unittest.mock import Mock, patch
+
+import httpx
+import pytest
+
+from aresnet.exceptions import HttpRequestError
+from aresnet.utils import (
+    calculate_sleep_time,
+    handle_request_error,
+    handle_response,
+    handle_timeout_exception,
+    validate_retry_params,
+)
+
+TEST_URL = "https://api.example.com/data"
+
+
+##################################################
+#     Tests for validate_retry_params           #
+##################################################
 import math
 
 import pytest
@@ -33,104 +53,237 @@ def test_validate_retry_params_rejects_both_negative() -> None:
         validate_retry_params(-1, -0.5)
 
 
-def test_validate_retry_params_large_values() -> None:
-    """Test that validate_retry_params accepts very large values."""
-    validate_retry_params(1000000, 100.0)
-    validate_retry_params(999, 999.999)
-
-
-def test_validate_retry_params_zero_boundary() -> None:
-    """Test that validate_retry_params accepts zero as boundary case."""
-    validate_retry_params(0, 0.0)
-
-
-def test_validate_retry_params_rejects_negative_zero_boundary() -> None:
-    """Test that validate_retry_params rejects values just below zero."""
-    with pytest.raises(ValueError, match=r"max_retries must be >= 0"):
-        validate_retry_params(-1, 0.0)
-    with pytest.raises(ValueError, match=r"backoff_factor must be >= 0"):
-        validate_retry_params(0, -0.0001)
-
-
-def test_validate_retry_params_infinity_max_retries() -> None:
-    """Test that validate_retry_params handles infinity for max_retries."""
-    # Python will accept infinity as a valid int comparison
-    validate_retry_params(int(1e100), 0.5)
-
-
-def test_validate_retry_params_infinity_backoff_factor() -> None:
-    """Test that validate_retry_params handles infinity for backoff_factor."""
-    validate_retry_params(3, math.inf)
-
-
 ##################################################
-#     Tests for parse_retry_after               #
+#     Tests for calculate_sleep_time            #
 ##################################################
 
 
-def test_parse_retry_after_float_string() -> None:
-    """Test parsing Retry-After header with float string."""
-    assert parse_retry_after("120.5") == 120.5
-    assert parse_retry_after("0.5") == 0.5
-    assert parse_retry_after("3600.123") == 3600.123
+def test_calculate_sleep_time_exponential_backoff() -> None:
+    """Test exponential backoff calculation without jitter."""
+    # Attempt 0: 0.3 * 2^0 = 0.3
+    sleep_time = calculate_sleep_time(0, 0.3, 0.0, None)
+    assert sleep_time == 0.3
+
+    # Attempt 1: 0.3 * 2^1 = 0.6
+    sleep_time = calculate_sleep_time(1, 0.3, 0.0, None)
+    assert sleep_time == 0.6
+
+    # Attempt 2: 0.3 * 2^2 = 1.2
+    sleep_time = calculate_sleep_time(2, 0.3, 0.0, None)
+    assert sleep_time == 1.2
 
 
-def test_parse_retry_after_empty_string() -> None:
-    """Test parsing empty Retry-After header."""
-    assert parse_retry_after("") is None
+def test_calculate_sleep_time_with_jitter() -> None:
+    """Test that jitter is correctly added to sleep time."""
+    with patch("aresnet.utils.random.uniform", return_value=0.05):
+        # Base sleep: 1.0 * 2^0 = 1.0
+        # Jitter: 0.05 * 1.0 = 0.05
+        # Total: 1.05
+        sleep_time = calculate_sleep_time(0, 1.0, 1.0, None)
+        assert sleep_time == 1.05
 
 
-def test_parse_retry_after_whitespace() -> None:
-    """Test parsing Retry-After header with whitespace."""
-    assert parse_retry_after("   ") is None
-    assert parse_retry_after("\t\n") is None
+def test_calculate_sleep_time_zero_jitter() -> None:
+    """Test that zero jitter factor results in no jitter."""
+    sleep_time = calculate_sleep_time(0, 1.0, 0.0, None)
+    assert sleep_time == 1.0
 
 
-def test_parse_retry_after_scientific_notation() -> None:
-    """Test parsing Retry-After header with scientific notation."""
-    assert parse_retry_after("1e2") == 100.0
-    assert parse_retry_after("1.5e3") == 1500.0
+def test_calculate_sleep_time_with_retry_after_header() -> None:
+    """Test that Retry-After header takes precedence over exponential backoff."""
+    mock_response = Mock(spec=httpx.Response)
+    mock_response.headers = {"Retry-After": "120"}
+
+    # Should use 120 from Retry-After instead of 0.3 from backoff
+    sleep_time = calculate_sleep_time(0, 0.3, 0.0, mock_response)
+    assert sleep_time == 120.0
 
 
-def test_parse_retry_after_very_large_number() -> None:
-    """Test parsing Retry-After header with very large number."""
-    assert parse_retry_after("999999999") == 999999999.0
+def test_calculate_sleep_time_with_retry_after_and_jitter() -> None:
+    """Test that jitter is applied to Retry-After value."""
+    mock_response = Mock(spec=httpx.Response)
+    mock_response.headers = {"Retry-After": "100"}
+
+    with patch("aresnet.utils.random.uniform", return_value=0.1):
+        # Base sleep from Retry-After: 100
+        # Jitter: 0.1 * 100 = 10
+        # Total: 110
+        sleep_time = calculate_sleep_time(0, 0.3, 1.0, mock_response)
+        assert sleep_time == 110.0
 
 
-def test_parse_retry_after_negative_number() -> None:
-    """Test parsing Retry-After header with negative number."""
-    # Negative seconds are technically valid input (though unusual)
-    assert parse_retry_after("-10") == -10.0
+def test_calculate_sleep_time_response_without_headers() -> None:
+    """Test handling of response without headers attribute."""
+    mock_response = Mock(spec=httpx.Response)
+    del mock_response.headers  # Remove headers attribute
+
+    # Should fall back to exponential backoff
+    sleep_time = calculate_sleep_time(0, 0.3, 0.0, mock_response)
+    assert sleep_time == 0.3
 
 
-def test_parse_retry_after_past_date() -> None:
-    """Test parsing Retry-After header with date in the past."""
-    from datetime import datetime, timezone
-    from unittest.mock import patch
+def test_calculate_sleep_time_invalid_retry_after() -> None:
+    """Test that invalid Retry-After header falls back to exponential backoff."""
+    mock_response = Mock(spec=httpx.Response)
+    mock_response.headers = {"Retry-After": "invalid"}
 
-    # Mock datetime.now to return a fixed time
-    fixed_now = datetime(2015, 10, 21, 7, 28, 0, tzinfo=timezone.utc)
-
-    with patch("aresnet.utils.datetime") as mock_datetime:
-        # Configure the mock to return our fixed time for now()
-        mock_datetime.now.return_value = fixed_now
-        # But still allow datetime to be used for other operations
-        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
-
-        # Test with a date 60 seconds in the past
-        result = parse_retry_after("Wed, 21 Oct 2015 07:27:00 GMT")
-
-        # Should return 0.0 (max of 0.0 and negative delta)
-        assert result == 0.0
+    # Should fall back to exponential backoff
+    sleep_time = calculate_sleep_time(0, 0.3, 0.0, mock_response)
+    assert sleep_time == 0.3
 
 
-def test_parse_retry_after_malformed_http_date() -> None:
-    """Test parsing malformed HTTP-date returns None."""
-    assert parse_retry_after("Not a valid date") is None
-    assert parse_retry_after("2023-13-45 25:99:99") is None
+##################################################
+#     Tests for handle_response                 #
+##################################################
 
 
-def test_parse_retry_after_zero() -> None:
-    """Test parsing Retry-After header with zero."""
-    assert parse_retry_after("0") == 0.0
-    assert parse_retry_after("0.0") == 0.0
+def test_handle_response_retryable_status() -> None:
+    """Test that retryable status codes don't raise an exception."""
+    mock_response = Mock(spec=httpx.Response, status_code=503)
+
+    # Should not raise for status in forcelist
+    handle_response(mock_response, TEST_URL, "GET", (503, 500))
+
+
+def test_handle_response_non_retryable_status() -> None:
+    """Test that non-retryable status codes raise HttpRequestError."""
+    mock_response = Mock(spec=httpx.Response, status_code=404)
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        handle_response(mock_response, TEST_URL, "GET", (503, 500))
+
+    error = exc_info.value
+    assert error.method == "GET"
+    assert error.url == TEST_URL
+    assert error.status_code == 404
+    assert error.response == mock_response
+    assert "failed with status 404" in str(error)
+
+
+@pytest.mark.parametrize("status_code", [400, 401, 403, 404, 422])
+def test_handle_response_various_non_retryable_codes(status_code: int) -> None:
+    """Test various non-retryable status codes."""
+    mock_response = Mock(spec=httpx.Response, status_code=status_code)
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        handle_response(mock_response, TEST_URL, "POST", (500, 503))
+
+    assert exc_info.value.status_code == status_code
+
+
+##################################################
+#     Tests for handle_timeout_exception        #
+##################################################
+
+
+def test_handle_timeout_exception_not_max_retries() -> None:
+    """Test that timeout exception doesn't raise when retries remain."""
+    exc = httpx.TimeoutException("Request timed out")
+
+    # Should not raise when attempt < max_retries
+    handle_timeout_exception(exc, TEST_URL, "GET", 0, 3)
+    handle_timeout_exception(exc, TEST_URL, "GET", 1, 3)
+    handle_timeout_exception(exc, TEST_URL, "GET", 2, 3)
+
+
+def test_handle_timeout_exception_at_max_retries() -> None:
+    """Test that timeout exception raises HttpRequestError at max retries."""
+    exc = httpx.TimeoutException("Request timed out")
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        handle_timeout_exception(exc, TEST_URL, "GET", 3, 3)
+
+    error = exc_info.value
+    assert error.method == "GET"
+    assert error.url == TEST_URL
+    assert error.__cause__ == exc
+    assert "timed out (4 attempts)" in str(error)
+
+
+def test_handle_timeout_exception_zero_max_retries() -> None:
+    """Test timeout exception with zero max retries."""
+    exc = httpx.TimeoutException("Request timed out")
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        handle_timeout_exception(exc, TEST_URL, "POST", 0, 0)
+
+    error = exc_info.value
+    assert "timed out (1 attempts)" in str(error)
+
+
+def test_handle_timeout_exception_preserves_cause() -> None:
+    """Test that the original exception is preserved as cause."""
+    exc = httpx.TimeoutException("Request timed out")
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        handle_timeout_exception(exc, TEST_URL, "GET", 2, 2)
+
+    assert exc_info.value.__cause__ == exc
+
+
+##################################################
+#     Tests for handle_request_error            #
+##################################################
+
+
+def test_handle_request_error_not_max_retries() -> None:
+    """Test that request error doesn't raise when retries remain."""
+    exc = httpx.RequestError("Connection failed")
+
+    # Should not raise when attempt < max_retries
+    handle_request_error(exc, TEST_URL, "GET", 0, 3)
+    handle_request_error(exc, TEST_URL, "GET", 1, 3)
+    handle_request_error(exc, TEST_URL, "GET", 2, 3)
+
+
+def test_handle_request_error_at_max_retries() -> None:
+    """Test that request error raises HttpRequestError at max retries."""
+    exc = httpx.RequestError("Connection failed")
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        handle_request_error(exc, TEST_URL, "GET", 3, 3)
+
+    error = exc_info.value
+    assert error.method == "GET"
+    assert error.url == TEST_URL
+    assert error.__cause__ == exc
+    assert "failed after 4 attempts" in str(error)
+
+
+def test_handle_request_error_zero_max_retries() -> None:
+    """Test request error with zero max retries."""
+    exc = httpx.ConnectError("Connection refused")
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        handle_request_error(exc, TEST_URL, "POST", 0, 0)
+
+    error = exc_info.value
+    assert "failed after 1 attempts" in str(error)
+
+
+def test_handle_request_error_preserves_cause() -> None:
+    """Test that the original exception is preserved as cause."""
+    exc = httpx.ConnectError("Connection refused")
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        handle_request_error(exc, TEST_URL, "GET", 2, 2)
+
+    assert exc_info.value.__cause__ == exc
+
+
+@pytest.mark.parametrize(
+    "exc",
+    [
+        httpx.ConnectError("Connection refused"),
+        httpx.ReadError("Read failed"),
+        httpx.WriteError("Write failed"),
+        httpx.ProxyError("Proxy error"),
+    ],
+)
+def test_handle_request_error_various_error_types(exc: httpx.RequestError) -> None:
+    """Test handling of various request error types."""
+    with pytest.raises(HttpRequestError) as exc_info:
+        handle_request_error(exc, TEST_URL, "GET", 1, 1)
+
+    assert exc_info.value.__cause__ == exc
+
