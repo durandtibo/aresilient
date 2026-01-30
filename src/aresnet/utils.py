@@ -53,10 +53,8 @@ def validate_retry_params(max_retries: int, backoff_factor: float) -> None:
         ```pycon
         >>> from aresnet.utils import validate_retry_params
         >>> validate_retry_params(max_retries=3, backoff_factor=0.5)
+        >>> # Negative values raise ValueError
         >>> validate_retry_params(max_retries=-1, backoff_factor=0.5)  # doctest: +SKIP
-        Traceback (most recent call last):
-            ...
-        ValueError: max_retries must be >= 0, got -1
 
         ```
     """
@@ -138,13 +136,13 @@ def calculate_sleep_time(
     header when present in the server response, which takes precedence over
     the exponential backoff calculation.
 
-    The sleep time is calculated using the formula:
-        base_sleep_time = backoff_factor * (2 ** attempt)
-        jitter = random.uniform(0, jitter_factor) * base_sleep_time
-        total_sleep_time = base_sleep_time + jitter
-
-    If the response contains a Retry-After header, that value is used instead
-    of the exponential backoff base time, but jitter is still applied.
+    The sleep time is calculated as follows:
+    1. Determine base sleep time:
+       - If Retry-After header is present: use that value
+       - Otherwise: backoff_factor * (2 ** attempt)
+    2. Apply jitter (if jitter_factor > 0):
+       - jitter = random.uniform(0, jitter_factor) * base_sleep_time
+       - total_sleep_time = base_sleep_time + jitter
 
     Args:
         attempt: The current attempt number (0-indexed). For example,
@@ -152,8 +150,9 @@ def calculate_sleep_time(
         backoff_factor: Factor for exponential backoff between retries.
             The base wait time is calculated as: backoff_factor * (2 ** attempt).
         jitter_factor: Factor for adding random jitter to backoff delays.
-            The jitter is calculated as: random.uniform(0, jitter_factor) * base_sleep_time.
-            Set to 0 to disable jitter. Recommended value is 0.1 for 10% jitter.
+            The jitter is calculated as: random.uniform(0, jitter_factor) * base_sleep_time,
+            and this jitter is ADDED to the base sleep time. Set to 0 to disable jitter.
+            Recommended value is 0.1 to add up to 10% additional random delay.
         response: The HTTP response object (if available). Used to extract
             the Retry-After header if present.
 
