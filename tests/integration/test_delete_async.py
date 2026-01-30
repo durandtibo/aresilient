@@ -107,5 +107,6 @@ async def test_delete_with_automatic_retry_async_multiple_headers() -> None:
 
     assert response.status_code == 200
     response_data = response.json()
-    assert response_data["headers"]["X-Request-ID"] == "abc-123"
-    assert response_data["headers"]["X-Correlation-ID"] == "xyz-789"
+    # httpbin normalizes header names to title case: "X-Request-ID" becomes "X-Request-Id"
+    assert response_data["headers"]["X-Request-Id"] == "abc-123"
+    assert response_data["headers"]["X-Correlation-Id"] == "xyz-789"
