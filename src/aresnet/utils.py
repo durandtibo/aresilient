@@ -107,7 +107,8 @@ def calculate_sleep_time(
     jitter_factor: float,
     response: httpx.Response | None,
 ) -> float:
-    """Calculate sleep time for retry with exponential backoff and jitter.
+    """Calculate sleep time for retry with exponential backoff and
+    jitter.
 
     Args:
         attempt: The current attempt number (0-indexed).
