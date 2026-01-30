@@ -62,9 +62,9 @@ def put_with_automatic_retry(
         ```pycon
         >>> from aresnet import put_with_automatic_retry
         >>> response = put_with_automatic_retry(
-        ...     "https://api.example.com/resource", json={"key": "value"}
+        ...     "https://api.example.com/resource/123", json={"name": "updated"}
         ... )  # doctest: +SKIP
-        >>> response.json()  # doctest: +SKIP
+
         ```
     """
     # Input validation

@@ -68,6 +68,22 @@ def request_with_automatic_retry(
     Raises:
         HttpRequestError: If the request times out, encounters network errors,
             or fails after exhausting all retries.
+
+    Example:
+        ```pycon
+        >>> import httpx
+        >>> from aresnet import request_with_automatic_retry
+        >>> with httpx.Client() as client:
+        ...     response = request_with_automatic_retry(
+        ...         url="https://api.example.com/data",
+        ...         method="GET",
+        ...         request_func=client.get,
+        ...         max_retries=5,
+        ...         backoff_factor=1.0,
+        ...     )  # doctest: +SKIP
+        ...
+
+        ```
     """
     response: httpx.Response | None = None
 

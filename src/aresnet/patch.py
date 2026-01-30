@@ -63,9 +63,9 @@ def patch_with_automatic_retry(
         ```pycon
         >>> from aresnet import patch_with_automatic_retry
         >>> response = patch_with_automatic_retry(
-        ...     "https://api.example.com/resource/123", json={"status": "updated"}
+        ...     "https://api.example.com/resource/123", json={"status": "active"}
         ... )  # doctest: +SKIP
-        >>> response.json()  # doctest: +SKIP
+
         ```
     """
     # Input validation

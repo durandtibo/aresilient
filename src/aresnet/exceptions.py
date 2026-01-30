@@ -46,29 +46,13 @@ class HttpRequestError(RuntimeError):
         Raising an error for a failed GET request:
 
         ```pycon
+        >>> from aresnet import HttpRequestError
         >>> raise HttpRequestError(
         ...     method="GET",
         ...     url="https://api.example.com/data",
         ...     message="Request failed with status 404",
         ...     status_code=404,
         ... )  # doctest: +SKIP
-
-        ```
-
-        Chaining with an original exception:
-
-        ```pycon
-        >>> try:
-        ...     # Some httpx request
-        ...     pass
-        ... except httpx.RequestError as e:
-        ...     raise HttpRequestError(
-        ...         method="POST",
-        ...         url="https://api.example.com/submit",
-        ...         message="Connection failed",
-        ...         cause=e,
-        ...     )
-        ...
 
         ```
     """
