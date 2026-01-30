@@ -27,6 +27,158 @@ from aresnet.exceptions import HttpRequestError
 logger: logging.Logger = logging.getLogger(__name__)
 
 
+def _should_retry_status(status_code: int, status_forcelist: tuple[int, ...]) -> bool:
+    """Check if a status code should trigger a retry.
+
+    Args:
+        status_code: The HTTP status code to check.
+        status_forcelist: Tuple of HTTP status codes that should trigger a retry.
+
+    Returns:
+        True if the status code is in the retry list, False otherwise.
+    """
+    return status_code in status_forcelist
+
+
+def _calculate_sleep_time(
+    attempt: int,
+    backoff_factor: float,
+    jitter_factor: float,
+    response: httpx.Response | None,
+) -> float:
+    """Calculate sleep time for retry with exponential backoff and jitter.
+
+    Args:
+        attempt: The current attempt number (0-indexed).
+        backoff_factor: Factor for exponential backoff between retries.
+        jitter_factor: Factor for adding random jitter to backoff delays.
+        response: The HTTP response object (if available).
+
+    Returns:
+        The calculated sleep time in seconds.
+    """
+    # Check for Retry-After header in the response (if available)
+    retry_after_sleep: float | None = None
+    if response is not None and hasattr(response, "headers"):
+        retry_after_header = response.headers.get("Retry-After")
+        retry_after_sleep = parse_retry_after(retry_after_header)
+
+    # Use Retry-After if available, otherwise use exponential backoff
+    if retry_after_sleep is not None:
+        sleep_time = retry_after_sleep
+        logger.debug(f"Using Retry-After header value: {sleep_time:.2f}s")
+    else:
+        sleep_time = backoff_factor * (2**attempt)
+
+    # Add jitter if jitter_factor is configured
+    if jitter_factor > 0:
+        jitter = random.uniform(0, jitter_factor) * sleep_time  # noqa: S311
+        total_sleep_time = sleep_time + jitter
+        logger.debug(
+            f"Waiting {total_sleep_time:.2f}s before retry (base={sleep_time:.2f}s, jitter={jitter:.2f}s)"
+        )
+    else:
+        total_sleep_time = sleep_time
+        logger.debug(f"Waiting {total_sleep_time:.2f}s before retry")
+
+    return total_sleep_time
+
+
+def _handle_response(
+    response: httpx.Response,
+    url: str,
+    method: str,
+    status_forcelist: tuple[int, ...],
+) -> None:
+    """Handle HTTP response based on status code.
+
+    Args:
+        response: The HTTP response object.
+        url: The URL that was requested.
+        method: The HTTP method name.
+        status_forcelist: Tuple of HTTP status codes that should trigger a retry.
+
+    Raises:
+        HttpRequestError: If the status code is not retryable (not in status_forcelist).
+    """
+    # Non-retryable HTTP error (e.g., 404, 401, 403)
+    if not _should_retry_status(response.status_code, status_forcelist):
+        logger.debug(
+            f"{method} request to {url} failed with non-retryable status {response.status_code}"
+        )
+        raise HttpRequestError(
+            method=method,
+            url=url,
+            message=f"{method} request to {url} failed with status {response.status_code}",
+            status_code=response.status_code,
+            response=response,
+        )
+
+
+def _handle_timeout_exception(
+    exc: httpx.TimeoutException,
+    url: str,
+    method: str,
+    attempt: int,
+    max_retries: int,
+) -> None:
+    """Handle timeout exceptions during request.
+
+    Args:
+        exc: The timeout exception that was raised.
+        url: The URL that was requested.
+        method: The HTTP method name.
+        attempt: The current attempt number (0-indexed).
+        max_retries: Maximum number of retry attempts.
+
+    Raises:
+        HttpRequestError: If max retries have been exhausted.
+    """
+    logger.debug(
+        f"{method} request to {url} timed out on attempt {attempt + 1}/{max_retries + 1}"
+    )
+    if attempt == max_retries:
+        raise HttpRequestError(
+            method=method,
+            url=url,
+            message=f"{method} request to {url} timed out ({max_retries + 1} attempts)",
+            cause=exc,
+        ) from exc
+
+
+def _handle_request_error(
+    exc: httpx.RequestError,
+    url: str,
+    method: str,
+    attempt: int,
+    max_retries: int,
+) -> None:
+    """Handle request errors during request.
+
+    Args:
+        exc: The request error that was raised.
+        url: The URL that was requested.
+        method: The HTTP method name.
+        attempt: The current attempt number (0-indexed).
+        max_retries: Maximum number of retry attempts.
+
+    Raises:
+        HttpRequestError: If max retries have been exhausted.
+    """
+    error_type = type(exc).__name__
+    logger.debug(
+        f"{method} request to {url} encountered {error_type} on attempt "
+        f"{attempt + 1}/{max_retries + 1}: {exc}"
+    )
+    if attempt == max_retries:
+        raise HttpRequestError(
+            method=method,
+            url=url,
+            message=f"{method} request to {url} failed after {max_retries + 1} attempts: {exc}",
+            cause=exc,
+        ) from exc
+
+
 async def request_with_automatic_retry_async(
     url: str,
     method: str,
@@ -114,18 +266,7 @@ async def request_with_automatic_retry_async(
                 return response
 
             # Client/Server error: check if it's retryable
-            # Non-retryable HTTP error (e.g., 404, 401, 403)
-            if response.status_code not in status_forcelist:
-                logger.debug(
-                    f"{method} request to {url} failed with non-retryable status {response.status_code}"
-                )
-                raise HttpRequestError(
-                    method=method,
-                    url=url,
-                    message=f"{method} request to {url} failed with status {response.status_code}",
-                    status_code=response.status_code,
-                    response=response,
-                )
+            _handle_response(response, url, method, status_forcelist)
 
             # Retryable HTTP status - log and continue to retry
             logger.debug(
@@ -134,60 +275,15 @@ async def request_with_automatic_retry_async(
             )
 
         except httpx.TimeoutException as exc:
-            # Request timed out - retry if attempts remain
-            logger.debug(
-                f"{method} request to {url} timed out on attempt {attempt + 1}/{max_retries + 1}"
-            )
-            if attempt == max_retries:
-                raise HttpRequestError(
-                    method=method,
-                    url=url,
-                    message=f"{method} request to {url} timed out ({max_retries + 1} attempts)",
-                    cause=exc,
-                ) from exc
+            _handle_timeout_exception(exc, url, method, attempt, max_retries)
 
         except httpx.RequestError as exc:
-            # Network error (connection failed, DNS failure, etc.) - retry if attempts remain
-            error_type = type(exc).__name__
-            logger.debug(
-                f"{method} request to {url} encountered {error_type} on attempt "
-                f"{attempt + 1}/{max_retries + 1}: {exc}"
-            )
-            if attempt == max_retries:
-                raise HttpRequestError(
-                    method=method,
-                    url=url,
-                    message=f"{method} request to {url} failed after {max_retries + 1} attempts: {exc}",
-                    cause=exc,
-                ) from exc
+            _handle_request_error(exc, url, method, attempt, max_retries)
 
         # Exponential backoff with jitter before next retry (skip on last attempt since we're about to fail)
         if attempt < max_retries:
-            # Check for Retry-After header in the response (if available)
-            retry_after_sleep: float | None = None
-            if response is not None and hasattr(response, "headers"):
-                retry_after_header = response.headers.get("Retry-After")
-                retry_after_sleep = parse_retry_after(retry_after_header)
-
-            # Use Retry-After if available, otherwise use exponential backoff
-            if retry_after_sleep is not None:
-                sleep_time = retry_after_sleep
-                logger.debug(f"Using Retry-After header value: {sleep_time:.2f}s")
-            else:
-                sleep_time = backoff_factor * (2**attempt)
-
-            # Add jitter if jitter_factor is configured
-            if jitter_factor > 0:
-                jitter = random.uniform(0, jitter_factor) * sleep_time
-                total_sleep_time = sleep_time + jitter
-                logger.debug(
-                    f"Waiting {total_sleep_time:.2f}s before retry (base={sleep_time:.2f}s, jitter={jitter:.2f}s)"
-                )
-            else:
-                total_sleep_time = sleep_time
-                logger.debug(f"Waiting {total_sleep_time:.2f}s before retry")
-
-            await asyncio.sleep(total_sleep_time)
+            sleep_time = _calculate_sleep_time(attempt, backoff_factor, jitter_factor, response)
+            await asyncio.sleep(sleep_time)
 
     # All retries exhausted with retryable status code - raise final error
     # Note: response cannot be None here because if all attempts raised exceptions,
