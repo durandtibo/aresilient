@@ -767,6 +767,36 @@ async def fetch_data():
     return response.json()
 ```
 
+### 7. Enable Debug Logging for Troubleshooting
+
+`aresnet` uses Python's standard `logging` module to provide detailed debug information about
+retries, backoff times, and errors. This can be helpful for troubleshooting issues or understanding
+retry behavior.
+
+```python
+import logging
+from aresnet import get_with_automatic_retry
+
+# Enable debug logging to see retry details
+logging.basicConfig(level=logging.DEBUG)
+
+# This will log:
+# - Each retry attempt
+# - Wait times between retries
+# - Whether Retry-After header is being used
+# - Success/failure of each attempt
+response = get_with_automatic_retry("https://api.example.com/data")
+```
+
+Example debug output:
+```
+DEBUG:aresnet.request:GET request to https://api.example.com/data failed with status 503 (attempt 1/4)
+DEBUG:aresnet.utils:Waiting 0.30s before retry
+DEBUG:aresnet.request:GET request to https://api.example.com/data succeeded on attempt 2
+```
+
+For production use, keep the default log level (INFO or WARNING) to avoid excessive logging.
+
 ## Additional Resources
 
 - [API Reference](refs/index.md) - Complete API documentation
