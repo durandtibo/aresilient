@@ -13,9 +13,9 @@ from aresnet.utils import parse_retry_after
 TEST_URL = "https://api.example.com/data"
 
 
-##################################################
-#     Tests for parse_retry_after               #
-##################################################
+#######################################
+#     Tests for parse_retry_after     #
+#######################################
 
 
 def testparse_retry_after_integer() -> None:
@@ -41,13 +41,15 @@ def test_parse_retry_after_http_date() -> None:
     from datetime import datetime, timezone
 
     # Mock datetime.now to return a fixed time
-    fixed_now = datetime(2015, 10, 21, 7, 28, 0, tzinfo=timezone.utc)
+    fixed_now = datetime(
+        year=2015, month=10, day=21, hour=7, minute=28, second=0, tzinfo=timezone.utc
+    )
 
     with patch("aresnet.utils.datetime") as mock_datetime:
         # Configure the mock to return our fixed time for now()
         mock_datetime.now.return_value = fixed_now
         # But still allow datetime to be used for other operations
-        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw, tzinfo=timezone.utc)
 
         # Test with a date 60 seconds in the future
         result = parse_retry_after("Wed, 21 Oct 2015 07:29:00 GMT")
@@ -58,9 +60,9 @@ def test_parse_retry_after_http_date() -> None:
         assert 59.0 <= result <= 61.0
 
 
-##################################################
-#     Tests for Retry-After in retry logic      #
-##################################################
+################################################
+#     Tests for Retry-After in retry logic     #
+################################################
 
 
 def test_request_with_retry_after_header_integer(mock_sleep: Mock) -> None:
@@ -170,9 +172,9 @@ def test_request_with_retry_after_mixed_with_backoff(mock_sleep: Mock) -> None:
     assert mock_sleep.call_args_list == [call(45.0), call(0.6)]
 
 
-##################################################
-#     Tests for jitter functionality             #
-##################################################
+##########################################
+#     Tests for jitter functionality     #
+##########################################
 
 
 def test_request_with_jitter_applied(mock_sleep: Mock) -> None:

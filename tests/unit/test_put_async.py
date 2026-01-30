@@ -620,6 +620,4 @@ async def test_put_with_automatic_retry_async_validation_negative_backoff_factor
 ) -> None:
     """Test that negative backoff_factor raises ValueError."""
     with pytest.raises(ValueError, match=r"backoff_factor must be >= 0"):
-        await put_with_automatic_retry_async(
-            TEST_URL, client=mock_client, backoff_factor=-0.5
-        )
+        await put_with_automatic_retry_async(TEST_URL, client=mock_client, backoff_factor=-0.5)
