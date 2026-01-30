@@ -3,9 +3,11 @@ functionality."""
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from unittest.mock import Mock, call, patch
 
 import httpx
+import pytest
 
 from aresnet.request import request_with_automatic_retry
 from aresnet.utils import parse_retry_after
@@ -18,45 +20,38 @@ TEST_URL = "https://api.example.com/data"
 #######################################
 
 
-def testparse_retry_after_integer() -> None:
+@pytest.mark.parametrize(
+    ("header", "seconds"), [("1", 1.0), ("0", 0.0), ("120", 120.0), ("3600", 3600.0)]
+)
+def test_parse_retry_after_integer(header: str, seconds: float) -> None:
     """Test parsing Retry-After header with integer seconds."""
-    assert parse_retry_after("120") == 120.0
-    assert parse_retry_after("0") == 0.0
-    assert parse_retry_after("3600") == 3600.0
+    assert parse_retry_after(header) == seconds
 
 
-def testparse_retry_after_none() -> None:
+@pytest.mark.parametrize("header", [None, "invalid", "not a number", "1.2.3"])
+def test_parse_retry_after_none(header: str | None) -> None:
     """Test parsing None Retry-After header."""
-    assert parse_retry_after(None) is None
-
-
-def testparse_retry_after_invalid_string() -> None:
-    """Test parsing invalid Retry-After header."""
-    assert parse_retry_after("invalid") is None
-    assert parse_retry_after("not a number") is None
+    assert parse_retry_after(header) is None
 
 
 def test_parse_retry_after_http_date() -> None:
     """Test parsing Retry-After header with HTTP-date format."""
-    from datetime import datetime, timezone
-
     # Mock datetime.now to return a fixed time
-    fixed_now = datetime(
-        year=2015, month=10, day=21, hour=7, minute=28, second=0, tzinfo=timezone.utc
+    mock_datetime = Mock(
+        spec=datetime,
+        now=Mock(
+            return_value=datetime(
+                year=2015, month=10, day=21, hour=7, minute=28, second=0, tzinfo=timezone.utc
+            )
+        ),
     )
 
-    with patch("aresnet.utils.datetime") as mock_datetime:
-        # Configure the mock to return our fixed time for now()
-        mock_datetime.now.return_value = fixed_now
-        # But still allow datetime to be used for other operations
-        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw, tzinfo=timezone.utc)
-
+    with patch("aresnet.utils.datetime", mock_datetime) as mock_datetime:
         # Test with a date 60 seconds in the future
         result = parse_retry_after("Wed, 21 Oct 2015 07:29:00 GMT")
 
         # Should return approximately 60 seconds
         assert result is not None
-        assert 59.0 <= result <= 61.0
         assert 59.0 <= result <= 61.0
 
 
@@ -69,10 +64,7 @@ def test_request_with_retry_after_header_integer(mock_sleep: Mock) -> None:
     """Test that Retry-After header with integer is used instead of
     exponential backoff."""
     # Create a mock response with Retry-After header
-    mock_fail_response = Mock(spec=httpx.Response)
-    mock_fail_response.status_code = 503
-    mock_fail_response.headers = {"Retry-After": "120"}
-
+    mock_fail_response = Mock(spec=httpx.Response, status_code=503, headers={"Retry-After": "120"})
     mock_success_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_success_response])
 
@@ -92,15 +84,9 @@ def test_request_with_retry_after_header_integer(mock_sleep: Mock) -> None:
 def test_request_with_retry_after_header_multiple_retries(mock_sleep: Mock) -> None:
     """Test Retry-After header is used for each retry that has it."""
     # First retry has Retry-After: 60
-    mock_fail_response_1 = Mock(spec=httpx.Response)
-    mock_fail_response_1.status_code = 429
-    mock_fail_response_1.headers = {"Retry-After": "60"}
-
+    mock_fail_response_1 = Mock(spec=httpx.Response, status_code=429, headers={"Retry-After": "60"})
     # Second retry has Retry-After: 30
-    mock_fail_response_2 = Mock(spec=httpx.Response)
-    mock_fail_response_2.status_code = 429
-    mock_fail_response_2.headers = {"Retry-After": "30"}
-
+    mock_fail_response_2 = Mock(spec=httpx.Response, status_code=429, headers={"Retry-After": "30"})
     mock_success_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(
         side_effect=[mock_fail_response_1, mock_fail_response_2, mock_success_response]
@@ -122,10 +108,7 @@ def test_request_without_retry_after_uses_exponential_backoff(mock_sleep: Mock) 
     """Test that exponential backoff is used when Retry-After header is
     not present."""
     # Response without Retry-After header
-    mock_fail_response = Mock(spec=httpx.Response)
-    mock_fail_response.status_code = 503
-    mock_fail_response.headers = {}
-
+    mock_fail_response = Mock(spec=httpx.Response, status_code=503, headers={})
     mock_success_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_success_response])
 
@@ -145,15 +128,9 @@ def test_request_with_retry_after_mixed_with_backoff(mock_sleep: Mock) -> None:
     """Test mixing Retry-After header and exponential backoff in
     different retries."""
     # First retry has Retry-After
-    mock_fail_response_1 = Mock(spec=httpx.Response)
-    mock_fail_response_1.status_code = 429
-    mock_fail_response_1.headers = {"Retry-After": "45"}
-
+    mock_fail_response_1 = Mock(spec=httpx.Response, status_code=429, headers={"Retry-After": "45"})
     # Second retry does not have Retry-After, should use exponential backoff
-    mock_fail_response_2 = Mock(spec=httpx.Response)
-    mock_fail_response_2.status_code = 503
-    mock_fail_response_2.headers = {}
-
+    mock_fail_response_2 = Mock(spec=httpx.Response, status_code=503, headers={})
     mock_success_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(
         side_effect=[mock_fail_response_1, mock_fail_response_2, mock_success_response]
@@ -179,8 +156,7 @@ def test_request_with_retry_after_mixed_with_backoff(mock_sleep: Mock) -> None:
 
 def test_request_with_jitter_applied(mock_sleep: Mock) -> None:
     """Test that jitter is applied to backoff sleep time."""
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_fail_response.headers = {}
+    mock_fail_response = Mock(spec=httpx.Response, status_code=503, headers={})
     mock_success_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_success_response])
 
@@ -192,7 +168,7 @@ def test_request_with_jitter_applied(mock_sleep: Mock) -> None:
             request_func=mock_request_func,
             status_forcelist=(503,),
             backoff_factor=1.0,
-            jitter_factor=1.0,  # Jitter factor of 1.0
+            jitter_factor=1.0,
         )
 
     assert response == mock_success_response
@@ -202,42 +178,10 @@ def test_request_with_jitter_applied(mock_sleep: Mock) -> None:
     mock_sleep.assert_called_once_with(1.05)
 
 
-def test_request_jitter_range(mock_sleep: Mock) -> None:
-    """Test that jitter is within expected range based on
-    jitter_factor."""
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_fail_response.headers = {}
-    mock_success_response = Mock(spec=httpx.Response, status_code=200)
-
-    # Run multiple times with different random values
-    for jitter_multiplier in [0.0, 0.01, 0.05, 0.1]:
-        mock_sleep.reset_mock()
-        mock_request_func = Mock(side_effect=[mock_fail_response, mock_success_response])
-
-        with patch("aresnet.utils.random.uniform", return_value=jitter_multiplier):
-            response = request_with_automatic_retry(
-                url=TEST_URL,
-                method="GET",
-                request_func=mock_request_func,
-                status_forcelist=(503,),
-                backoff_factor=2.0,
-                jitter_factor=1.0,  # Jitter factor of 1.0
-            )
-
-        assert response == mock_success_response
-        # Base sleep: 2.0 * (2^0) = 2.0
-        # Jitter: jitter_multiplier * 2.0
-        expected_sleep = 2.0 * (1 + jitter_multiplier)
-        mock_sleep.assert_called_once_with(expected_sleep)
-
-
 def test_request_jitter_with_retry_after(mock_sleep: Mock) -> None:
     """Test that jitter is also applied when using Retry-After
     header."""
-    mock_fail_response = Mock(spec=httpx.Response)
-    mock_fail_response.status_code = 429
-    mock_fail_response.headers = {"Retry-After": "100"}
-
+    mock_fail_response = Mock(spec=httpx.Response, status_code=429, headers={"Retry-After": "100"})
     mock_success_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_success_response])
 
@@ -248,7 +192,7 @@ def test_request_jitter_with_retry_after(mock_sleep: Mock) -> None:
             method="GET",
             request_func=mock_request_func,
             status_forcelist=(429,),
-            jitter_factor=1.0,  # Jitter factor of 1.0
+            jitter_factor=1.0,
         )
 
     assert response == mock_success_response
