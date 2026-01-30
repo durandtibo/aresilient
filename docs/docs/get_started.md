@@ -65,6 +65,24 @@ from aresnet import get_with_automatic_retry
 print("aresnet imported successfully!")
 ```
 
+### Testing Async Support
+
+To verify async support is working:
+
+```python
+import asyncio
+from aresnet import get_with_automatic_retry_async
+
+
+async def test_async():
+    print("Async support is working!")
+    return True
+
+
+result = asyncio.run(test_async())
+print(f"Test result: {result}")
+```
+
 ## Installing from source
 
 To install `aresnet` from source, you can follow the steps below.
