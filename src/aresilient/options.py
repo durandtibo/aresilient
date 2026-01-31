@@ -5,7 +5,7 @@ from __future__ import annotations
 
 __all__ = ["options_with_automatic_retry"]
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
@@ -18,6 +18,11 @@ from aresilient.config import (
 from aresilient.request import request_with_automatic_retry
 from aresilient.utils import validate_retry_params
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
+
 
 def options_with_automatic_retry(
     url: str,
@@ -28,6 +33,10 @@ def options_with_automatic_retry(
     backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
     status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
     jitter_factor: float = 0.0,
+    on_request: Callable[[RequestInfo], None] | None = None,
+    on_retry: Callable[[RetryInfo], None] | None = None,
+    on_success: Callable[[ResponseInfo], None] | None = None,
+    on_failure: Callable[[FailureInfo], None] | None = None,
     **kwargs: Any,
 ) -> httpx.Response:
     r"""Send an HTTP OPTIONS request with automatic retry logic for
@@ -59,6 +68,17 @@ def options_with_automatic_retry(
             and this jitter is ADDED to the base sleep time. Set to 0 to disable
             jitter (default). Recommended value is 0.1 for 10% jitter to prevent
             thundering herd issues. Must be >= 0.
+        on_request: Optional callback called before each request attempt.
+            Receives RequestInfo with url, method, attempt, max_retries.
+        on_retry: Optional callback called before each retry (after backoff).
+            Receives RetryInfo with url, method, attempt, max_retries, wait_time,
+            error, status_code.
+        on_success: Optional callback called when request succeeds.
+            Receives ResponseInfo with url, method, attempt, max_retries, response,
+            total_time.
+        on_failure: Optional callback called when all retries are exhausted.
+            Receives FailureInfo with url, method, attempt, max_retries, error,
+            status_code, total_time.
         **kwargs: Additional keyword arguments passed to ``httpx.Client.options()``.
 
     Returns:
@@ -102,6 +122,10 @@ def options_with_automatic_retry(
             backoff_factor=backoff_factor,
             status_forcelist=status_forcelist,
             jitter_factor=jitter_factor,
+            on_request=on_request,
+            on_retry=on_retry,
+            on_success=on_success,
+            on_failure=on_failure,
             **kwargs,
         )
     finally:
