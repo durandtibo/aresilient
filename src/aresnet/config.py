@@ -1,5 +1,10 @@
-r"""Contains the default configurations for HTTP requests using the
-httpx library."""
+r"""Default configurations for HTTP requests with automatic retry logic.
+
+This module defines the default configuration constants used throughout the
+aresnet library for HTTP request retry behavior, timeouts, and error handling.
+These constants provide sensible defaults for most use cases but can be
+overridden when calling the HTTP request functions.
+"""
 
 from __future__ import annotations
 
