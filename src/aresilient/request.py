@@ -145,7 +145,7 @@ def request_with_automatic_retry(
             if response.status_code < 400:
                 if attempt > 0:
                     logger.debug(f"{method} request to {url} succeeded on attempt {attempt + 1}")
-                
+
                 # Call on_success callback
                 if on_success is not None:
                     response_info: ResponseInfo = {
@@ -157,7 +157,7 @@ def request_with_automatic_retry(
                         "total_time": time.time() - start_time,
                     }
                     on_success(response_info)
-                
+
                 return response
 
             # Client/Server error: check if it's retryable
@@ -213,7 +213,7 @@ def request_with_automatic_retry(
         # Exponential backoff with jitter before next retry (skip on last attempt since we're about to fail)
         if attempt < max_retries:
             sleep_time = calculate_sleep_time(attempt, backoff_factor, jitter_factor, response)
-            
+
             # Call on_retry callback before sleeping
             if on_retry is not None:
                 retry_info: RetryInfo = {
@@ -226,7 +226,7 @@ def request_with_automatic_retry(
                     "status_code": last_status_code,
                 }
                 on_retry(retry_info)
-            
+
             time.sleep(sleep_time)
 
     # All retries exhausted with retryable status code - raise final error
@@ -234,7 +234,7 @@ def request_with_automatic_retry(
     # they would have been caught by the exception handlers above and raised before
     # reaching this point.
     total_time = time.time() - start_time
-    
+
     if response is None:  # pragma: no cover
         # This should never happen in practice, but we check for type safety
         msg = f"{method} request to {url} failed after {max_retries + 1} attempts"
@@ -243,7 +243,7 @@ def request_with_automatic_retry(
             url=url,
             message=msg,
         )
-        
+
         # Call on_failure callback
         if on_failure is not None:
             failure_info: FailureInfo = {
@@ -256,9 +256,9 @@ def request_with_automatic_retry(
                 "total_time": total_time,
             }
             on_failure(failure_info)
-        
+
         raise error
-    
+
     error = HttpRequestError(
         method=method,
         url=url,
@@ -269,7 +269,7 @@ def request_with_automatic_retry(
         status_code=response.status_code,
         response=response,
     )
-    
+
     # Call on_failure callback
     if on_failure is not None:
         failure_info: FailureInfo = {
@@ -282,5 +282,5 @@ def request_with_automatic_retry(
             "total_time": total_time,
         }
         on_failure(failure_info)
-    
+
     raise error
