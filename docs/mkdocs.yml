@@ -20,6 +20,7 @@ nav:
   - Home: index.md
   - Get Started: get_started.md
   - User Guide: user_guide.md
+  - Examples: examples.md
   - Best Practices: best_practices.md
   - Reference:
       - API Reference: refs/index.md
