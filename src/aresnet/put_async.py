@@ -79,10 +79,7 @@ async def put_with_automatic_retry_async(
         ```
     """
     # Input validation
-    validate_retry_params(max_retries, backoff_factor, jitter_factor)
-    if isinstance(timeout, (int, float)) and timeout <= 0:
-        msg = f"timeout must be > 0, got {timeout}"
-        raise ValueError(msg)
+    validate_retry_params(max_retries, backoff_factor, jitter_factor, timeout)
 
     owns_client = client is None
     client = client or httpx.AsyncClient(timeout=timeout)

@@ -232,6 +232,46 @@ async def test_delete_with_automatic_retry_async_negative_backoff_factor() -> No
 
 
 @pytest.mark.asyncio
+async def test_delete_with_automatic_retry_async_negative_jitter_factor() -> None:
+    """Test that negative jitter_factor raises ValueError."""
+    with pytest.raises(ValueError, match=r"jitter_factor must be >= 0"):
+        await delete_with_automatic_retry_async(TEST_URL, jitter_factor=-0.1)
+
+
+@pytest.mark.asyncio
+async def test_delete_with_automatic_retry_async_with_jitter_factor(
+    mock_response: httpx.Response, mock_client: httpx.AsyncClient, mock_asleep: Mock
+) -> None:
+    """Test that jitter_factor is applied during retries."""
+    mock_response_fail = Mock(spec=httpx.Response, status_code=500)
+    mock_client.delete.side_effect = [mock_response_fail, mock_response]
+
+    with patch("aresnet.utils.random.uniform", return_value=0.05):
+        response = await delete_with_automatic_retry_async(
+            TEST_URL, client=mock_client, backoff_factor=1.0, jitter_factor=0.1
+        )
+
+    assert response.status_code == 200
+    mock_asleep.assert_called_once_with(1.05)
+
+
+@pytest.mark.asyncio
+async def test_delete_with_automatic_retry_async_zero_jitter_factor(
+    mock_response: httpx.Response, mock_client: httpx.AsyncClient, mock_asleep: Mock
+) -> None:
+    """Test that zero jitter_factor results in no jitter."""
+    mock_response_fail = Mock(spec=httpx.Response, status_code=500)
+    mock_client.delete.side_effect = [mock_response_fail, mock_response]
+
+    response = await delete_with_automatic_retry_async(
+        TEST_URL, client=mock_client, backoff_factor=1.0, jitter_factor=0.0
+    )
+
+    assert response.status_code == 200
+    mock_asleep.assert_called_once_with(1.0)
+
+
+@pytest.mark.asyncio
 async def test_delete_with_automatic_retry_async_zero_max_retries(
     mock_client: httpx.AsyncClient, mock_asleep: Mock
 ) -> None:
