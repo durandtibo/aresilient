@@ -74,7 +74,12 @@ def put_with_automatic_retry(
         ```
     """
     # Input validation
-    validate_retry_params(max_retries, backoff_factor, jitter_factor, timeout)
+    validate_retry_params(
+        max_retries=max_retries,
+        backoff_factor=backoff_factor,
+        jitter_factor=jitter_factor,
+        timeout=timeout,
+    )
 
     owns_client = client is None
     client = client or httpx.Client(timeout=timeout)
