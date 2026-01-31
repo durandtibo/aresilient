@@ -64,15 +64,14 @@ HTTP communications, making your applications more robust and fault-tolerant.
 
 - **Automatic Retry Logic**: Automatically retries failed requests for configurable HTTP status
   codes (429, 500, 502, 503, 504 by default)
-- **Exponential Backoff**: Implements exponential backoff strategy to avoid overwhelming servers
-- **Optional Jitter Support**: Advanced users can use low-level functions with randomized jitter
-  to prevent thundering herd problems
+- **Exponential Backoff with Optional Jitter**: Implements exponential backoff strategy with
+  optional randomized jitter to prevent thundering herd problems and avoid overwhelming servers
 - **Retry-After Header Support**: Respects server-specified retry delays from `Retry-After` headers
   (supports both integer seconds and HTTP-date formats)
 - **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH)
 - **Async Support**: Fully supports asynchronous requests for high-performance applications
 - **Built on httpx**: Leverages the modern, async-capable httpx library
-- **Configurable**: Customize timeout, retry attempts, backoff factors, and retryable status codes
+- **Configurable**: Customize timeout, retry attempts, backoff factors, jitter, and retryable status codes
 - **Enhanced Error Handling**: Comprehensive error handling with detailed exception information
   including HTTP status codes and response objects
 - **Type-Safe**: Fully typed with comprehensive type hints
@@ -124,6 +123,7 @@ response = get_with_automatic_retry(
     "https://api.example.com/data",
     max_retries=5,  # Retry up to 5 times
     backoff_factor=1.0,  # Exponential backoff factor
+    jitter_factor=0.1,  # Add 10% jitter to prevent thundering herd
     timeout=30.0,  # 30 second timeout
     status_forcelist=(429, 503),  # Only retry on these status codes
 )
@@ -237,14 +237,21 @@ results = asyncio.run(fetch_multiple())
 The wait time between retries is calculated as:
 
 ```
-wait_time = backoff_factor * (2 ** retry_number)
+base_wait_time = backoff_factor * (2 ** retry_number)
+# If jitter_factor is set (e.g., 0.1 for 10% jitter):
+jitter = random(0, jitter_factor) * base_wait_time
+total_wait_time = base_wait_time + jitter
 ```
 
-For example, with `backoff_factor=0.3`:
+For example, with `backoff_factor=0.3` and `jitter_factor=0.1`:
 
-- 1st retry: 0.3 seconds
-- 2nd retry: 0.6 seconds
-- 3rd retry: 1.2 seconds
+- 1st retry: 0.3-0.33 seconds (base 0.3s + up to 10% jitter)
+- 2nd retry: 0.6-0.66 seconds (base 0.6s + up to 10% jitter)
+- 3rd retry: 1.2-1.32 seconds (base 1.2s + up to 10% jitter)
+
+**Note**: Jitter is optional (disabled by default with `jitter_factor=0`). When enabled, it's
+randomized for each retry to prevent multiple clients from retrying simultaneously (thundering
+herd problem). Set `jitter_factor=0.1` for 10% jitter, which is recommended for production use.
 
 ### Retry-After Header Support
 
@@ -255,6 +262,10 @@ compliance with rate limiting and helps avoid overwhelming the server.
 The `Retry-After` header supports two formats:
 - **Integer seconds**: `Retry-After: 120` (wait 120 seconds)
 - **HTTP-date**: `Retry-After: Wed, 21 Oct 2015 07:28:00 GMT` (wait until this time)
+
+**Note**: If `jitter_factor` is configured, jitter is still applied to server-specified
+`Retry-After` values to prevent thundering herd issues when many clients receive the same retry
+delay from a server.
 
 ## API Reference
 
@@ -385,36 +396,6 @@ For custom HTTP methods or advanced use cases:
 
 These functions allow you to specify any HTTP method (e.g., HEAD, OPTIONS) and provide your own
 request function from an httpx client.
-
-#### Advanced: Using Jitter to Prevent Thundering Herd
-
-The low-level functions also support an optional `jitter_factor` parameter to add randomized jitter
-to the backoff delays. This helps prevent the "thundering herd" problem where multiple clients
-retry simultaneously.
-
-```python
-import httpx
-from aresnet import request_with_automatic_retry
-
-with httpx.Client() as client:
-    response = request_with_automatic_retry(
-        url="https://api.example.com/data",
-        method="GET",
-        request_func=client.get,
-        max_retries=5,
-        backoff_factor=1.0,
-        jitter_factor=0.1,  # Add 10% random jitter
-    )
-```
-
-With `jitter_factor=0.1`, the wait time becomes:
-```
-base_wait_time = backoff_factor * (2 ** retry_number)
-jitter = random(0, 0.1) * base_wait_time
-total_wait_time = base_wait_time + jitter
-```
-
-**Note**: Jitter is applied to both exponential backoff and Retry-After header values.
 
 ### `HttpRequestError`
 

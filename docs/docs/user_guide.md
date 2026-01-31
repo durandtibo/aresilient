@@ -256,6 +256,14 @@ response = get_with_automatic_retry(
     backoff_factor=0.1,  # Shorter waits between retries
 )
 
+# With jitter to prevent thundering herd
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    max_retries=3,
+    backoff_factor=0.5,
+    jitter_factor=0.1,  # Add 10% random jitter
+)
+
 # No retry
 response = get_with_automatic_retry(
     "https://api.example.com/data", max_retries=0  # No retries, fail immediately
@@ -267,22 +275,29 @@ response = get_with_automatic_retry(
 The wait time between retries is calculated using the exponential backoff formula:
 
 ```
-wait_time = backoff_factor * (2 ** attempt)
+base_wait_time = backoff_factor * (2 ** attempt)
+# If jitter_factor is set (e.g., 0.1 for 10% jitter):
+jitter = random(0, jitter_factor) * base_wait_time
+total_wait_time = base_wait_time + jitter
 ```
 
 Where `attempt` is 0-indexed (0, 1, 2, ...).
 
-#### Example with default `backoff_factor=0.3`:
+#### Example with default `backoff_factor=0.3` (no jitter):
 
 - 1st retry: 0.3 * (2^0) = 0.3 seconds
 - 2nd retry: 0.3 * (2^1) = 0.6 seconds
 - 3rd retry: 0.3 * (2^2) = 1.2 seconds
 
-#### Example with `backoff_factor=1.0`:
+#### Example with `backoff_factor=1.0` and `jitter_factor=0.1`:
 
-- 1st retry: 1.0 * (2^0) = 1.0 seconds
-- 2nd retry: 1.0 * (2^1) = 2.0 seconds
-- 3rd retry: 1.0 * (2^2) = 4.0 seconds
+- 1st retry: 1.0-1.1 seconds (base 1.0s + up to 10% jitter)
+- 2nd retry: 2.0-2.2 seconds (base 2.0s + up to 10% jitter)
+- 3rd retry: 4.0-4.4 seconds (base 4.0s + up to 10% jitter)
+
+**Note**: Jitter is optional (disabled by default with `jitter_factor=0`). When enabled, it's
+randomized for each retry to prevent multiple clients from retrying simultaneously (thundering
+herd problem). Set `jitter_factor=0.1` for 10% jitter, which is recommended for production use.
 
 ### Customizing Retryable Status Codes
 
@@ -326,6 +341,10 @@ The `Retry-After` header supports two formats:
 
 The retry delay from the `Retry-After` header is used automatically - you don't need to configure
 anything. This works with all HTTP methods (GET, POST, PUT, DELETE, PATCH).
+
+**Note**: If `jitter_factor` is configured, jitter is still applied to server-specified
+`Retry-After` values to prevent thundering herd issues when many clients receive the same retry
+delay from a server.
 
 ## Advanced Usage
 
@@ -591,48 +610,6 @@ def custom_api_call():
         )
         return response.json()
 ```
-
-### Advanced: Using Jitter with Low-Level Functions
-
-The low-level `request_with_automatic_retry` and `request_with_automatic_retry_async` functions
-support an optional `jitter_factor` parameter to add randomized jitter to backoff delays. This
-helps prevent the "thundering herd" problem where multiple clients retry simultaneously.
-
-```python
-import httpx
-from aresnet import request_with_automatic_retry
-
-with httpx.Client() as client:
-    response = request_with_automatic_retry(
-        url="https://api.example.com/data",
-        method="GET",
-        request_func=client.get,
-        max_retries=5,
-        backoff_factor=1.0,
-        jitter_factor=0.1,  # Add 10% random jitter to backoff delays
-    )
-```
-
-With `jitter_factor=0.1`, the wait time calculation becomes:
-
-```
-base_wait_time = backoff_factor * (2 ** retry_number)
-jitter = random(0, 0.1) * base_wait_time
-total_wait_time = base_wait_time + jitter
-```
-
-For example, with `backoff_factor=1.0` and `jitter_factor=0.1`:
-- 1st retry: 1.0-1.1 seconds (base 1.0s + up to 10% jitter)
-- 2nd retry: 2.0-2.2 seconds (base 2.0s + up to 10% jitter)
-- 3rd retry: 4.0-4.4 seconds (base 4.0s + up to 10% jitter)
-
-**Important Notes:**
-- Jitter is only available in the low-level `request_with_automatic_retry` and
-  `request_with_automatic_retry_async` functions
-- Jitter is applied to both exponential backoff and `Retry-After` header values
-- A `jitter_factor` of 0.1 (10% jitter) is recommended for production use to prevent thundering
-  herd issues
-- Set `jitter_factor=0` (default) to disable jitter
 
 ## Best Practices
 
