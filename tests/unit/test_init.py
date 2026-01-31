@@ -29,8 +29,8 @@ def test_all_exports_defined() -> None:
 
 def test_all_exports_count() -> None:
     """Test that __all__ has the expected number of exports."""
-    # 4 config constants + 1 exception + 1 version + 10 HTTP methods (sync+async) = 18
-    assert len(aresilient.__all__) == 18
+    # 4 config constants + 1 exception + 1 version + 14 HTTP methods (sync+async) = 22
+    assert len(aresilient.__all__) == 22
 
 
 def test_constants_are_immutable_types() -> None:
@@ -57,6 +57,10 @@ def test_all_request_functions_are_callable() -> None:
         aresilient.delete_with_automatic_retry_async,
         aresilient.get_with_automatic_retry,
         aresilient.get_with_automatic_retry_async,
+        aresilient.head_with_automatic_retry,
+        aresilient.head_with_automatic_retry_async,
+        aresilient.options_with_automatic_retry,
+        aresilient.options_with_automatic_retry_async,
         aresilient.patch_with_automatic_retry,
         aresilient.patch_with_automatic_retry_async,
         aresilient.post_with_automatic_retry,
