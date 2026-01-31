@@ -35,6 +35,10 @@ __all__ = [
     "delete_with_automatic_retry_async",
     "get_with_automatic_retry",
     "get_with_automatic_retry_async",
+    "head_with_automatic_retry",
+    "head_with_automatic_retry_async",
+    "options_with_automatic_retry",
+    "options_with_automatic_retry_async",
     "patch_with_automatic_retry",
     "patch_with_automatic_retry_async",
     "post_with_automatic_retry",
@@ -58,6 +62,10 @@ from aresilient.delete_async import delete_with_automatic_retry_async
 from aresilient.exceptions import HttpRequestError
 from aresilient.get import get_with_automatic_retry
 from aresilient.get_async import get_with_automatic_retry_async
+from aresilient.head import head_with_automatic_retry
+from aresilient.head_async import head_with_automatic_retry_async
+from aresilient.options import options_with_automatic_retry
+from aresilient.options_async import options_with_automatic_retry_async
 from aresilient.patch import patch_with_automatic_retry
 from aresilient.patch_async import patch_with_automatic_retry_async
 from aresilient.post import post_with_automatic_retry
