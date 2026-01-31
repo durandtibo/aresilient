@@ -36,7 +36,8 @@ def mock_async_request_func(mock_response: httpx.Response) -> AsyncMock:
 async def test_on_request_callback_called_on_first_attempt_async(
     mock_response: httpx.Response, mock_async_request_func: AsyncMock, mock_asleep: Mock
 ) -> None:
-    """Test that on_request callback is called before the first attempt (async)."""
+    """Test that on_request callback is called before the first attempt
+    (async)."""
     on_request_callback = Mock()
 
     response = await request_with_automatic_retry_async(
@@ -59,7 +60,8 @@ async def test_on_request_callback_called_on_first_attempt_async(
 async def test_on_request_callback_called_on_each_retry_async(
     mock_response: httpx.Response, mock_asleep: Mock
 ) -> None:
-    """Test that on_request callback is called before each retry attempt (async)."""
+    """Test that on_request callback is called before each retry attempt
+    (async)."""
     on_request_callback = Mock()
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_async_request_func = AsyncMock(
@@ -87,7 +89,8 @@ async def test_on_request_callback_called_on_each_retry_async(
 async def test_on_retry_callback_called_before_retry_async(
     mock_response: httpx.Response, mock_asleep: Mock
 ) -> None:
-    """Test that on_retry callback is called before each retry (async)."""
+    """Test that on_retry callback is called before each retry
+    (async)."""
     on_retry_callback = Mock()
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_async_request_func = AsyncMock(side_effect=[mock_fail_response, mock_response])
@@ -116,7 +119,8 @@ async def test_on_retry_callback_called_before_retry_async(
 async def test_on_retry_callback_not_called_on_first_success_async(
     mock_response: httpx.Response, mock_async_request_func: AsyncMock, mock_asleep: Mock
 ) -> None:
-    """Test that on_retry callback is not called when request succeeds on first attempt (async)."""
+    """Test that on_retry callback is not called when request succeeds
+    on first attempt (async)."""
     on_retry_callback = Mock()
 
     response = await request_with_automatic_retry_async(
@@ -134,7 +138,8 @@ async def test_on_retry_callback_not_called_on_first_success_async(
 async def test_on_retry_callback_with_timeout_exception_async(
     mock_asleep: Mock,
 ) -> None:
-    """Test that on_retry callback receives error information on timeout (async)."""
+    """Test that on_retry callback receives error information on timeout
+    (async)."""
     on_retry_callback = Mock()
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_async_request_func = AsyncMock(
@@ -164,7 +169,8 @@ async def test_on_retry_callback_with_timeout_exception_async(
 async def test_on_success_callback_called_on_success_async(
     mock_response: httpx.Response, mock_async_request_func: AsyncMock, mock_asleep: Mock
 ) -> None:
-    """Test that on_success callback is called when request succeeds (async)."""
+    """Test that on_success callback is called when request succeeds
+    (async)."""
     on_success_callback = Mock()
 
     response = await request_with_automatic_retry_async(
@@ -190,7 +196,8 @@ async def test_on_success_callback_called_on_success_async(
 async def test_on_success_callback_after_retries_async(
     mock_response: httpx.Response, mock_asleep: Mock
 ) -> None:
-    """Test that on_success callback is called after successful retry (async)."""
+    """Test that on_success callback is called after successful retry
+    (async)."""
     on_success_callback = Mock()
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_async_request_func = AsyncMock(
@@ -215,7 +222,8 @@ async def test_on_success_callback_after_retries_async(
 async def test_on_success_callback_not_called_on_failure_async(
     mock_asleep: Mock,
 ) -> None:
-    """Test that on_success callback is not called when request fails (async)."""
+    """Test that on_success callback is not called when request fails
+    (async)."""
     on_success_callback = Mock()
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_async_request_func = AsyncMock(return_value=mock_fail_response)
@@ -242,7 +250,8 @@ async def test_on_success_callback_not_called_on_failure_async(
 async def test_on_failure_callback_called_on_retryable_status_failure_async(
     mock_asleep: Mock,
 ) -> None:
-    """Test that on_failure callback is called when retries are exhausted (async)."""
+    """Test that on_failure callback is called when retries are
+    exhausted (async)."""
     on_failure_callback = Mock()
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_async_request_func = AsyncMock(return_value=mock_fail_response)
@@ -272,7 +281,8 @@ async def test_on_failure_callback_called_on_retryable_status_failure_async(
 async def test_on_failure_callback_not_called_on_success_async(
     mock_response: httpx.Response, mock_async_request_func: AsyncMock, mock_asleep: Mock
 ) -> None:
-    """Test that on_failure callback is not called when request succeeds (async)."""
+    """Test that on_failure callback is not called when request succeeds
+    (async)."""
     on_failure_callback = Mock()
 
     response = await request_with_automatic_retry_async(
@@ -295,7 +305,8 @@ async def test_on_failure_callback_not_called_on_success_async(
 async def test_all_callbacks_together_on_success_async(
     mock_response: httpx.Response, mock_asleep: Mock
 ) -> None:
-    """Test that all callbacks work together correctly on successful retry (async)."""
+    """Test that all callbacks work together correctly on successful
+    retry (async)."""
     on_request_callback = Mock()
     on_retry_callback = Mock()
     on_success_callback = Mock()
@@ -324,7 +335,8 @@ async def test_all_callbacks_together_on_success_async(
 
 @pytest.mark.asyncio
 async def test_all_callbacks_together_on_failure_async(mock_asleep: Mock) -> None:
-    """Test that all callbacks work together correctly on failure (async)."""
+    """Test that all callbacks work together correctly on failure
+    (async)."""
     on_request_callback = Mock()
     on_retry_callback = Mock()
     on_success_callback = Mock()
@@ -392,7 +404,8 @@ async def test_callbacks_with_custom_max_retries_async(
 async def test_callbacks_with_custom_backoff_factor_async(
     mock_response: httpx.Response, mock_asleep: Mock
 ) -> None:
-    """Test that on_retry callback receives correct wait_time with custom backoff (async)."""
+    """Test that on_retry callback receives correct wait_time with
+    custom backoff (async)."""
     on_retry_callback = Mock()
 
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
