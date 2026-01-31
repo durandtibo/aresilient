@@ -172,11 +172,43 @@ def request_with_automatic_retry(
 
         except httpx.TimeoutException as exc:
             last_error = exc
-            handle_timeout_exception(exc, url, method, attempt, max_retries)
+            try:
+                handle_timeout_exception(exc, url, method, attempt, max_retries)
+            except HttpRequestError as err:
+                # This is the final attempt - call on_failure callback
+                if on_failure is not None:
+                    total_time = time.time() - start_time
+                    failure_info: FailureInfo = {
+                        "url": url,
+                        "method": method,
+                        "attempt": attempt + 1,
+                        "max_retries": max_retries,
+                        "error": err,
+                        "status_code": None,
+                        "total_time": total_time,
+                    }
+                    on_failure(failure_info)
+                raise
 
         except httpx.RequestError as exc:
             last_error = exc
-            handle_request_error(exc, url, method, attempt, max_retries)
+            try:
+                handle_request_error(exc, url, method, attempt, max_retries)
+            except HttpRequestError as err:
+                # This is the final attempt - call on_failure callback
+                if on_failure is not None:
+                    total_time = time.time() - start_time
+                    failure_info: FailureInfo = {
+                        "url": url,
+                        "method": method,
+                        "attempt": attempt + 1,
+                        "max_retries": max_retries,
+                        "error": err,
+                        "status_code": None,
+                        "total_time": total_time,
+                    }
+                    on_failure(failure_info)
+                raise
 
         # Exponential backoff with jitter before next retry (skip on last attempt since we're about to fail)
         if attempt < max_retries:
