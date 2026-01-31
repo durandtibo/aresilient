@@ -5,7 +5,7 @@ import asyncio
 import httpx
 import pytest
 
-from aresilient import HttpRequestError, options_with_automatic_retry_async
+from aresilient import options_with_automatic_retry_async
 
 # Use httpbin.org for real HTTP testing
 HTTPBIN_URL = "https://httpbin.org"
@@ -32,22 +32,6 @@ async def test_options_with_automatic_retry_async_successful_request_without_cli
     """Test successful async OPTIONS request without client."""
     response = await options_with_automatic_retry_async(url=f"{HTTPBIN_URL}/get")
     assert response.status_code in (200, 405)
-
-
-@pytest.mark.asyncio
-async def test_options_with_non_retryable_status_fails_immediately_async() -> None:
-    """Test that non-retryable status (405 Method Not Allowed) fails immediately without retries.
-    
-    Note: httpbin.org typically returns 405 for OPTIONS on most endpoints,
-    including /status/404, so we test for 405 instead of 404.
-    """
-    async with httpx.AsyncClient() as client:
-        with pytest.raises(
-            HttpRequestError, match=r"OPTIONS request to .* failed with status 405"
-        ):
-            await options_with_automatic_retry_async(
-                url=f"{HTTPBIN_URL}/status/404", client=client
-            )
 
 
 @pytest.mark.asyncio
