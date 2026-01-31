@@ -56,7 +56,8 @@ def test_validate_retry_params_accepts_valid_jitter_factor(jitter_factor: float)
 
 
 def test_validate_retry_params_rejects_negative_jitter_factor() -> None:
-    """Test that validate_retry_params rejects negative jitter_factor."""
+    """Test that validate_retry_params rejects negative
+    jitter_factor."""
     with pytest.raises(ValueError, match=r"jitter_factor must be >= 0, got -0.1"):
         validate_retry_params(3, 0.5, -0.1)
 

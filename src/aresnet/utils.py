@@ -1,9 +1,9 @@
 r"""Utility functions for HTTP request handling and retry logic.
 
 This module provides helper functions for managing HTTP request retries,
-including parameter validation, sleep time calculation with exponential backoff
-and jitter, Retry-After header parsing, and error handling for various HTTP
-failure scenarios.
+including parameter validation, sleep time calculation with exponential
+backoff and jitter, Retry-After header parsing, and error handling for
+various HTTP failure scenarios.
 """
 
 from __future__ import annotations
@@ -140,7 +140,8 @@ def calculate_sleep_time(
     jitter_factor: float,
     response: httpx.Response | None,
 ) -> float:
-    """Calculate sleep time for retry with exponential backoff and jitter.
+    """Calculate sleep time for retry with exponential backoff and
+    jitter.
 
     This function implements an exponential backoff strategy with optional
     jitter for retrying failed HTTP requests. It also supports the Retry-After
@@ -218,7 +219,8 @@ def handle_response(
     method: str,
     status_forcelist: tuple[int, ...],
 ) -> None:
-    """Handle HTTP response and raise error for non-retryable status codes.
+    """Handle HTTP response and raise error for non-retryable status
+    codes.
 
     This function checks the HTTP response status code and raises an error if
     the status code is not in the retryable status list. This allows the retry
