@@ -12,7 +12,7 @@ HTTPBIN_URL = "https://httpbin.org"
 
 
 ###################################################
-#  Tests for head_with_automatic_retry_async      #
+#     Tests for head_with_automatic_retry_async     #
 ###################################################
 
 

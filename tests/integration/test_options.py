@@ -10,7 +10,7 @@ HTTPBIN_URL = "https://httpbin.org"
 
 
 #################################################
-#  Tests for options_with_automatic_retry       #
+#     Tests for options_with_automatic_retry     #
 #################################################
 
 

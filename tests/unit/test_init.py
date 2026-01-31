@@ -2,6 +2,8 @@ r"""Unit tests for package initialization and metadata."""
 
 from __future__ import annotations
 
+import pytest
+
 import aresilient
 
 
@@ -50,26 +52,28 @@ def test_exception_class_is_callable() -> None:
     assert isinstance(exc, Exception)
 
 
-def test_all_request_functions_are_callable() -> None:
+@pytest.mark.parametrize(
+    "func_name",
+    [
+        "delete_with_automatic_retry",
+        "delete_with_automatic_retry_async",
+        "get_with_automatic_retry",
+        "get_with_automatic_retry_async",
+        "head_with_automatic_retry",
+        "head_with_automatic_retry_async",
+        "options_with_automatic_retry",
+        "options_with_automatic_retry_async",
+        "patch_with_automatic_retry",
+        "patch_with_automatic_retry_async",
+        "post_with_automatic_retry",
+        "post_with_automatic_retry_async",
+        "put_with_automatic_retry",
+        "put_with_automatic_retry_async",
+        "request_with_automatic_retry",
+        "request_with_automatic_retry_async",
+    ],
+)
+def test_all_request_functions_are_callable(func_name: str) -> None:
     """Test that all request functions are callable."""
-    request_funcs = [
-        aresilient.delete_with_automatic_retry,
-        aresilient.delete_with_automatic_retry_async,
-        aresilient.get_with_automatic_retry,
-        aresilient.get_with_automatic_retry_async,
-        aresilient.head_with_automatic_retry,
-        aresilient.head_with_automatic_retry_async,
-        aresilient.options_with_automatic_retry,
-        aresilient.options_with_automatic_retry_async,
-        aresilient.patch_with_automatic_retry,
-        aresilient.patch_with_automatic_retry_async,
-        aresilient.post_with_automatic_retry,
-        aresilient.post_with_automatic_retry_async,
-        aresilient.put_with_automatic_retry,
-        aresilient.put_with_automatic_retry_async,
-        aresilient.request_with_automatic_retry,
-        aresilient.request_with_automatic_retry_async,
-    ]
-
-    for func in request_funcs:
-        assert callable(func), f"{func.__name__} is not callable"
+    func = getattr(aresilient, func_name)
+    assert callable(func), f"{func_name} is not callable"
