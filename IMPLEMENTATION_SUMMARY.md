@@ -1,7 +1,7 @@
 # Implementation Summary: aresilient Library Missing Functionalities
 
-**Date:** January 31, 2026  
-**Status:** ✅ Complete  
+**Date:** January 31, 2026
+**Status:** ✅ Complete
 **PR Branch:** copilot/review-aresilient-library
 
 ---
@@ -182,7 +182,7 @@ Based on the analysis document, recommended next steps:
 ### Phase 1: Observability (Next Priority)
 1. **Callback/Event System**
    - `on_request` callback
-   - `on_retry` callback  
+   - `on_retry` callback
    - `on_success` callback
    - `on_failure` callback
 
@@ -256,11 +256,13 @@ print(f"Allowed methods: {allowed}")
 import asyncio
 from aresilient import head_with_automatic_retry_async
 
+
 async def check_resources():
     urls = ["https://api.example.com/file1", "https://api.example.com/file2"]
     tasks = [head_with_automatic_retry_async(url) for url in urls]
     responses = await asyncio.gather(*tasks)
     return responses
+
 
 asyncio.run(check_resources())
 ```

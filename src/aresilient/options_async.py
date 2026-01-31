@@ -1,4 +1,5 @@
-r"""Contain asynchronous HTTP OPTIONS request with automatic retry logic."""
+r"""Contain asynchronous HTTP OPTIONS request with automatic retry
+logic."""
 
 from __future__ import annotations
 
@@ -75,7 +76,9 @@ async def options_with_automatic_retry_async(
         >>> import asyncio
         >>> from aresilient import options_with_automatic_retry_async
         >>> async def example():
-        ...     response = await options_with_automatic_retry_async("https://api.example.com/resource")
+        ...     response = await options_with_automatic_retry_async(
+        ...         "https://api.example.com/resource"
+        ...     )
         ...     allowed_methods = response.headers.get("Allow")
         ...     print(f"Allowed methods: {allowed_methods}")
         ...     return response

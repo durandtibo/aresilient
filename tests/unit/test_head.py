@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
-from aresilient import RETRY_STATUS_CODES, HttpRequestError, head_with_automatic_retry
+from aresilient import HttpRequestError, head_with_automatic_retry
 
 TEST_URL = "https://api.example.com/resource"
 
@@ -55,7 +55,9 @@ def test_head_with_automatic_retry_with_retry_on_500(
     """Test HEAD request retries on 500 status code."""
     # First attempt fails with 500, second succeeds
     failed_response = Mock(spec=httpx.Response, status_code=500, headers={})
-    success_response = Mock(spec=httpx.Response, status_code=200, headers={"Content-Length": "2048"})
+    success_response = Mock(
+        spec=httpx.Response, status_code=200, headers={"Content-Length": "2048"}
+    )
     mock_client.head.side_effect = [failed_response, success_response]
 
     response = head_with_automatic_retry(TEST_URL, client=mock_client)

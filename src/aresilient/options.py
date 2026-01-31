@@ -1,4 +1,5 @@
-r"""Contain synchronous HTTP OPTIONS request with automatic retry logic."""
+r"""Contain synchronous HTTP OPTIONS request with automatic retry
+logic."""
 
 from __future__ import annotations
 
@@ -74,7 +75,9 @@ def options_with_automatic_retry(
         ```pycon
         >>> from aresilient import options_with_automatic_retry
         >>> # Check allowed HTTP methods for a resource
-        >>> response = options_with_automatic_retry("https://api.example.com/resource")  # doctest: +SKIP
+        >>> response = options_with_automatic_retry(
+        ...     "https://api.example.com/resource"
+        ... )  # doctest: +SKIP
         >>> allowed_methods = response.headers.get("Allow")  # doctest: +SKIP
         >>> print(f"Allowed methods: {allowed_methods}")  # doctest: +SKIP
 

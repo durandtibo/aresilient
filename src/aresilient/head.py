@@ -29,8 +29,8 @@ def head_with_automatic_retry(
     jitter_factor: float = 0.0,
     **kwargs: Any,
 ) -> httpx.Response:
-    r"""Send an HTTP HEAD request with automatic retry logic for transient
-    errors.
+    r"""Send an HTTP HEAD request with automatic retry logic for
+    transient errors.
 
     This function performs an HTTP HEAD request with a configured retry policy
     for transient server errors (429, 500, 502, 503, 504). It applies an
@@ -74,7 +74,9 @@ def head_with_automatic_retry(
         ```pycon
         >>> from aresilient import head_with_automatic_retry
         >>> # Check if a resource exists and get metadata
-        >>> response = head_with_automatic_retry("https://api.example.com/large-file.zip")  # doctest: +SKIP
+        >>> response = head_with_automatic_retry(
+        ...     "https://api.example.com/large-file.zip"
+        ... )  # doctest: +SKIP
         >>> if response.status_code == 200:  # doctest: +SKIP
         ...     print(f"Content-Length: {response.headers.get('Content-Length')}")  # doctest: +SKIP
         ...     print(f"Last-Modified: {response.headers.get('Last-Modified')}")  # doctest: +SKIP

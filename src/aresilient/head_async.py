@@ -1,4 +1,5 @@
-r"""Contain asynchronous HTTP HEAD request with automatic retry logic."""
+r"""Contain asynchronous HTTP HEAD request with automatic retry
+logic."""
 
 from __future__ import annotations
 
@@ -75,7 +76,9 @@ async def head_with_automatic_retry_async(
         >>> import asyncio
         >>> from aresilient import head_with_automatic_retry_async
         >>> async def example():
-        ...     response = await head_with_automatic_retry_async("https://api.example.com/large-file.zip")
+        ...     response = await head_with_automatic_retry_async(
+        ...         "https://api.example.com/large-file.zip"
+        ...     )
         ...     if response.status_code == 200:
         ...         print(f"Content-Length: {response.headers.get('Content-Length')}")
         ...     return response
