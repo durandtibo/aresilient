@@ -9,7 +9,6 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any
 
-from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 from aresilient.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
@@ -23,6 +22,7 @@ from aresilient.utils import (
 )
 
 if TYPE_CHECKING:
+    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
     from collections.abc import Callable
 
 import httpx

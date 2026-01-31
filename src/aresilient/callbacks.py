@@ -17,8 +17,7 @@ Example:
     ...     print(f"Retry {retry_info['attempt']}/{retry_info['max_retries']}")
     ...
     >>> response = get_with_automatic_retry(
-    ...     "https://api.example.com/data",
-    ...     on_retry=log_retry
+    ...     "https://api.example.com/data", on_retry=log_retry
     ... )  # doctest: +SKIP
 
     ```
@@ -34,7 +33,7 @@ __all__ = [
     "RetryInfo",
 ]
 
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
     import httpx
@@ -123,8 +122,8 @@ class FailureInfo(TypedDict, total=False):
 class CallbackInfo(TypedDict, total=False):
     """Unified callback information structure (for internal use).
 
-    This is a superset of all callback info types, used internally
-    to simplify callback invocation logic.
+    This is a superset of all callback info types, used internally to
+    simplify callback invocation logic.
     """
 
     url: str
