@@ -38,7 +38,8 @@ async def test_head_with_automatic_retry_async_successful_request_without_client
 
 @pytest.mark.asyncio
 async def test_head_with_non_retryable_status_fails_immediately_async() -> None:
-    """Test that 404 (non-retryable) fails immediately without retries."""
+    """Test that 404 (non-retryable) fails immediately without
+    retries."""
     async with httpx.AsyncClient() as client:
         with pytest.raises(HttpRequestError, match=r"HEAD request to .* failed with status 404"):
             await head_with_automatic_retry_async(url=f"{HTTPBIN_URL}/status/404", client=client)

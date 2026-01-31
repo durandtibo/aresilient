@@ -1,7 +1,7 @@
 # Missing Functionalities Analysis for aresilient Library
 
-**Date:** January 2026  
-**Version:** 0.0.1a0  
+**Date:** January 2026
+**Version:** 0.0.1a0
 **Status:** Analysis & Recommendations
 
 ## Executive Summary
@@ -165,17 +165,20 @@ print(f"Allowed methods: {allowed_methods}")
 ```python
 from aresilient import get_with_automatic_retry
 
+
 def log_retry(retry_info):
-    print(f"Retry {retry_info['attempt']}/{retry_info['max_retries']} "
-          f"after {retry_info['wait_time']}s for {retry_info['url']}")
+    print(
+        f"Retry {retry_info['attempt']}/{retry_info['max_retries']} "
+        f"after {retry_info['wait_time']}s for {retry_info['url']}"
+    )
+
 
 def track_metrics(response_info):
     metrics.increment("api.success", tags={"endpoint": response_info["url"]})
 
+
 response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    on_retry=log_retry,
-    on_success=track_metrics
+    "https://api.example.com/data", on_retry=log_retry, on_success=track_metrics
 )
 ```
 
@@ -207,8 +210,7 @@ response = get_with_automatic_retry(
 from aresilient import get_with_automatic_retry
 
 response, stats = get_with_automatic_retry(
-    "https://api.example.com/data",
-    return_stats=True
+    "https://api.example.com/data", return_stats=True
 )
 print(f"Succeeded on attempt {stats.attempts}/{stats.max_retries}")
 print(f"Total time: {stats.total_time:.2f}s")
@@ -279,12 +281,11 @@ from aresilient import get_with_automatic_retry, CircuitBreaker
 circuit_breaker = CircuitBreaker(
     failure_threshold=5,  # Open circuit after 5 failures
     recovery_timeout=60.0,  # Try again after 60s
-    expected_exception=HttpRequestError
+    expected_exception=HttpRequestError,
 )
 
 response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    circuit_breaker=circuit_breaker
+    "https://api.example.com/data", circuit_breaker=circuit_breaker
 )
 ```
 
@@ -313,13 +314,14 @@ response = get_with_automatic_retry(
 ```python
 from aresilient import get_with_automatic_retry
 
+
 def fallback_handler(error):
     # Return cached data or default
     return {"status": "degraded", "data": get_cached_data()}
 
+
 response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    fallback=fallback_handler
+    "https://api.example.com/data", fallback=fallback_handler
 )
 ```
 
@@ -384,6 +386,7 @@ response = get_with_automatic_retry(
 ```python
 from aresilient import get_with_automatic_retry
 
+
 def should_retry(response, exception):
     # Retry if response contains error message
     if response and "rate limit" in response.text.lower():
@@ -393,9 +396,9 @@ def should_retry(response, exception):
         return True
     return False
 
+
 response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    retry_if=should_retry
+    "https://api.example.com/data", retry_if=should_retry
 )
 ```
 
@@ -432,7 +435,7 @@ from aresilient import get_with_automatic_retry, LinearBackoff
 
 response = get_with_automatic_retry(
     "https://api.example.com/data",
-    backoff_strategy=LinearBackoff(base_delay=1.0)  # 1s, 2s, 3s, 4s...
+    backoff_strategy=LinearBackoff(base_delay=1.0),  # 1s, 2s, 3s, 4s...
 )
 ```
 
@@ -466,7 +469,7 @@ response = get_with_automatic_retry(
     "https://api.example.com/data",
     max_retries=10,
     max_total_time=30.0,  # Give up after 30s total, regardless of retry count
-    max_wait_time=5.0      # Cap backoff at 5s max
+    max_wait_time=5.0,  # Cap backoff at 5s max
 )
 ```
 
@@ -604,14 +607,13 @@ def method_with_automatic_retry(
     jitter_factor: float = 0.0,
     # New parameters here
     **kwargs: Any,
-) -> httpx.Response:
-    ...
+) -> httpx.Response: ...
 
-# Async variant  
+
+# Async variant
 async def method_with_automatic_retry_async(
     # Same signature
-) -> httpx.Response:
-    ...
+) -> httpx.Response: ...
 ```
 
 ### Testing Requirements
@@ -692,6 +694,6 @@ These additions would bring aresilient to feature parity with leading resilience
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** January 31, 2026  
+**Document Version:** 1.0
+**Last Updated:** January 31, 2026
 **Next Review:** After implementing high-priority features

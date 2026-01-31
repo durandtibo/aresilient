@@ -33,7 +33,8 @@ def test_head_with_automatic_retry_successful_request_without_client() -> None:
 
 
 def test_head_with_non_retryable_status_fails_immediately() -> None:
-    """Test that 404 (non-retryable) fails immediately without retries."""
+    """Test that 404 (non-retryable) fails immediately without
+    retries."""
     with (
         httpx.Client() as client,
         pytest.raises(HttpRequestError, match=r"HEAD request to .* failed with status 404"),

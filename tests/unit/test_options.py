@@ -7,7 +7,11 @@ from unittest.mock import Mock, call, patch
 import httpx
 import pytest
 
-from aresilient import RETRY_STATUS_CODES, HttpRequestError, options_with_automatic_retry
+from aresilient import (
+    RETRY_STATUS_CODES,
+    HttpRequestError,
+    options_with_automatic_retry,
+)
 
 TEST_URL = "https://api.example.com/data"
 
@@ -273,7 +277,9 @@ def test_options_with_automatic_retry_default_retry_status_codes(
     mock_sleep.assert_called_once_with(0.3)
 
 
-def test_options_with_automatic_retry_client_close_when_owns_client(mock_client: httpx.Client) -> None:
+def test_options_with_automatic_retry_client_close_when_owns_client(
+    mock_client: httpx.Client,
+) -> None:
     """Test that client is closed when created internally."""
     with patch("httpx.Client", return_value=mock_client):
         options_with_automatic_retry(TEST_URL)
@@ -465,7 +471,9 @@ def test_options_with_automatic_retry_network_error(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_options_with_automatic_retry_read_error(mock_client: httpx.Client, mock_sleep: Mock) -> None:
+def test_options_with_automatic_retry_read_error(
+    mock_client: httpx.Client, mock_sleep: Mock
+) -> None:
     """Test that ReadError is retried appropriately."""
     mock_client.options.side_effect = httpx.ReadError("Connection broken")
     with (
@@ -479,7 +487,9 @@ def test_options_with_automatic_retry_read_error(mock_client: httpx.Client, mock
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_options_with_automatic_retry_write_error(mock_client: httpx.Client, mock_sleep: Mock) -> None:
+def test_options_with_automatic_retry_write_error(
+    mock_client: httpx.Client, mock_sleep: Mock
+) -> None:
     """Test that WriteError is retried appropriately."""
     mock_client.options.side_effect = httpx.WriteError("Write failed")
 
@@ -543,7 +553,9 @@ def test_options_with_automatic_retry_pool_timeout(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_options_with_automatic_retry_proxy_error(mock_client: httpx.Client, mock_sleep: Mock) -> None:
+def test_options_with_automatic_retry_proxy_error(
+    mock_client: httpx.Client, mock_sleep: Mock
+) -> None:
     """Test that ProxyError is retried appropriately."""
     mock_client.options.side_effect = httpx.ProxyError("Proxy connection failed")
 

@@ -20,9 +20,7 @@ HTTPBIN_URL = "https://httpbin.org"
 async def test_options_with_automatic_retry_async_successful_request() -> None:
     """Test successful async OPTIONS request without retries."""
     async with httpx.AsyncClient() as client:
-        response = await options_with_automatic_retry_async(
-            url=f"{HTTPBIN_URL}/get", client=client
-        )
+        response = await options_with_automatic_retry_async(url=f"{HTTPBIN_URL}/get", client=client)
     # httpbin may return 200 or 405 for OPTIONS depending on endpoint
     assert response.status_code in (200, 405)
 
