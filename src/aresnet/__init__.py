@@ -1,4 +1,26 @@
-r"""Root package."""
+r"""aresnet - Resilient HTTP request library with automatic retry logic.
+
+This package provides resilient HTTP request functionality with automatic
+retry logic and exponential backoff. Built on top of the modern httpx library,
+it simplifies handling transient failures in HTTP communications, making your
+applications more robust and fault-tolerant.
+
+Key Features:
+    - Automatic retry logic for transient HTTP errors (429, 500, 502, 503, 504)
+    - Exponential backoff with optional jitter to prevent thundering herd problems
+    - Retry-After header support (both integer seconds and HTTP-date formats)
+    - Complete HTTP method support (GET, POST, PUT, DELETE, PATCH)
+    - Full async support for high-performance applications
+    - Configurable timeout, retry attempts, backoff factors, and jitter
+    - Enhanced error handling with detailed exception information
+
+Example:
+    ```pycon
+    >>> from aresnet import get_with_automatic_retry
+    >>> response = get_with_automatic_retry("https://api.example.com/data")  # doctest: +SKIP
+
+    ```
+"""
 
 from __future__ import annotations
 

@@ -67,13 +67,14 @@ def request_with_automatic_retry(
         max_retries: Maximum number of retry attempts for failed requests.
             Must be >= 0.
         backoff_factor: Factor for exponential backoff between retries. The wait
-            time is calculated as: {backoff_factor} * (2 ** attempt) seconds,
+            time is calculated as: backoff_factor * (2 ** attempt) seconds,
             where attempt is 0-indexed (0, 1, 2, ...).
         status_forcelist: Tuple of HTTP status codes that should trigger a retry.
         jitter_factor: Factor for adding random jitter to backoff delays. The jitter
-            is calculated as: random.uniform(0, jitter_factor) * base_sleep_time.
-            Set to 0 to disable jitter (default). Recommended value is 0.1 for 10%
-            jitter to prevent thundering herd issues.
+            is calculated as: random.uniform(0, jitter_factor) * base_sleep_time,
+            and this jitter is ADDED to the base sleep time. Set to 0 to disable
+            jitter (default). Recommended value is 0.1 for 10% jitter to prevent
+            thundering herd issues.
         **kwargs: Additional keyword arguments passed to the request function.
 
     Returns:
