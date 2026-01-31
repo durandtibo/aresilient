@@ -68,7 +68,7 @@ HTTP communications, making your applications more robust and fault-tolerant.
   optional randomized jitter to prevent thundering herd problems and avoid overwhelming servers
 - **Retry-After Header Support**: Respects server-specified retry delays from `Retry-After` headers
   (supports both integer seconds and HTTP-date formats)
-- **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH)
+- **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
 - **Async Support**: Fully supports asynchronous requests for high-performance applications
 - **Built on httpx**: Leverages the modern, async-capable httpx library
 - **Configurable**: Customize timeout, retry attempts, backoff factors, jitter, and retryable status codes
@@ -149,6 +149,8 @@ from aresilient import (
     put_with_automatic_retry,
     delete_with_automatic_retry,
     patch_with_automatic_retry,
+    head_with_automatic_retry,
+    options_with_automatic_retry,
 )
 
 # PUT request to update a resource
@@ -163,6 +165,15 @@ response = delete_with_automatic_retry("https://api.example.com/resource/123")
 response = patch_with_automatic_retry(
     "https://api.example.com/resource/123", json={"status": "active"}
 )
+
+# HEAD request to check resource existence and get metadata
+response = head_with_automatic_retry("https://api.example.com/large-file.zip")
+if response.status_code == 200:
+    print(f"File size: {response.headers.get('Content-Length')} bytes")
+
+# OPTIONS request to discover allowed methods
+response = options_with_automatic_retry("https://api.example.com/resource")
+print(f"Allowed methods: {response.headers.get('Allow')}")
 ```
 
 ### Error Handling
@@ -374,6 +385,52 @@ Performs an HTTP PATCH request with automatic retry logic.
 - `HttpRequestError`: If the request fails after all retries
 - `ValueError`: If parameters are invalid
 
+### `head_with_automatic_retry()`
+
+Performs an HTTP HEAD request with automatic retry logic.
+
+**Parameters:**
+
+- `url` (str): The URL to send the request to
+- `client` (httpx.Client | None): Optional httpx client to use
+- `timeout` (float | httpx.Timeout): Request timeout in seconds
+- `max_retries` (int): Maximum number of retry attempts
+- `backoff_factor` (float): Exponential backoff factor
+- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `**kwargs`: Additional arguments passed to `httpx.Client.head()`
+
+**Returns:** `httpx.Response`
+
+**Raises:**
+
+- `HttpRequestError`: If the request fails after all retries
+- `ValueError`: If parameters are invalid
+
+**Use cases:** HEAD requests retrieve only headers without the response body, making them useful for checking resource existence, metadata (Content-Length, Last-Modified, ETag), and performing lightweight validation.
+
+### `options_with_automatic_retry()`
+
+Performs an HTTP OPTIONS request with automatic retry logic.
+
+**Parameters:**
+
+- `url` (str): The URL to send the request to
+- `client` (httpx.Client | None): Optional httpx client to use
+- `timeout` (float | httpx.Timeout): Request timeout in seconds
+- `max_retries` (int): Maximum number of retry attempts
+- `backoff_factor` (float): Exponential backoff factor
+- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `**kwargs`: Additional arguments passed to `httpx.Client.options()`
+
+**Returns:** `httpx.Response`
+
+**Raises:**
+
+- `HttpRequestError`: If the request fails after all retries
+- `ValueError`: If parameters are invalid
+
+**Use cases:** OPTIONS requests are used for CORS preflight requests, discovering allowed HTTP methods via the Allow header, and querying server capabilities.
+
 ### Async Versions
 
 All synchronous functions have async counterparts with identical parameters:
@@ -383,6 +440,8 @@ All synchronous functions have async counterparts with identical parameters:
 - `put_with_automatic_retry_async()` - Async version of PUT
 - `delete_with_automatic_retry_async()` - Async version of DELETE
 - `patch_with_automatic_retry_async()` - Async version of PATCH
+- `head_with_automatic_retry_async()` - Async version of HEAD
+- `options_with_automatic_retry_async()` - Async version of OPTIONS
 
 These functions work exactly like their synchronous counterparts but must be awaited and use
 `httpx.AsyncClient` instead of `httpx.Client`.
