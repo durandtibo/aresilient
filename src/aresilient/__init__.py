@@ -9,10 +9,11 @@ Key Features:
     - Automatic retry logic for transient HTTP errors (429, 500, 502, 503, 504)
     - Exponential backoff with optional jitter to prevent thundering herd problems
     - Retry-After header support (both integer seconds and HTTP-date formats)
-    - Complete HTTP method support (GET, POST, PUT, DELETE, PATCH)
+    - Complete HTTP method support (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
     - Full async support for high-performance applications
     - Configurable timeout, retry attempts, backoff factors, and jitter
     - Enhanced error handling with detailed exception information
+    - Callback/Event system for observability (logging, metrics, alerting)
 
 Example:
     ```pycon
@@ -29,7 +30,11 @@ __all__ = [
     "DEFAULT_MAX_RETRIES",
     "DEFAULT_TIMEOUT",
     "RETRY_STATUS_CODES",
+    "FailureInfo",
     "HttpRequestError",
+    "RequestInfo",
+    "ResponseInfo",
+    "RetryInfo",
     "__version__",
     "delete_with_automatic_retry",
     "delete_with_automatic_retry_async",
@@ -51,6 +56,7 @@ __all__ = [
 
 from importlib.metadata import PackageNotFoundError, version
 
+from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 from aresilient.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
