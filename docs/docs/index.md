@@ -64,11 +64,14 @@ HTTP communications, making your applications more robust and fault-tolerant.
 
 - **Automatic Retry Logic**: Automatically retries failed requests for configurable HTTP status
   codes (429, 500, 502, 503, 504 by default)
-- **Exponential Backoff**: Implements exponential backoff strategy to avoid overwhelming servers
+- **Exponential Backoff with Optional Jitter**: Implements exponential backoff strategy with
+  optional randomized jitter to prevent thundering herd problems and avoid overwhelming servers
+- **Retry-After Header Support**: Respects server-specified retry delays from `Retry-After` headers
+  (supports both integer seconds and HTTP-date formats)
 - **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH)
 - **Async Support**: Fully supports asynchronous requests for high-performance applications
 - **Built on httpx**: Leverages the modern, async-capable httpx library
-- **Configurable**: Customize timeout, retry attempts, backoff factors, and retryable status codes
+- **Configurable**: Customize timeout, retry attempts, backoff factors, jitter, and retryable status codes
 - **Type-Safe**: Fully typed with comprehensive type hints
 - **Well-Tested**: Extensive test coverage ensuring reliability
 

@@ -72,7 +72,8 @@ HTTP communications, making your applications more robust and fault-tolerant.
 - **Async Support**: Fully supports asynchronous requests for high-performance applications
 - **Built on httpx**: Leverages the modern, async-capable httpx library
 - **Configurable**: Customize timeout, retry attempts, backoff factors, jitter, and retryable status codes
-- **Enhanced Error Handling**: Detailed logging of specific error types (ConnectError, PoolTimeout, etc.)
+- **Enhanced Error Handling**: Comprehensive error handling with detailed exception information
+  including HTTP status codes and response objects
 - **Type-Safe**: Fully typed with comprehensive type hints
 - **Well-Tested**: Extensive test coverage ensuring reliability
 

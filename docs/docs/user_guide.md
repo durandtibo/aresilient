@@ -256,6 +256,14 @@ response = get_with_automatic_retry(
     backoff_factor=0.1,  # Shorter waits between retries
 )
 
+# With jitter to prevent thundering herd
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    max_retries=3,
+    backoff_factor=0.5,
+    jitter_factor=0.1,  # Add 10% random jitter
+)
+
 # No retry
 response = get_with_automatic_retry(
     "https://api.example.com/data", max_retries=0  # No retries, fail immediately
@@ -267,22 +275,29 @@ response = get_with_automatic_retry(
 The wait time between retries is calculated using the exponential backoff formula:
 
 ```
-wait_time = backoff_factor * (2 ** attempt)
+base_wait_time = backoff_factor * (2 ** attempt)
+# If jitter_factor is set (e.g., 0.1 for 10% jitter):
+jitter = random(0, jitter_factor) * base_wait_time
+total_wait_time = base_wait_time + jitter
 ```
 
 Where `attempt` is 0-indexed (0, 1, 2, ...).
 
-#### Example with default `backoff_factor=0.3`:
+#### Example with default `backoff_factor=0.3` (no jitter):
 
 - 1st retry: 0.3 * (2^0) = 0.3 seconds
 - 2nd retry: 0.3 * (2^1) = 0.6 seconds
 - 3rd retry: 0.3 * (2^2) = 1.2 seconds
 
-#### Example with `backoff_factor=1.0`:
+#### Example with `backoff_factor=1.0` and `jitter_factor=0.1`:
 
-- 1st retry: 1.0 * (2^0) = 1.0 seconds
-- 2nd retry: 1.0 * (2^1) = 2.0 seconds
-- 3rd retry: 1.0 * (2^2) = 4.0 seconds
+- 1st retry: 1.0-1.1 seconds (base 1.0s + up to 10% jitter)
+- 2nd retry: 2.0-2.2 seconds (base 2.0s + up to 10% jitter)
+- 3rd retry: 4.0-4.4 seconds (base 4.0s + up to 10% jitter)
+
+**Note**: Jitter is optional (disabled by default with `jitter_factor=0`). When enabled, it's
+randomized for each retry to prevent multiple clients from retrying simultaneously (thundering
+herd problem). Set `jitter_factor=0.1` for 10% jitter, which is recommended for production use.
 
 ### Customizing Retryable Status Codes
 
@@ -307,6 +322,29 @@ response = get_with_automatic_retry(
     status_forcelist=(408, 429, 500, 502, 503, 504),  # Include 408 Request Timeout
 )
 ```
+
+### Retry-After Header Support
+
+When a server returns a `Retry-After` header (commonly with 429 or 503 status codes), `aresnet`
+automatically uses the server's suggested wait time instead of exponential backoff. This ensures
+compliance with rate limiting and helps avoid overwhelming the server.
+
+The `Retry-After` header supports two formats:
+
+```python
+# Server responds with: Retry-After: 120
+# aresnet will wait 120 seconds before retrying
+
+# Server responds with: Retry-After: Wed, 21 Oct 2015 07:28:00 GMT
+# aresnet will wait until this time before retrying
+```
+
+The retry delay from the `Retry-After` header is used automatically - you don't need to configure
+anything. This works with all HTTP methods (GET, POST, PUT, DELETE, PATCH).
+
+**Note**: If `jitter_factor` is configured, jitter is still applied to server-specified
+`Retry-After` values to prevent thundering herd issues when many clients receive the same retry
+delay from a server.
 
 ## Advanced Usage
 
@@ -705,6 +743,36 @@ async def fetch_data():
     response = await get_with_automatic_retry_async("https://api.example.com/data")
     return response.json()
 ```
+
+### 7. Enable Debug Logging for Troubleshooting
+
+`aresnet` uses Python's standard `logging` module to provide detailed debug information about
+retries, backoff times, and errors. This can be helpful for troubleshooting issues or understanding
+retry behavior.
+
+```python
+import logging
+from aresnet import get_with_automatic_retry
+
+# Enable debug logging to see retry details
+logging.basicConfig(level=logging.DEBUG)
+
+# This will log:
+# - Each retry attempt
+# - Wait times between retries
+# - Whether Retry-After header is being used
+# - Success/failure of each attempt
+response = get_with_automatic_retry("https://api.example.com/data")
+```
+
+Example debug output:
+```
+DEBUG:aresnet.request:GET request to https://api.example.com/data failed with status 503 (attempt 1/4)
+DEBUG:aresnet.utils:Waiting 0.30s before retry
+DEBUG:aresnet.request:GET request to https://api.example.com/data succeeded on attempt 2
+```
+
+For production use, keep the default log level (INFO or WARNING) to avoid excessive logging.
 
 ## Additional Resources
 
