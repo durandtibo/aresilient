@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from aresilient import HttpRequestError, delete_with_automatic_retry_async
+from aresilient import delete_with_automatic_retry_async
 
 # Use httpbin.org for real HTTP testing
 HTTPBIN_URL = "https://httpbin.org"
@@ -12,68 +12,9 @@ HTTPBIN_URL = "https://httpbin.org"
 #######################################################
 #     Tests for delete_with_automatic_retry_async     #
 #######################################################
-
-
-@pytest.mark.asyncio
-async def test_delete_with_automatic_retry_async_successful_request() -> None:
-    """Test successful DELETE request without retries."""
-    async with httpx.AsyncClient() as client:
-        response = await delete_with_automatic_retry_async(
-            url=f"{HTTPBIN_URL}/delete", client=client
-        )
-    assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["url"] == "https://httpbin.org/delete"
-
-
-@pytest.mark.asyncio
-async def test_delete_with_automatic_retry_async_successful_request_without_client() -> None:
-    """Test successful DELETE request without retries."""
-    response = await delete_with_automatic_retry_async(url=f"{HTTPBIN_URL}/delete")
-    assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["url"] == "https://httpbin.org/delete"
-
-
-@pytest.mark.asyncio
-async def test_delete_with_non_retryable_status_fails_immediately_async() -> None:
-    """Test that 404 (non-retryable) fails immediately without
-    retries."""
-    async with httpx.AsyncClient() as client:
-        with pytest.raises(HttpRequestError, match=r"DELETE request to .* failed with status 404"):
-            await delete_with_automatic_retry_async(url=f"{HTTPBIN_URL}/status/404", client=client)
-
-
-@pytest.mark.asyncio
-async def test_delete_with_automatic_retry_async_with_headers() -> None:
-    """Test DELETE request with custom headers."""
-    async with httpx.AsyncClient() as client:
-        response = await delete_with_automatic_retry_async(
-            url=f"{HTTPBIN_URL}/delete",
-            client=client,
-            headers={"X-Custom-Header": "test-value"},
-        )
-
-    assert response.status_code == 200
-    response_data = response.json()
-    assert "X-Custom-Header" in response_data["headers"]
-    assert response_data["headers"]["X-Custom-Header"] == "test-value"
-
-
-@pytest.mark.asyncio
-async def test_delete_with_automatic_retry_async_with_query_params() -> None:
-    """Test DELETE request with query parameters."""
-    async with httpx.AsyncClient() as client:
-        response = await delete_with_automatic_retry_async(
-            url=f"{HTTPBIN_URL}/delete",
-            client=client,
-            params={"key1": "value1", "key2": "value2"},
-        )
-
-    assert response.status_code == 200
-    response_data = response.json()
-    assert "key1=value1" in response_data["url"]
-    assert "key2=value2" in response_data["url"]
+# Note: Common async tests (successful request, non-retryable status, headers, query params)
+# are now in test_http_methods_common_async.py to avoid duplication across HTTP methods.
+# This file contains DELETE-specific async tests only.
 
 
 @pytest.mark.asyncio
