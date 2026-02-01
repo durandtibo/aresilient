@@ -5,165 +5,105 @@ from typing import TYPE_CHECKING
 import httpx
 import pytest
 
-from aresilient import (
-    HttpRequestError,
-    delete_with_automatic_retry_async,
-    get_with_automatic_retry_async,
-    head_with_automatic_retry_async,
-    options_with_automatic_retry_async,
-    patch_with_automatic_retry_async,
-    post_with_automatic_retry_async,
-    put_with_automatic_retry_async,
-)
+from aresilient import HttpRequestError
+from tests.unit.helpers import HTTP_METHODS_ASYNC
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from _pytest.mark.structures import ParameterSet
 
 # Use httpbin.org for real HTTP testing
 HTTPBIN_URL = "https://httpbin.org"
 
-# HTTP method mapping for parametrized tests
-HTTP_METHODS = {
-    "GET": (get_with_automatic_retry_async, "/get", False),
-    "POST": (post_with_automatic_retry_async, "/post", True),
-    "PUT": (put_with_automatic_retry_async, "/put", True),
-    "PATCH": (patch_with_automatic_retry_async, "/patch", True),
-    "DELETE": (delete_with_automatic_retry_async, "/delete", False),
-    "HEAD": (head_with_automatic_retry_async, "/get", False),
-    "OPTIONS": (options_with_automatic_retry_async, "/get", False),
-}
-
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("method_name", "func", "endpoint", "supports_body"),
-    [
-        (method, *config)
-        for method, config in HTTP_METHODS.items()
-    ],
-    ids=list(HTTP_METHODS.keys()),
-)
-async def test_http_method_async_successful_request_with_client(
-    method_name: str,
-    func: Callable[..., Awaitable[httpx.Response]],
-    endpoint: str,
-    supports_body: bool,
-) -> None:
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
+async def test_http_method_async_successful_request_with_client(test_case: ParameterSet) -> None:
     """Test successful async HTTP request with explicit client."""
+    tc = test_case.values[0]
     async with httpx.AsyncClient() as client:
-        if supports_body:
-            response = await func(
-                url=f"{HTTPBIN_URL}{endpoint}",
+        if tc.supports_body:
+            response = await tc.method_func(
+                url=f"{HTTPBIN_URL}{tc.test_url}",
                 json={"test": "data", "number": 42},
                 client=client,
             )
         else:
-            response = await func(url=f"{HTTPBIN_URL}{endpoint}", client=client)
+            response = await tc.method_func(url=f"{HTTPBIN_URL}{tc.test_url}", client=client)
 
-    assert response.status_code == 200 or (method_name == "OPTIONS" and response.status_code == 405)
+    assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
 
     # Verify response data (except for HEAD and OPTIONS which have no body)
-    if method_name not in ("HEAD", "OPTIONS"):
+    if tc.method_name not in ("HEAD", "OPTIONS"):
         response_data = response.json()
-        assert f"https://httpbin.org{endpoint}" in response_data["url"]
-        if supports_body:
+        assert f"https://httpbin.org{tc.test_url}" in response_data["url"]
+        if tc.supports_body:
             assert response_data["json"] == {"test": "data", "number": 42}
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("method_name", "func", "endpoint", "supports_body"),
-    [
-        (method, *config)
-        for method, config in HTTP_METHODS.items()
-    ],
-    ids=list(HTTP_METHODS.keys()),
-)
-async def test_http_method_async_successful_request_without_client(
-    method_name: str,
-    func: Callable[..., Awaitable[httpx.Response]],
-    endpoint: str,
-    supports_body: bool,
-) -> None:
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
+async def test_http_method_async_successful_request_without_client(test_case: ParameterSet) -> None:
     """Test successful async HTTP request without explicit client."""
-    if supports_body:
-        response = await func(
-            url=f"{HTTPBIN_URL}{endpoint}",
+    tc = test_case.values[0]
+    if tc.supports_body:
+        response = await tc.method_func(
+            url=f"{HTTPBIN_URL}{tc.test_url}",
             json={"test": "data", "number": 42},
         )
     else:
-        response = await func(url=f"{HTTPBIN_URL}{endpoint}")
+        response = await tc.method_func(url=f"{HTTPBIN_URL}{tc.test_url}")
 
-    assert response.status_code == 200 or (method_name == "OPTIONS" and response.status_code == 405)
+    assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
 
     # Verify response data (except for HEAD and OPTIONS which have no body)
-    if method_name not in ("HEAD", "OPTIONS"):
+    if tc.method_name not in ("HEAD", "OPTIONS"):
         response_data = response.json()
-        if supports_body:
+        if tc.supports_body:
             assert response_data["json"] == {"test": "data", "number": 42}
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("method_name", "func"),
-    [
-        (method, config[0])
-        for method, config in HTTP_METHODS.items()
-        if method != "OPTIONS"  # OPTIONS doesn't consistently return 404
-    ],
-    ids=[method for method in HTTP_METHODS if method != "OPTIONS"],
+    "test_case",
+    [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].method_name != "OPTIONS"],
 )
-async def test_http_method_async_non_retryable_status_fails_immediately(
-    method_name: str, func: Callable[..., Awaitable[httpx.Response]]
-) -> None:
+async def test_http_method_async_non_retryable_status_fails_immediately(test_case: ParameterSet) -> None:
     """Test that 404 (non-retryable) fails immediately without retries."""
+    tc = test_case.values[0]
     async with httpx.AsyncClient() as client:
-        with pytest.raises(
-            HttpRequestError, match=rf"{method_name} request to .* failed with status 404"
-        ):
-            await func(url=f"{HTTPBIN_URL}/status/404", client=client)
+        with pytest.raises(HttpRequestError, match=rf"{tc.method_name} request to .* failed with status 404"):
+            await tc.method_func(url=f"{HTTPBIN_URL}/status/404", client=client)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("method_name", "func", "endpoint", "supports_body"),
-    [
-        (method, *config)
-        for method, config in HTTP_METHODS.items()
-    ],
-    ids=list(HTTP_METHODS.keys()),
-)
-async def test_http_method_async_with_custom_headers(
-    method_name: str,
-    func: Callable[..., Awaitable[httpx.Response]],
-    endpoint: str,
-    supports_body: bool,
-) -> None:
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
+async def test_http_method_async_with_custom_headers(test_case: ParameterSet) -> None:
     """Test async HTTP request with custom headers."""
+    tc = test_case.values[0]
     async with httpx.AsyncClient() as client:
-        if supports_body:
-            response = await func(
-                url=f"{HTTPBIN_URL}{endpoint}",
+        if tc.supports_body:
+            response = await tc.method_func(
+                url=f"{HTTPBIN_URL}{tc.test_url}",
                 client=client,
                 json={"test": "data"},
                 headers={"X-Custom-Header": "test-value"},
             )
         else:
             # Use /headers endpoint for methods that don't support body
-            test_endpoint = "/headers" if method_name != "OPTIONS" else endpoint
-            response = await func(
+            test_endpoint = "/headers" if tc.method_name != "OPTIONS" else tc.test_url
+            response = await tc.method_func(
                 url=f"{HTTPBIN_URL}{test_endpoint}",
                 client=client,
                 headers={"X-Custom-Header": "test-value"},
             )
 
-    assert response.status_code == 200 or (method_name == "OPTIONS" and response.status_code == 405)
+    assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
 
     # Verify headers in response (except for HEAD which has no body)
-    if method_name == "HEAD":
+    if tc.method_name == "HEAD":
         # HEAD request should succeed but have no body
         assert len(response.content) == 0
-    elif method_name != "OPTIONS":
+    elif tc.method_name != "OPTIONS":
         # For OPTIONS, httpbin might not return the headers in the body
         response_data = response.json()
         if "headers" in response_data:
@@ -173,21 +113,15 @@ async def test_http_method_async_with_custom_headers(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("method_name", "func"),
-    [
-        ("GET", get_with_automatic_retry_async),
-        ("DELETE", delete_with_automatic_retry_async),
-    ],
-    ids=["GET", "DELETE"],
+    "test_case",
+    [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].method_name in ("GET", "DELETE")],
 )
-async def test_http_method_async_with_query_params(
-    method_name: str, func: Callable[..., Awaitable[httpx.Response]]
-) -> None:
+async def test_http_method_async_with_query_params(test_case: ParameterSet) -> None:
     """Test async HTTP request with query parameters."""
-    endpoint = f"/{method_name.lower()}"
+    tc = test_case.values[0]
     async with httpx.AsyncClient() as client:
-        response = await func(
-            url=f"{HTTPBIN_URL}{endpoint}",
+        response = await tc.method_func(
+            url=f"{HTTPBIN_URL}{tc.test_url}",
             params={"param1": "value1", "param2": "value2"},
             client=client,
         )
