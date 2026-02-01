@@ -181,6 +181,111 @@ Provides reusable test utilities and parametrization data:
    - Async versions of all HTTP methods
    - Used with `@pytest.mark.asyncio` and `@pytest.mark.parametrize`
 
+### Test Utility Functions (`test_utils_helpers.py`)
+
+Added in Option 4 implementation, this module provides reusable utility functions to reduce boilerplate in tests:
+
+1. **`setup_mock_client_for_method(client_method, status_code=200, response_kwargs=None)`**
+   - Creates a properly configured mock `httpx.Client` for testing
+   - Returns tuple of `(mock_client, mock_response)`
+   - Reduces boilerplate for setting up mock HTTP clients
+   
+   **Example:**
+   ```python
+   from tests.test_utils_helpers import setup_mock_client_for_method
+   
+   def test_example(mock_sleep: Mock) -> None:
+       # Instead of manual setup:
+       # mock_response = Mock(spec=httpx.Response, status_code=200)
+       # mock_client = Mock(spec=httpx.Client)
+       # mock_client.get = Mock(return_value=mock_response)
+       
+       # Use utility function:
+       client, response = setup_mock_client_for_method("get", 200)
+       
+       result = get_with_automatic_retry("https://example.com", client=client)
+       assert result.status_code == 200
+   ```
+
+2. **`setup_mock_async_client_for_method(client_method, status_code=200, response_kwargs=None)`**
+   - Creates a properly configured mock `httpx.AsyncClient` for testing
+   - Returns tuple of `(mock_client, mock_response)`
+   - Automatically includes `aclose` AsyncMock for proper cleanup
+   
+   **Example:**
+   ```python
+   from tests.test_utils_helpers import setup_mock_async_client_for_method
+   
+   @pytest.mark.asyncio
+   async def test_example_async(mock_asleep: Mock) -> None:
+       client, response = setup_mock_async_client_for_method("get", 200)
+       
+       result = await get_with_automatic_retry_async("https://example.com", client=client)
+       assert result.status_code == 200
+   ```
+
+3. **`assert_successful_request(method_func, url, client, expected_status=200, **kwargs)`**
+   - Combines request execution and status assertion in one call
+   - Returns the response object for additional assertions
+   - Reduces test boilerplate for common success scenarios
+   
+   **Example:**
+   ```python
+   from tests.test_utils_helpers import assert_successful_request, setup_mock_client_for_method
+   
+   def test_with_headers(mock_sleep: Mock) -> None:
+       client, _ = setup_mock_client_for_method("get", 200)
+       
+       # Instead of:
+       # response = get_with_automatic_retry(url, client=client, headers=headers)
+       # assert response.status_code == 200
+       
+       # Use utility:
+       response = assert_successful_request(
+           get_with_automatic_retry,
+           "https://example.com",
+           client,
+           headers={"X-Custom": "value"}
+       )
+       
+       # Response is returned for additional assertions if needed
+       client.get.assert_called_once_with(url=url, headers=headers)
+   ```
+
+4. **`assert_successful_request_async(method_func, url, client, expected_status=200, **kwargs)`**
+   - Async version of `assert_successful_request()`
+   - Combines async request execution and status assertion
+   
+   **Example:**
+   ```python
+   from tests.test_utils_helpers import assert_successful_request_async, setup_mock_async_client_for_method
+   
+   @pytest.mark.asyncio
+   async def test_with_headers_async(mock_asleep: Mock) -> None:
+       client, _ = setup_mock_async_client_for_method("get", 200)
+       
+       response = await assert_successful_request_async(
+           get_with_automatic_retry_async,
+           "https://example.com",
+           client,
+           headers={"X-Custom": "value"}
+       )
+       
+       client.get.assert_called_once_with(url=url, headers=headers)
+   ```
+
+**Benefits of Test Utilities:**
+- **Less boilerplate:** Reduces repetitive mock setup code
+- **More readable:** Test intent is clearer when setup is concise
+- **Consistent patterns:** Ensures mocks are configured correctly
+- **Easier maintenance:** Changes to mock setup patterns in one place
+- **Faster test writing:** Common patterns are pre-built
+
+**See Also:**
+- Implementation: `tests/test_utils_helpers.py`
+- Tests: `tests/unit/test_test_utils_helpers.py`
+- Examples: `tests/unit/test_get.py`, `tests/unit/test_post.py`, `tests/unit/test_get_async.py`
+
 **Example Usage:**
 ```python
 from tests.helpers import HTTP_METHODS, HttpMethodTestCase
