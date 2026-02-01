@@ -7,7 +7,6 @@ HEAD, OPTIONS) in a consistent and maintainable way.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import Mock, call
 
 import httpx
@@ -15,18 +14,9 @@ import pytest
 
 from aresilient import (
     HttpRequestError,
-    delete_with_automatic_retry,
-    get_with_automatic_retry,
-    head_with_automatic_retry,
-    options_with_automatic_retry,
-    patch_with_automatic_retry,
-    post_with_automatic_retry,
-    put_with_automatic_retry,
 )
 from tests.helpers import HTTP_METHODS, HttpMethodTestCase
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 TEST_URL = "https://api.example.com/data"
 

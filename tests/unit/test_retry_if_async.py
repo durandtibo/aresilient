@@ -8,7 +8,6 @@ PATCH, HEAD, OPTIONS) in a consistent and maintainable way.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock, call
 
 import httpx
@@ -16,18 +15,9 @@ import pytest
 
 from aresilient import (
     HttpRequestError,
-    delete_with_automatic_retry_async,
-    get_with_automatic_retry_async,
-    head_with_automatic_retry_async,
-    options_with_automatic_retry_async,
-    patch_with_automatic_retry_async,
-    post_with_automatic_retry_async,
-    put_with_automatic_retry_async,
 )
 from tests.helpers import HTTP_METHODS_ASYNC, AsyncHttpMethodTestCase
 
-if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
 
 TEST_URL = "https://api.example.com/data"
 
