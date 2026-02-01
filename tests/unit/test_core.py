@@ -28,9 +28,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
-from aresilient import (
-    HttpRequestError,
-)
+from aresilient import HttpRequestError
 
 from .helpers import HTTP_METHODS, HttpMethodTestCase
 
