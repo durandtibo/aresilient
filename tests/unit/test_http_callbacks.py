@@ -139,9 +139,9 @@ def test_http_method_on_request_callback(
     assert response.status_code == test_case.status_code
     on_request_callback.assert_called_once()
     call_args = on_request_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == test_case.method_name
-    assert call_args["attempt"] == 1
+    assert call_args.url == TEST_URL
+    assert call_args.method == test_case.method_name
+    assert call_args.attempt == 1
     mock_sleep.assert_not_called()
 
 
@@ -162,9 +162,9 @@ def test_http_method_on_success_callback(
     assert response.status_code == test_case.status_code
     on_success_callback.assert_called_once()
     call_args = on_success_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == test_case.method_name
-    assert call_args["response"].status_code == test_case.status_code
+    assert call_args.url == TEST_URL
+    assert call_args.method == test_case.method_name
+    assert call_args.response.status_code == test_case.status_code
     mock_sleep.assert_not_called()
 
 
@@ -190,9 +190,9 @@ def test_http_method_on_retry_callback(
     assert response.status_code == test_case.status_code
     on_retry_callback.assert_called_once()
     call_args = on_retry_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == test_case.method_name
-    assert call_args["status_code"] == 503
+    assert call_args.url == TEST_URL
+    assert call_args.method == test_case.method_name
+    assert call_args.status_code == 503
     mock_sleep.assert_called_once_with(0.3)
 
 
@@ -218,9 +218,9 @@ def test_http_method_on_failure_callback(
 
     on_failure_callback.assert_called_once()
     call_args = on_failure_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == test_case.method_name
-    assert call_args["status_code"] == 503
+    assert call_args.url == TEST_URL
+    assert call_args.method == test_case.method_name
+    assert call_args.status_code == 503
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
@@ -293,7 +293,7 @@ def test_http_method_callbacks_with_timeout_error(
 
     # Check that retry callback received error info
     retry_call_args = on_retry_callback.call_args[0][0]
-    assert isinstance(retry_call_args["error"], httpx.TimeoutException)
+    assert isinstance(retry_call_args.error, httpx.TimeoutException)
     mock_sleep.assert_called_once_with(0.3)
 
 
