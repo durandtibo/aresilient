@@ -306,7 +306,7 @@ pytest tests/ --collect-only
 
 # Count test files by category
 find tests/unit -type f -name "*.py" ! -name "__init__.py" | wc -l         # Unit tests
-find tests/integration -type f -name "*.py" ! -name "__init__.py" | wc -l  # Integration tests
+find tests/integration -type f -name "*.py" ! -name "__init__.py" | wc -l  # Integration
 find tests -type f -name "*_async.py" | wc -l                              # Async tests
 ```
 
