@@ -372,6 +372,7 @@ def handle_request_error(
 
 def invoke_on_request(
     on_request: Callable[[RequestInfo], None] | None,
+    *,
     url: str,
     method: str,
     attempt: int,
@@ -398,6 +399,7 @@ def invoke_on_request(
 
 def invoke_on_success(
     on_success: Callable[[ResponseInfo], None] | None,
+    *,
     url: str,
     method: str,
     attempt: int,
@@ -430,6 +432,7 @@ def invoke_on_success(
 
 def invoke_on_retry(
     on_retry: Callable[[RetryInfo], None] | None,
+    *,
     url: str,
     method: str,
     attempt: int,
@@ -465,6 +468,7 @@ def invoke_on_retry(
 
 def handle_exception_with_callback(
     exc: Exception,
+    *,
     url: str,
     method: str,
     attempt: int,
@@ -507,6 +511,7 @@ def handle_exception_with_callback(
 
 
 def raise_final_error(
+    *,
     url: str,
     method: str,
     max_retries: int,

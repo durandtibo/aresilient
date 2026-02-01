@@ -133,7 +133,13 @@ def request_with_automatic_retry(
     for attempt in range(max_retries + 1):
         try:
             # Call on_request callback before each attempt
-            invoke_on_request(on_request, url, method, attempt, max_retries)
+            invoke_on_request(
+                on_request,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+            )
 
             response = request_func(url=url, **kwargs)
 
@@ -143,7 +149,15 @@ def request_with_automatic_retry(
                     logger.debug(f"{method} request to {url} succeeded on attempt {attempt + 1}")
 
                 # Call on_success callback
-                invoke_on_success(on_success, url, method, attempt, max_retries, response, start_time)
+                invoke_on_success(
+                    on_success,
+                    url=url,
+                    method=method,
+                    attempt=attempt,
+                    max_retries=max_retries,
+                    response=response,
+                    start_time=start_time,
+                )
 
                 return response
 
@@ -160,15 +174,27 @@ def request_with_automatic_retry(
         except httpx.TimeoutException as exc:
             last_error = exc
             handle_exception_with_callback(
-                exc, url, method, attempt, max_retries,
-                handle_timeout_exception, on_failure, start_time
+                exc,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+                handler_func=handle_timeout_exception,
+                on_failure=on_failure,
+                start_time=start_time,
             )
 
         except httpx.RequestError as exc:
             last_error = exc
             handle_exception_with_callback(
-                exc, url, method, attempt, max_retries,
-                handle_request_error, on_failure, start_time
+                exc,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+                handler_func=handle_request_error,
+                on_failure=on_failure,
+                start_time=start_time,
             )
 
         # Exponential backoff with jitter before next retry (skip on last attempt since we're about to fail)
@@ -176,7 +202,16 @@ def request_with_automatic_retry(
             sleep_time = calculate_sleep_time(attempt, backoff_factor, jitter_factor, response)
 
             # Call on_retry callback before sleeping
-            invoke_on_retry(on_retry, url, method, attempt, max_retries, sleep_time, last_error, last_status_code)
+            invoke_on_retry(
+                on_retry,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+                sleep_time=sleep_time,
+                last_error=last_error,
+                last_status_code=last_status_code,
+            )
 
             time.sleep(sleep_time)
 
@@ -184,4 +219,11 @@ def request_with_automatic_retry(
     # Note: response cannot be None here because if all attempts raised exceptions,
     # they would have been caught by the exception handlers above and raised before
     # reaching this point.
-    raise_final_error(url, method, max_retries, response, on_failure, start_time)
+    raise_final_error(
+        url=url,
+        method=method,
+        max_retries=max_retries,
+        response=response,
+        on_failure=on_failure,
+        start_time=start_time,
+    )

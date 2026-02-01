@@ -8,9 +8,14 @@ import pytest
 from aresilient.exceptions import HttpRequestError
 from aresilient.utils import (
     calculate_sleep_time,
+    handle_exception_with_callback,
     handle_request_error,
     handle_response,
     handle_timeout_exception,
+    invoke_on_request,
+    invoke_on_retry,
+    invoke_on_success,
+    raise_final_error,
     validate_retry_params,
 )
 
@@ -335,3 +340,447 @@ def test_handle_request_error_various_error_types(exc: httpx.RequestError) -> No
         handle_request_error(exc, TEST_URL, "GET", 1, 1)
 
     assert exc_info.value.__cause__ == exc
+
+
+################################################
+#     Tests for invoke_on_request             #
+################################################
+
+
+def test_invoke_on_request_with_none_callback() -> None:
+    """Test that invoke_on_request does nothing when callback is None."""
+
+    # Should not raise any errors
+    invoke_on_request(
+        None,
+        url=TEST_URL,
+        method="GET",
+        attempt=0,
+        max_retries=3,
+    )
+
+
+def test_invoke_on_request_calls_callback() -> None:
+    """Test that invoke_on_request calls the provided callback."""
+
+    mock_callback = Mock()
+    invoke_on_request(
+        mock_callback,
+        url=TEST_URL,
+        method="POST",
+        attempt=1,
+        max_retries=5,
+    )
+
+    mock_callback.assert_called_once()
+    call_args = mock_callback.call_args[0][0]
+    assert call_args["url"] == TEST_URL
+    assert call_args["method"] == "POST"
+    assert call_args["attempt"] == 2  # 0-indexed to 1-indexed
+    assert call_args["max_retries"] == 5
+
+
+def test_invoke_on_request_converts_attempt_to_1_indexed() -> None:
+    """Test that attempt is converted from 0-indexed to 1-indexed."""
+
+    mock_callback = Mock()
+    invoke_on_request(
+        mock_callback,
+        url=TEST_URL,
+        method="GET",
+        attempt=0,
+        max_retries=3,
+    )
+
+    call_args = mock_callback.call_args[0][0]
+    assert call_args["attempt"] == 1
+
+
+################################################
+#     Tests for invoke_on_success             #
+################################################
+
+
+def test_invoke_on_success_with_none_callback() -> None:
+    """Test that invoke_on_success does nothing when callback is None."""
+
+    mock_response = Mock(spec=httpx.Response)
+    invoke_on_success(
+        None,
+        url=TEST_URL,
+        method="GET",
+        attempt=0,
+        max_retries=3,
+        response=mock_response,
+        start_time=100.0,
+    )
+
+
+def test_invoke_on_success_calls_callback() -> None:
+    """Test that invoke_on_success calls the provided callback."""
+
+    mock_callback = Mock()
+    mock_response = Mock(spec=httpx.Response)
+
+    with patch("aresilient.utils.time.time", return_value=105.5):
+        invoke_on_success(
+            mock_callback,
+            url=TEST_URL,
+            method="PUT",
+            attempt=2,
+            max_retries=5,
+            response=mock_response,
+            start_time=100.0,
+        )
+
+    mock_callback.assert_called_once()
+    call_args = mock_callback.call_args[0][0]
+    assert call_args["url"] == TEST_URL
+    assert call_args["method"] == "PUT"
+    assert call_args["attempt"] == 3  # 0-indexed to 1-indexed
+    assert call_args["max_retries"] == 5
+    assert call_args["response"] == mock_response
+    assert call_args["total_time"] == 5.5
+
+
+def test_invoke_on_success_calculates_total_time() -> None:
+    """Test that total_time is calculated correctly."""
+
+    mock_callback = Mock()
+    mock_response = Mock(spec=httpx.Response)
+
+    with patch("aresilient.utils.time.time", return_value=110.0):
+        invoke_on_success(
+            mock_callback,
+            url=TEST_URL,
+            method="GET",
+            attempt=0,
+            max_retries=3,
+            response=mock_response,
+            start_time=100.0,
+        )
+
+    call_args = mock_callback.call_args[0][0]
+    assert call_args["total_time"] == 10.0
+
+
+################################################
+#     Tests for invoke_on_retry               #
+################################################
+
+
+def test_invoke_on_retry_with_none_callback() -> None:
+    """Test that invoke_on_retry does nothing when callback is None."""
+
+    invoke_on_retry(
+        None,
+        url=TEST_URL,
+        method="GET",
+        attempt=0,
+        max_retries=3,
+        sleep_time=1.5,
+        last_error=None,
+        last_status_code=None,
+    )
+
+
+def test_invoke_on_retry_calls_callback_with_error() -> None:
+    """Test that invoke_on_retry calls callback with error info."""
+
+    mock_callback = Mock()
+    error = Exception("Test error")
+
+    invoke_on_retry(
+        mock_callback,
+        url=TEST_URL,
+        method="DELETE",
+        attempt=1,
+        max_retries=5,
+        sleep_time=2.5,
+        last_error=error,
+        last_status_code=None,
+    )
+
+    mock_callback.assert_called_once()
+    call_args = mock_callback.call_args[0][0]
+    assert call_args["url"] == TEST_URL
+    assert call_args["method"] == "DELETE"
+    assert call_args["attempt"] == 3  # Next attempt: 1 + 2
+    assert call_args["max_retries"] == 5
+    assert call_args["wait_time"] == 2.5
+    assert call_args["error"] == error
+    assert call_args["status_code"] is None
+
+
+def test_invoke_on_retry_calls_callback_with_status_code() -> None:
+    """Test that invoke_on_retry calls callback with status code."""
+
+    mock_callback = Mock()
+
+    invoke_on_retry(
+        mock_callback,
+        url=TEST_URL,
+        method="GET",
+        attempt=0,
+        max_retries=3,
+        sleep_time=0.5,
+        last_error=None,
+        last_status_code=503,
+    )
+
+    call_args = mock_callback.call_args[0][0]
+    assert call_args["status_code"] == 503
+    assert call_args["error"] is None
+    assert call_args["attempt"] == 2  # Next attempt: 0 + 2
+
+
+def test_invoke_on_retry_calculates_next_attempt() -> None:
+    """Test that next attempt number is calculated correctly."""
+
+    mock_callback = Mock()
+
+    invoke_on_retry(
+        mock_callback,
+        url=TEST_URL,
+        method="GET",
+        attempt=3,
+        max_retries=10,
+        sleep_time=1.0,
+        last_error=None,
+        last_status_code=500,
+    )
+
+    call_args = mock_callback.call_args[0][0]
+    assert call_args["attempt"] == 5  # Next attempt: 3 + 2
+
+
+########################################################
+#     Tests for handle_exception_with_callback        #
+########################################################
+
+
+def test_handle_exception_with_callback_non_final_attempt() -> None:
+    """Test that callback is not called on non-final attempts."""
+
+    mock_on_failure = Mock()
+    mock_handler = Mock()
+    exc = Exception("Test error")
+
+    handle_exception_with_callback(
+        exc,
+        url=TEST_URL,
+        method="GET",
+        attempt=0,
+        max_retries=3,
+        handler_func=mock_handler,
+        on_failure=mock_on_failure,
+        start_time=100.0,
+    )
+
+    mock_handler.assert_called_once_with(exc, TEST_URL, "GET", 0, 3)
+    mock_on_failure.assert_not_called()
+
+
+def test_handle_exception_with_callback_final_attempt_without_callback() -> None:
+    """Test final attempt without on_failure callback."""
+
+    def failing_handler(_exc: Exception, url: str, method: str, _attempt: int, _max_retries: int) -> None:
+        raise HttpRequestError(method=method, url=url, message="Failed")
+
+    exc = Exception("Test error")
+
+    with pytest.raises(HttpRequestError):
+        handle_exception_with_callback(
+            exc,
+            url=TEST_URL,
+            method="GET",
+            attempt=3,
+            max_retries=3,
+            handler_func=failing_handler,
+            on_failure=None,
+            start_time=100.0,
+        )
+
+
+def test_handle_exception_with_callback_final_attempt_with_callback() -> None:
+    """Test that callback is called on final attempt."""
+
+    def failing_handler(exc: Exception, url: str, method: str, _attempt: int, _max_retries: int) -> None:
+        raise HttpRequestError(method=method, url=url, message="Failed", cause=exc)
+
+    mock_on_failure = Mock()
+    exc = Exception("Test error")
+
+    with (
+        patch("aresilient.utils.time.time", return_value=105.0),
+        pytest.raises(HttpRequestError),
+    ):
+        handle_exception_with_callback(
+            exc,
+            url=TEST_URL,
+            method="POST",
+            attempt=5,
+            max_retries=5,
+            handler_func=failing_handler,
+            on_failure=mock_on_failure,
+            start_time=100.0,
+        )
+
+    mock_on_failure.assert_called_once()
+    call_args = mock_on_failure.call_args[0][0]
+    assert call_args["url"] == TEST_URL
+    assert call_args["method"] == "POST"
+    assert call_args["attempt"] == 6  # 0-indexed to 1-indexed
+    assert call_args["max_retries"] == 5
+    assert call_args["status_code"] is None
+    assert call_args["total_time"] == 5.0
+    assert isinstance(call_args["error"], HttpRequestError)
+
+
+def test_handle_exception_with_callback_reraises_error() -> None:
+    """Test that the HttpRequestError is re-raised."""
+
+    def failing_handler(_exc: Exception, url: str, method: str, _attempt: int, _max_retries: int) -> None:
+        raise HttpRequestError(method=method, url=url, message="Test failure")
+
+    exc = Exception("Original error")
+
+    with pytest.raises(HttpRequestError, match="Test failure"):
+        handle_exception_with_callback(
+            exc,
+            url=TEST_URL,
+            method="GET",
+            attempt=2,
+            max_retries=2,
+            handler_func=failing_handler,
+            on_failure=None,
+            start_time=100.0,
+        )
+
+
+################################################
+#     Tests for raise_final_error             #
+################################################
+
+
+def test_raise_final_error_with_response() -> None:
+    """Test raise_final_error with a response object."""
+
+    mock_response = Mock(spec=httpx.Response, status_code=503)
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        raise_final_error(
+            url=TEST_URL,
+            method="GET",
+            max_retries=3,
+            response=mock_response,
+            on_failure=None,
+            start_time=100.0,
+        )
+
+    error = exc_info.value
+    assert error.method == "GET"
+    assert error.url == TEST_URL
+    assert error.status_code == 503
+    assert error.response == mock_response
+    assert "503" in str(error)
+    assert "4 attempts" in str(error)
+
+
+def test_raise_final_error_without_response() -> None:
+    """Test raise_final_error without a response object."""
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        raise_final_error(
+            url=TEST_URL,
+            method="POST",
+            max_retries=5,
+            response=None,
+            on_failure=None,
+            start_time=100.0,
+        )
+
+    error = exc_info.value
+    assert error.method == "POST"
+    assert error.url == TEST_URL
+    assert error.status_code is None
+    assert error.response is None
+    assert "6 attempts" in str(error)
+
+
+def test_raise_final_error_calls_on_failure_with_response() -> None:
+    """Test that on_failure callback is called with response."""
+
+    mock_on_failure = Mock()
+    mock_response = Mock(spec=httpx.Response, status_code=500)
+
+    with (
+        patch("aresilient.utils.time.time", return_value=110.0),
+        pytest.raises(HttpRequestError),
+    ):
+        raise_final_error(
+            url=TEST_URL,
+            method="DELETE",
+            max_retries=2,
+            response=mock_response,
+            on_failure=mock_on_failure,
+            start_time=100.0,
+        )
+
+    mock_on_failure.assert_called_once()
+    call_args = mock_on_failure.call_args[0][0]
+    assert call_args["url"] == TEST_URL
+    assert call_args["method"] == "DELETE"
+    assert call_args["attempt"] == 3  # max_retries + 1
+    assert call_args["max_retries"] == 2
+    assert call_args["status_code"] == 500
+    assert call_args["total_time"] == 10.0
+    assert isinstance(call_args["error"], HttpRequestError)
+
+
+def test_raise_final_error_calls_on_failure_without_response() -> None:
+    """Test that on_failure callback is called without response."""
+
+    mock_on_failure = Mock()
+
+    with (
+        patch("aresilient.utils.time.time", return_value=115.0),
+        pytest.raises(HttpRequestError),
+    ):
+        raise_final_error(
+            url=TEST_URL,
+            method="PUT",
+            max_retries=4,
+            response=None,
+            on_failure=mock_on_failure,
+            start_time=100.0,
+        )
+
+    mock_on_failure.assert_called_once()
+    call_args = mock_on_failure.call_args[0][0]
+    assert call_args["url"] == TEST_URL
+    assert call_args["method"] == "PUT"
+    assert call_args["attempt"] == 5  # max_retries + 1
+    assert call_args["max_retries"] == 4
+    assert call_args["status_code"] is None
+    assert call_args["total_time"] == 15.0
+    assert isinstance(call_args["error"], HttpRequestError)
+
+
+def test_raise_final_error_calculates_total_time() -> None:
+    """Test that total_time is calculated correctly."""
+
+    mock_response = Mock(spec=httpx.Response, status_code=429)
+
+    with (
+        patch("aresilient.utils.time.time", return_value=123.456),
+        pytest.raises(HttpRequestError),
+    ):
+        raise_final_error(
+            url=TEST_URL,
+            method="GET",
+            max_retries=3,
+            response=mock_response,
+            on_failure=None,
+            start_time=100.0,
+        )
