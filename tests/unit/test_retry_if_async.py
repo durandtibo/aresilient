@@ -304,7 +304,7 @@ async def test_retry_if_returns_true_for_exception(
     )
 
     assert response == mock_response_ok
-    mock_asleep.assert_called_once()
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -330,6 +330,7 @@ async def test_retry_if_with_connection_error(
     )
 
     assert response == mock_response_ok
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -354,8 +355,7 @@ async def test_retry_if_exhausts_retries_with_exception(
             TEST_URL, client=mock_async_client, retry_if=retry_predicate, max_retries=2
         )
 
-    # Should have slept 2 times between 3 attempts
-    assert mock_asleep.call_count == 2
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 #########################################################
@@ -396,7 +396,7 @@ async def test_retry_if_complex_logic(
     )
 
     assert response == mock_response_ok
-    assert mock_asleep.call_count == 2
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 @pytest.mark.asyncio
@@ -421,7 +421,7 @@ async def test_retry_if_none_uses_default_behavior(
     )
 
     assert response == mock_response_ok
-    mock_asleep.assert_called_once()
+    mock_asleep.assert_called_once_with(0.3)
 
 
 ############################################
@@ -459,6 +459,7 @@ async def test_retry_if_with_on_retry_callback(
 
     assert response == mock_response_ok
     retry_callback.assert_called_once()
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -487,3 +488,4 @@ async def test_retry_if_with_on_failure_callback(
         )
 
     failure_callback.assert_called_once()
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
