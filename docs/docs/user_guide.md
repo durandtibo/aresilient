@@ -117,15 +117,22 @@ print(f"Status: {status}")
 
 ### Other Async HTTP Methods
 
-All HTTP methods have async versions:
+All HTTP methods have async versions with identical parameters and callback support:
 
 ```python
 from aresilient import (
     put_with_automatic_retry_async,
     delete_with_automatic_retry_async,
     patch_with_automatic_retry_async,
+    head_with_automatic_retry_async,
+    options_with_automatic_retry_async,
 )
 ```
+
+**Note**: All async functions support the same parameters as their synchronous counterparts, including:
+- `max_retries`, `backoff_factor`, `jitter_factor`
+- `status_forcelist`, `retry_if`
+- `on_request`, `on_retry`, `on_success`, `on_failure` callbacks
 
 ### Using Async with httpx.AsyncClient
 
