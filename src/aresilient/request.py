@@ -1,4 +1,4 @@
-r"""Contain utility functions for synchronous HTTP requests with
+r"""Contains utility functions for synchronous HTTP requests with
 automatic retry logic."""
 
 from __future__ import annotations
@@ -115,7 +115,7 @@ def request_with_automatic_retry(
         >>> import httpx
         >>> from aresilient import request_with_automatic_retry
         >>> def log_retry(info):
-        ...     print(f"Retry {info['attempt']}/{info['max_retries']}")
+        ...     print(f"Retry {info.attempt}/{info.max_retries + 1}")
         ...
         >>> with httpx.Client() as client:
         ...     response = request_with_automatic_retry(

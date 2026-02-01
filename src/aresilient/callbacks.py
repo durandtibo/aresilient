@@ -14,7 +14,7 @@ Example:
     ```pycon
     >>> from aresilient import get_with_automatic_retry
     >>> def log_retry(retry_info):
-    ...     print(f"Retry {retry_info['attempt']}/{retry_info['max_retries']}")
+    ...     print(f"Retry {retry_info.attempt}/{retry_info.max_retries + 1}")
     ...
     >>> response = get_with_automatic_retry(
     ...     "https://api.example.com/data", on_retry=log_retry
@@ -129,7 +129,19 @@ class CallbackInfo:
     """Unified callback information structure (for internal use).
 
     This is a superset of all callback info types, used internally to
-    simplify callback invocation logic.
+    simplify callback invocation logic. Contains all possible fields that
+    might be needed by any callback type.
+
+    Attributes:
+        url: The URL being requested.
+        method: The HTTP method (e.g., "GET", "POST").
+        attempt: The current attempt number (1-indexed).
+        max_retries: Maximum number of retry attempts configured.
+        wait_time: The sleep time in seconds before a retry.
+        error: The exception that occurred (if any).
+        status_code: The HTTP status code (if any).
+        response: The HTTP response object (if any).
+        total_time: Total time spent on all attempts including backoff (seconds).
     """
 
     url: str

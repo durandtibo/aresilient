@@ -1,4 +1,4 @@
-r"""Contain synchronous HTTP GET request with automatic retry logic."""
+r"""Contains synchronous HTTP GET request with automatic retry logic."""
 
 from __future__ import annotations
 
@@ -56,7 +56,8 @@ def get_with_automatic_retry(
         max_retries: Maximum number of retry attempts for failed requests.
             Must be >= 0.
         backoff_factor: Factor for exponential backoff between retries. The wait
-            time is calculated as: backoff_factor * (2 ** retry_number) seconds.
+            time is calculated as: backoff_factor * (2 ** attempt) seconds,
+            where attempt is the 0-indexed retry number (0, 1, 2, ...).
             Must be >= 0.
         status_forcelist: Tuple of HTTP status codes that should trigger a retry.
         jitter_factor: Factor for adding random jitter to backoff delays. The jitter
