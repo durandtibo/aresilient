@@ -277,6 +277,9 @@ src = ["src"]
     "PL", # Pylint
     "S101", # flake8-bandit
 ]
+# Ignore RET503 for request functions - false positive as raise_final_error never returns
+"src/aresilient/request.py" = ["RET503"]
+"src/aresilient/request_async.py" = ["RET503"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10

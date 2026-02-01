@@ -10,23 +10,33 @@ from __future__ import annotations
 
 __all__ = [
     "calculate_sleep_time",
+    "handle_exception_with_callback",
     "handle_request_error",
     "handle_response",
     "handle_timeout_exception",
+    "invoke_on_request",
+    "invoke_on_retry",
+    "invoke_on_success",
     "parse_retry_after",
+    "raise_final_error",
     "validate_retry_params",
 ]
 
 import logging
 import random
+import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NoReturn
 
 from aresilient.exceptions import HttpRequestError
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import httpx
+
+    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -363,3 +373,218 @@ def handle_request_error(
             message=f"{method} request to {url} failed after {max_retries + 1} attempts: {exc}",
             cause=exc,
         ) from exc
+
+
+def invoke_on_request(
+    on_request: Callable[[RequestInfo], None] | None,
+    *,
+    url: str,
+    method: str,
+    attempt: int,
+    max_retries: int,
+) -> None:
+    """Invoke on_request callback if provided.
+
+    Args:
+        on_request: Optional callback to invoke before each request attempt.
+        url: The URL being requested.
+        method: The HTTP method (e.g., "GET", "POST").
+        attempt: The current attempt number (0-indexed).
+        max_retries: Maximum number of retry attempts.
+    """
+    if on_request is not None:
+        request_info: RequestInfo = {
+            "url": url,
+            "method": method,
+            "attempt": attempt + 1,
+            "max_retries": max_retries,
+        }
+        on_request(request_info)
+
+
+def invoke_on_success(
+    on_success: Callable[[ResponseInfo], None] | None,
+    *,
+    url: str,
+    method: str,
+    attempt: int,
+    max_retries: int,
+    response: httpx.Response,
+    start_time: float,
+) -> None:
+    """Invoke on_success callback if provided.
+
+    Args:
+        on_success: Optional callback to invoke when request succeeds.
+        url: The URL that was requested.
+        method: The HTTP method (e.g., "GET", "POST").
+        attempt: The attempt number that succeeded (0-indexed).
+        max_retries: Maximum number of retry attempts.
+        response: The successful HTTP response object.
+        start_time: The timestamp when the request started.
+    """
+    if on_success is not None:
+        response_info: ResponseInfo = {
+            "url": url,
+            "method": method,
+            "attempt": attempt + 1,
+            "max_retries": max_retries,
+            "response": response,
+            "total_time": time.time() - start_time,
+        }
+        on_success(response_info)
+
+
+def invoke_on_retry(
+    on_retry: Callable[[RetryInfo], None] | None,
+    *,
+    url: str,
+    method: str,
+    attempt: int,
+    max_retries: int,
+    sleep_time: float,
+    last_error: Exception | None,
+    last_status_code: int | None,
+) -> None:
+    """Invoke on_retry callback if provided.
+
+    Args:
+        on_retry: Optional callback to invoke before each retry.
+        url: The URL being requested.
+        method: The HTTP method (e.g., "GET", "POST").
+        attempt: The current attempt number (0-indexed).
+        max_retries: Maximum number of retry attempts.
+        sleep_time: The sleep time in seconds before this retry.
+        last_error: The exception that triggered the retry (if any).
+        last_status_code: The HTTP status code that triggered the retry (if any).
+    """
+    if on_retry is not None:
+        retry_info: RetryInfo = {
+            "url": url,
+            "method": method,
+            "attempt": attempt + 2,  # Next attempt number
+            "max_retries": max_retries,
+            "wait_time": sleep_time,
+            "error": last_error,
+            "status_code": last_status_code,
+        }
+        on_retry(retry_info)
+
+
+def handle_exception_with_callback(
+    exc: Exception,
+    *,
+    url: str,
+    method: str,
+    attempt: int,
+    max_retries: int,
+    handler_func: Callable[[Exception, str, str, int, int], None],
+    on_failure: Callable[[FailureInfo], None] | None,
+    start_time: float,
+) -> None:
+    """Handle exception and invoke on_failure callback if final attempt.
+
+    Args:
+        exc: The exception to handle.
+        url: The URL that was requested.
+        method: The HTTP method (e.g., "GET", "POST").
+        attempt: The current attempt number (0-indexed).
+        max_retries: Maximum number of retry attempts.
+        handler_func: Function to handle the exception (raises if final attempt).
+        on_failure: Optional callback to invoke when all retries are exhausted.
+        start_time: The timestamp when the request started.
+
+    Raises:
+        HttpRequestError: If this is the final attempt.
+    """
+    try:
+        handler_func(exc, url, method, attempt, max_retries)
+    except HttpRequestError as err:
+        # This is the final attempt - call on_failure callback
+        if on_failure is not None:
+            failure_info: FailureInfo = {
+                "url": url,
+                "method": method,
+                "attempt": attempt + 1,
+                "max_retries": max_retries,
+                "error": err,
+                "status_code": None,
+                "total_time": time.time() - start_time,
+            }
+            on_failure(failure_info)
+        raise
+
+
+def raise_final_error(
+    *,
+    url: str,
+    method: str,
+    max_retries: int,
+    response: httpx.Response | None,
+    on_failure: Callable[[FailureInfo], None] | None,
+    start_time: float,
+) -> NoReturn:
+    """Create and raise final error after all retries exhausted.
+
+    Args:
+        url: The URL that was requested.
+        method: The HTTP method (e.g., "GET", "POST").
+        max_retries: Maximum number of retry attempts.
+        response: The final HTTP response object (if available).
+        on_failure: Optional callback to invoke when all retries are exhausted.
+        start_time: The timestamp when the request started.
+
+    Raises:
+        HttpRequestError: Always raises with details about the failure.
+    """
+    total_time = time.time() - start_time
+
+    if response is None:  # pragma: no cover
+        # This should never happen in practice, but we check for type safety
+        msg = f"{method} request to {url} failed after {max_retries + 1} attempts"
+        error = HttpRequestError(
+            method=method,
+            url=url,
+            message=msg,
+        )
+
+        # Call on_failure callback
+        if on_failure is not None:
+            failure_info: FailureInfo = {
+                "url": url,
+                "method": method,
+                "attempt": max_retries + 1,
+                "max_retries": max_retries,
+                "error": error,
+                "status_code": None,
+                "total_time": total_time,
+            }
+            on_failure(failure_info)
+
+        raise error
+
+    error = HttpRequestError(
+        method=method,
+        url=url,
+        message=(
+            f"{method} request to {url} failed with status "
+            f"{response.status_code} after {max_retries + 1} attempts"
+        ),
+        status_code=response.status_code,
+        response=response,
+    )
+
+    # Call on_failure callback
+    if on_failure is not None:
+        failure_info: FailureInfo = {
+            "url": url,
+            "method": method,
+            "attempt": max_retries + 1,
+            "max_retries": max_retries,
+            "error": error,
+            "status_code": response.status_code,
+            "total_time": total_time,
+        }
+        on_failure(failure_info)
+
+    raise error
