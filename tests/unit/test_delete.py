@@ -16,12 +16,6 @@ from aresilient import delete_with_automatic_retry
 TEST_URL = "https://api.example.com/data"
 
 
-@pytest.fixture
-def mock_client() -> httpx.Client:
-    """Create a mock httpx.Client for testing."""
-    return Mock(spec=httpx.Client)
-
-
 #################################################
 #     Tests for delete_with_automatic_retry     #
 #################################################

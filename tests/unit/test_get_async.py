@@ -16,12 +16,6 @@ from aresilient import get_with_automatic_retry_async
 TEST_URL = "https://api.example.com/data"
 
 
-@pytest.fixture
-def mock_client() -> httpx.AsyncClient:
-    """Create a mock httpx.AsyncClient for testing."""
-    return Mock(spec=httpx.AsyncClient, aclose=AsyncMock())
-
-
 ####################################################
 #     Tests for get_with_automatic_retry_async     #
 ####################################################
@@ -29,7 +23,7 @@ def mock_client() -> httpx.AsyncClient:
 
 @pytest.mark.asyncio
 async def test_get_with_automatic_retry_async_with_params(
-    mock_client: httpx.AsyncClient, mock_asleep: Mock
+    mock_async_client: httpx.AsyncClient, mock_asleep: Mock
 ) -> None:
     """Test async GET request with query parameters.
 
@@ -37,12 +31,12 @@ async def test_get_with_automatic_retry_async_with_params(
     with GET requests.
     """
     mock_response = Mock(spec=httpx.Response, status_code=200)
-    mock_client.get = AsyncMock(return_value=mock_response)
+    mock_async_client.get = AsyncMock(return_value=mock_response)
 
     response = await get_with_automatic_retry_async(
-        TEST_URL, client=mock_client, params={"page": 1, "limit": 10}
+        TEST_URL, client=mock_async_client, params={"page": 1, "limit": 10}
     )
 
     assert response.status_code == 200
-    mock_client.get.assert_called_once_with(url=TEST_URL, params={"page": 1, "limit": 10})
+    mock_async_client.get.assert_called_once_with(url=TEST_URL, params={"page": 1, "limit": 10})
     mock_asleep.assert_not_called()
