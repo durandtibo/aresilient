@@ -9,7 +9,6 @@ from __future__ import annotations
 from unittest.mock import Mock
 
 import httpx
-import pytest
 
 from aresilient import delete_with_automatic_retry
 

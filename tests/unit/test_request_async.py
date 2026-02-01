@@ -9,7 +9,6 @@ import pytest
 
 from aresilient import HttpRequestError, request_with_automatic_retry_async
 
-
 ########################################################
 #     Tests for request_with_automatic_retry_async     #
 ########################################################

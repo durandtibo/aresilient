@@ -231,7 +231,8 @@ def test_request_with_body_data(
 
 ---
 
-### Option 4: Test Utility Functions (Complementary - Low Risk)
+###
+(Complementary - Low Risk)
 
 **Description:** Extract common test patterns into reusable utility functions that can be called from multiple tests.
 
