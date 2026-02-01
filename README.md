@@ -243,34 +243,32 @@ from aresilient import get_with_automatic_retry
 
 def should_retry(response, exception):
     """Custom predicate to decide if request should be retried.
-    
+
     Args:
         response: The HTTP response object (or None if an exception occurred)
         exception: The exception that occurred (or None if response received)
-        
+
     Returns:
         True to retry, False to not retry
     """
     # Retry if response contains specific error message
     if response and "rate limit" in response.text.lower():
         return True
-    
+
     # Retry on connection errors
     if isinstance(exception, ConnectionError):
         return True
-    
+
     # Retry on server errors (5xx status codes)
     if response and response.status_code >= 500:
         return True
-    
+
     return False
 
 
 # Use the custom retry predicate
 response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    retry_if=should_retry,
-    max_retries=5
+    "https://api.example.com/data", retry_if=should_retry, max_retries=5
 )
 ```
 

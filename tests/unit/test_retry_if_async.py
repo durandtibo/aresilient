@@ -127,7 +127,8 @@ HTTP_METHODS_ASYNC = [
 async def test_retry_if_returns_false_for_successful_response(
     test_case: AsyncHttpMethodTestCase, mock_asleep: Mock
 ) -> None:
-    """Test retry_if that returns False for successful response (no retry)."""
+    """Test retry_if that returns False for successful response (no
+    retry)."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.success_code, text="success")
     mock_async_client = Mock(spec=httpx.AsyncClient)
     setattr(mock_async_client, test_case.client_method, AsyncMock(return_value=mock_response))
@@ -148,7 +149,8 @@ async def test_retry_if_returns_false_for_successful_response(
 async def test_retry_if_returns_true_for_successful_response(
     test_case: AsyncHttpMethodTestCase, mock_asleep: Mock
 ) -> None:
-    """Test retry_if that returns True even for successful response (triggers retry)."""
+    """Test retry_if that returns True even for successful response
+    (triggers retry)."""
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.success_code, text="success")
     mock_async_client = Mock(spec=httpx.AsyncClient)
     setattr(mock_async_client, test_case.client_method, AsyncMock(return_value=mock_response_ok))
@@ -173,7 +175,8 @@ async def test_retry_if_returns_true_for_successful_response(
 async def test_retry_if_checks_response_content(
     test_case: AsyncHttpMethodTestCase, mock_asleep: Mock
 ) -> None:
-    """Test retry_if that checks response content and retries on specific text."""
+    """Test retry_if that checks response content and retries on
+    specific text."""
     mock_response_retry = Mock(
         spec=httpx.Response, status_code=test_case.success_code, text="please retry"
     )
@@ -187,9 +190,7 @@ async def test_retry_if_checks_response_content(
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Retry if response contains "retry"
-        if response and "retry" in response.text.lower():
-            return True
-        return False
+        return bool(response and "retry" in response.text.lower())
 
     response = await test_case.method_func(
         TEST_URL, client=mock_async_client, retry_if=retry_predicate, max_retries=3
@@ -209,7 +210,8 @@ async def test_retry_if_checks_response_content(
 async def test_retry_if_returns_false_for_error_response(
     test_case: AsyncHttpMethodTestCase, mock_asleep: Mock
 ) -> None:
-    """Test retry_if that returns False for error response (no retry, immediate fail)."""
+    """Test retry_if that returns False for error response (no retry,
+    immediate fail)."""
     mock_response_error = Mock(spec=httpx.Response, status_code=500)
     mock_async_client = Mock(spec=httpx.AsyncClient)
     setattr(mock_async_client, test_case.client_method, AsyncMock(return_value=mock_response_error))
@@ -229,7 +231,8 @@ async def test_retry_if_returns_false_for_error_response(
 async def test_retry_if_returns_true_for_error_response(
     test_case: AsyncHttpMethodTestCase, mock_asleep: Mock
 ) -> None:
-    """Test retry_if that returns True for error response (triggers retry)."""
+    """Test retry_if that returns True for error response (triggers
+    retry)."""
     mock_response_error = Mock(spec=httpx.Response, status_code=500)
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.success_code)
     mock_async_client = Mock(spec=httpx.AsyncClient)
@@ -240,9 +243,7 @@ async def test_retry_if_returns_true_for_error_response(
     )
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
-        if response and response.status_code >= 500:
-            return True
-        return False
+        return bool(response and response.status_code >= 500)
 
     response = await test_case.method_func(
         TEST_URL, client=mock_async_client, retry_if=retry_predicate, max_retries=3
@@ -285,7 +286,8 @@ async def test_retry_if_returns_false_for_exception(
 async def test_retry_if_returns_true_for_exception(
     test_case: AsyncHttpMethodTestCase, mock_asleep: Mock
 ) -> None:
-    """Test retry_if that returns True for exceptions (triggers retry)."""
+    """Test retry_if that returns True for exceptions (triggers
+    retry)."""
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.success_code)
     mock_async_client = Mock(spec=httpx.AsyncClient)
     setattr(
@@ -296,9 +298,7 @@ async def test_retry_if_returns_true_for_exception(
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Retry on timeout exceptions
-        if isinstance(exception, httpx.TimeoutException):
-            return True
-        return False
+        return bool(isinstance(exception, httpx.TimeoutException))
 
     response = await test_case.method_func(
         TEST_URL, client=mock_async_client, retry_if=retry_predicate, max_retries=3
@@ -324,9 +324,7 @@ async def test_retry_if_with_connection_error(
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Retry on connection errors
-        if isinstance(exception, httpx.ConnectError):
-            return True
-        return False
+        return bool(isinstance(exception, httpx.ConnectError))
 
     response = await test_case.method_func(
         TEST_URL, client=mock_async_client, retry_if=retry_predicate, max_retries=3
@@ -350,9 +348,7 @@ async def test_retry_if_exhausts_retries_with_exception(
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Always retry timeouts
-        if isinstance(exception, httpx.TimeoutException):
-            return True
-        return False
+        return bool(isinstance(exception, httpx.TimeoutException))
 
     with pytest.raises(HttpRequestError, match="timed out"):
         await test_case.method_func(
@@ -373,7 +369,8 @@ async def test_retry_if_exhausts_retries_with_exception(
 async def test_retry_if_complex_logic(
     test_case: AsyncHttpMethodTestCase, mock_asleep: Mock
 ) -> None:
-    """Test retry_if with complex custom logic combining response and exception checks."""
+    """Test retry_if with complex custom logic combining response and
+    exception checks."""
     mock_response_500 = Mock(spec=httpx.Response, status_code=500, text="server error")
     mock_response_200_retry = Mock(spec=httpx.Response, status_code=200, text="rate limit exceeded")
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.success_code, text="success")
@@ -393,9 +390,7 @@ async def test_retry_if_complex_logic(
         if response and "rate limit" in response.text.lower():
             return True
         # Retry on network errors
-        if isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)):
-            return True
-        return False
+        return bool(isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)))
 
     response = await test_case.method_func(
         TEST_URL, client=mock_async_client, retry_if=retry_predicate, max_retries=3
@@ -410,7 +405,8 @@ async def test_retry_if_complex_logic(
 async def test_retry_if_none_uses_default_behavior(
     test_case: AsyncHttpMethodTestCase, mock_asleep: Mock
 ) -> None:
-    """Test that when retry_if is None, default status_forcelist behavior is used."""
+    """Test that when retry_if is None, default status_forcelist
+    behavior is used."""
     mock_response_503 = Mock(spec=httpx.Response, status_code=503)
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.success_code)
     mock_async_client = Mock(spec=httpx.AsyncClient)
@@ -452,9 +448,7 @@ async def test_retry_if_with_on_retry_callback(
     retry_callback = Mock()
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
-        if response and response.status_code >= 500:
-            return True
-        return False
+        return bool(response and response.status_code >= 500)
 
     response = await test_case.method_func(
         TEST_URL,
@@ -473,7 +467,8 @@ async def test_retry_if_with_on_retry_callback(
 async def test_retry_if_with_on_failure_callback(
     test_case: AsyncHttpMethodTestCase, mock_asleep: Mock
 ) -> None:
-    """Test retry_if triggers on_failure callback when retries exhausted."""
+    """Test retry_if triggers on_failure callback when retries
+    exhausted."""
     mock_response_500 = Mock(spec=httpx.Response, status_code=500)
     mock_async_client = Mock(spec=httpx.AsyncClient)
     setattr(mock_async_client, test_case.client_method, AsyncMock(return_value=mock_response_500))
@@ -481,9 +476,7 @@ async def test_retry_if_with_on_failure_callback(
     failure_callback = Mock()
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
-        if response and response.status_code >= 500:
-            return True
-        return False
+        return bool(response and response.status_code >= 500)
 
     with pytest.raises(HttpRequestError):
         await test_case.method_func(

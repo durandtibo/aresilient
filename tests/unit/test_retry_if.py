@@ -125,7 +125,8 @@ HTTP_METHODS = [
 def test_retry_if_returns_false_for_successful_response(
     test_case: HttpMethodTestCase, mock_sleep: Mock
 ) -> None:
-    """Test retry_if that returns False for successful response (no retry)."""
+    """Test retry_if that returns False for successful response (no
+    retry)."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code, text="success")
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
@@ -143,7 +144,8 @@ def test_retry_if_returns_false_for_successful_response(
 def test_retry_if_returns_true_for_successful_response(
     test_case: HttpMethodTestCase, mock_sleep: Mock
 ) -> None:
-    """Test retry_if that returns True even for successful response (triggers retry)."""
+    """Test retry_if that returns True even for successful response
+    (triggers retry)."""
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code, text="success")
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_ok))
@@ -163,7 +165,8 @@ def test_retry_if_returns_true_for_successful_response(
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_retry_if_checks_response_content(test_case: HttpMethodTestCase, mock_sleep: Mock) -> None:
-    """Test retry_if that checks response content and retries on specific text."""
+    """Test retry_if that checks response content and retries on
+    specific text."""
     mock_response_retry = Mock(
         spec=httpx.Response, status_code=test_case.status_code, text="please retry"
     )
@@ -177,9 +180,7 @@ def test_retry_if_checks_response_content(test_case: HttpMethodTestCase, mock_sl
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Retry if response contains "retry"
-        if response and "retry" in response.text.lower():
-            return True
-        return False
+        return bool(response and "retry" in response.text.lower())
 
     response = test_case.method_func(
         TEST_URL, client=mock_client, retry_if=retry_predicate, max_retries=3
@@ -198,7 +199,8 @@ def test_retry_if_checks_response_content(test_case: HttpMethodTestCase, mock_sl
 def test_retry_if_returns_false_for_error_response(
     test_case: HttpMethodTestCase, mock_sleep: Mock
 ) -> None:
-    """Test retry_if that returns False for error response (no retry, immediate fail)."""
+    """Test retry_if that returns False for error response (no retry,
+    immediate fail)."""
     mock_response_error = Mock(spec=httpx.Response, status_code=500)
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_error))
@@ -217,7 +219,8 @@ def test_retry_if_returns_false_for_error_response(
 def test_retry_if_returns_true_for_error_response(
     test_case: HttpMethodTestCase, mock_sleep: Mock
 ) -> None:
-    """Test retry_if that returns True for error response (triggers retry)."""
+    """Test retry_if that returns True for error response (triggers
+    retry)."""
     mock_response_error = Mock(spec=httpx.Response, status_code=500)
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = Mock(spec=httpx.Client)
@@ -228,9 +231,7 @@ def test_retry_if_returns_true_for_error_response(
     )
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
-        if response and response.status_code >= 500:
-            return True
-        return False
+        return bool(response and response.status_code >= 500)
 
     response = test_case.method_func(
         TEST_URL, client=mock_client, retry_if=retry_predicate, max_retries=3
@@ -254,9 +255,7 @@ def test_retry_if_with_status_code_logic(test_case: HttpMethodTestCase, mock_sle
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Only retry on 429
-        if response and response.status_code == 429:
-            return True
-        return False
+        return bool(response and response.status_code == 429)
 
     response = test_case.method_func(
         TEST_URL, client=mock_client, retry_if=retry_predicate, max_retries=3
@@ -276,9 +275,7 @@ def test_retry_if_does_not_retry_non_retryable_status(
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Only retry on server errors (5xx)
-        if response and 500 <= response.status_code < 600:
-            return True
-        return False
+        return bool(response and 500 <= response.status_code < 600)
 
     with pytest.raises(HttpRequestError, match="failed with status 404"):
         test_case.method_func(TEST_URL, client=mock_client, retry_if=retry_predicate)
@@ -316,7 +313,8 @@ def test_retry_if_returns_false_for_exception(
 def test_retry_if_returns_true_for_exception(
     test_case: HttpMethodTestCase, mock_sleep: Mock
 ) -> None:
-    """Test retry_if that returns True for exceptions (triggers retry)."""
+    """Test retry_if that returns True for exceptions (triggers
+    retry)."""
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = Mock(spec=httpx.Client)
     setattr(
@@ -327,9 +325,7 @@ def test_retry_if_returns_true_for_exception(
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Retry on timeout exceptions
-        if isinstance(exception, httpx.TimeoutException):
-            return True
-        return False
+        return bool(isinstance(exception, httpx.TimeoutException))
 
     response = test_case.method_func(
         TEST_URL, client=mock_client, retry_if=retry_predicate, max_retries=3
@@ -352,9 +348,7 @@ def test_retry_if_with_connection_error(test_case: HttpMethodTestCase, mock_slee
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Retry on connection errors
-        if isinstance(exception, httpx.ConnectError):
-            return True
-        return False
+        return bool(isinstance(exception, httpx.ConnectError))
 
     response = test_case.method_func(
         TEST_URL, client=mock_client, retry_if=retry_predicate, max_retries=3
@@ -375,9 +369,7 @@ def test_retry_if_exhausts_retries_with_exception(
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Always retry timeouts
-        if isinstance(exception, httpx.TimeoutException):
-            return True
-        return False
+        return bool(isinstance(exception, httpx.TimeoutException))
 
     with pytest.raises(HttpRequestError, match="timed out"):
         test_case.method_func(TEST_URL, client=mock_client, retry_if=retry_predicate, max_retries=2)
@@ -393,7 +385,8 @@ def test_retry_if_exhausts_retries_with_exception(
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_retry_if_complex_logic(test_case: HttpMethodTestCase, mock_sleep: Mock) -> None:
-    """Test retry_if with complex custom logic combining response and exception checks."""
+    """Test retry_if with complex custom logic combining response and
+    exception checks."""
     mock_response_500 = Mock(spec=httpx.Response, status_code=500, text="server error")
     mock_response_200_retry = Mock(spec=httpx.Response, status_code=200, text="rate limit exceeded")
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code, text="success")
@@ -413,9 +406,7 @@ def test_retry_if_complex_logic(test_case: HttpMethodTestCase, mock_sleep: Mock)
         if response and "rate limit" in response.text.lower():
             return True
         # Retry on network errors
-        if isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)):
-            return True
-        return False
+        return bool(isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)))
 
     response = test_case.method_func(
         TEST_URL, client=mock_client, retry_if=retry_predicate, max_retries=3
@@ -429,7 +420,8 @@ def test_retry_if_complex_logic(test_case: HttpMethodTestCase, mock_sleep: Mock)
 def test_retry_if_none_uses_default_behavior(
     test_case: HttpMethodTestCase, mock_sleep: Mock
 ) -> None:
-    """Test that when retry_if is None, default status_forcelist behavior is used."""
+    """Test that when retry_if is None, default status_forcelist
+    behavior is used."""
     mock_response_503 = Mock(spec=httpx.Response, status_code=503)
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = Mock(spec=httpx.Client)
@@ -468,9 +460,7 @@ def test_retry_if_with_on_retry_callback(test_case: HttpMethodTestCase, mock_sle
     retry_callback = Mock()
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
-        if response and response.status_code >= 500:
-            return True
-        return False
+        return bool(response and response.status_code >= 500)
 
     response = test_case.method_func(
         TEST_URL,
@@ -486,7 +476,8 @@ def test_retry_if_with_on_retry_callback(test_case: HttpMethodTestCase, mock_sle
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_retry_if_with_on_failure_callback(test_case: HttpMethodTestCase, mock_sleep: Mock) -> None:
-    """Test retry_if triggers on_failure callback when retries exhausted."""
+    """Test retry_if triggers on_failure callback when retries
+    exhausted."""
     mock_response_500 = Mock(spec=httpx.Response, status_code=500)
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_500))
@@ -494,9 +485,7 @@ def test_retry_if_with_on_failure_callback(test_case: HttpMethodTestCase, mock_s
     failure_callback = Mock()
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
-        if response and response.status_code >= 500:
-            return True
-        return False
+        return bool(response and response.status_code >= 500)
 
     with pytest.raises(HttpRequestError):
         test_case.method_func(

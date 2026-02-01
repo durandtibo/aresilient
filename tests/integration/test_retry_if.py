@@ -30,9 +30,7 @@ def test_retry_if_with_response_content_check() -> None:
 
     def should_retry(response: httpx.Response | None, exception: Exception | None) -> bool:
         """Retry if response contains 'retry'."""
-        if response and "retry" in response.text.lower():
-            return True
-        return False
+        return bool(response and "retry" in response.text.lower())
 
     response = get_with_automatic_retry(
         url="https://api.example.com/data",
@@ -56,9 +54,7 @@ def test_retry_if_with_custom_status_logic() -> None:
 
     def should_retry(response: httpx.Response | None, exception: Exception | None) -> bool:
         """Retry on 429 or 500."""
-        if response and response.status_code in (429, 500):
-            return True
-        return False
+        return bool(response and response.status_code in (429, 500))
 
     response = get_with_automatic_retry(
         url="https://api.example.com/data",
@@ -86,9 +82,7 @@ def test_retry_if_with_exception_handling() -> None:
 
     def should_retry(response: httpx.Response | None, exception: Exception | None) -> bool:
         """Retry on network errors."""
-        if isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)):
-            return True
-        return False
+        return bool(isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)))
 
     response = get_with_automatic_retry(
         url="https://api.example.com/data",
@@ -201,9 +195,7 @@ def test_retry_if_with_callbacks() -> None:
     on_success_callback = Mock()
 
     def should_retry(response: httpx.Response | None, exception: Exception | None) -> bool:
-        if response and response.status_code >= 500:
-            return True
-        return False
+        return bool(response and response.status_code >= 500)
 
     response = get_with_automatic_retry(
         url="https://api.example.com/data",

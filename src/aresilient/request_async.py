@@ -197,8 +197,7 @@ async def request_with_automatic_retry_async(
                         method=method,
                         url=url,
                         message=(
-                            f"{method} request to {url} "
-                            f"failed with status {response.status_code}"
+                            f"{method} request to {url} failed with status {response.status_code}"
                         ),
                         status_code=response.status_code,
                         response=response,
@@ -270,8 +269,7 @@ async def request_with_automatic_retry_async(
                         method=method,
                         url=url,
                         message=(
-                            f"{method} request to {url} "
-                            f"failed after {attempt + 1} attempts: {exc}"
+                            f"{method} request to {url} failed after {attempt + 1} attempts: {exc}"
                         ),
                         cause=exc,
                     )

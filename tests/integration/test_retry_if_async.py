@@ -1,4 +1,5 @@
-"""Integration tests for retry_if custom predicate functionality (async).
+"""Integration tests for retry_if custom predicate functionality
+(async).
 
 These tests verify the retry_if predicate works end-to-end with actual
 httpx async clients and servers.
@@ -40,9 +41,7 @@ async def test_retry_if_with_response_content_check() -> None:
 
     def should_retry(response: httpx.Response | None, exception: Exception | None) -> bool:
         """Retry if response contains 'retry'."""
-        if response and "retry" in response.text.lower():
-            return True
-        return False
+        return bool(response and "retry" in response.text.lower())
 
     response = await get_with_automatic_retry_async(
         url="https://api.example.com/data",
@@ -76,9 +75,7 @@ async def test_retry_if_with_custom_status_logic() -> None:
 
     def should_retry(response: httpx.Response | None, exception: Exception | None) -> bool:
         """Retry on 429 or 500."""
-        if response and response.status_code in (429, 500):
-            return True
-        return False
+        return bool(response and response.status_code in (429, 500))
 
     response = await get_with_automatic_retry_async(
         url="https://api.example.com/data",
@@ -102,9 +99,11 @@ async def test_retry_if_with_exception_handling() -> None:
         nonlocal call_count
         call_count += 1
         if call_count == 1:
-            raise httpx.ConnectError("connection failed")
+            msg = "connection failed"
+            raise httpx.ConnectError(msg)
         if call_count == 2:
-            raise httpx.TimeoutException("timeout")
+            msg = "timeout"
+            raise httpx.TimeoutException(msg)
         return mock_response_ok
 
     mock_client = Mock(spec=httpx.AsyncClient)
@@ -112,9 +111,7 @@ async def test_retry_if_with_exception_handling() -> None:
 
     def should_retry(response: httpx.Response | None, exception: Exception | None) -> bool:
         """Retry on network errors."""
-        if isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)):
-            return True
-        return False
+        return bool(isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)))
 
     response = await get_with_automatic_retry_async(
         url="https://api.example.com/data",
@@ -253,9 +250,7 @@ async def test_retry_if_with_callbacks() -> None:
     on_success_callback = Mock()
 
     def should_retry(response: httpx.Response | None, exception: Exception | None) -> bool:
-        if response and response.status_code >= 500:
-            return True
-        return False
+        return bool(response and response.status_code >= 500)
 
     response = await get_with_automatic_retry_async(
         url="https://api.example.com/data",
