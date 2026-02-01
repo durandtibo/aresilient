@@ -52,31 +52,66 @@ class AsyncHttpMethodTestCase:
 # Define test parameters for all async HTTP methods
 HTTP_METHODS_ASYNC = [
     pytest.param(
-        AsyncHttpMethodTestCase("GET", get_with_automatic_retry_async, "get", 200),
+        AsyncHttpMethodTestCase(
+            method_name="GET",
+            method_func=get_with_automatic_retry_async,
+            client_method="get",
+            success_code=200,
+        ),
         id="GET",
     ),
     pytest.param(
-        AsyncHttpMethodTestCase("POST", post_with_automatic_retry_async, "post", 201),
+        AsyncHttpMethodTestCase(
+            method_name="POST",
+            method_func=post_with_automatic_retry_async,
+            client_method="post",
+            success_code=201,
+        ),
         id="POST",
     ),
     pytest.param(
-        AsyncHttpMethodTestCase("PUT", put_with_automatic_retry_async, "put", 200),
+        AsyncHttpMethodTestCase(
+            method_name="PUT",
+            method_func=put_with_automatic_retry_async,
+            client_method="put",
+            success_code=200,
+        ),
         id="PUT",
     ),
     pytest.param(
-        AsyncHttpMethodTestCase("DELETE", delete_with_automatic_retry_async, "delete", 204),
+        AsyncHttpMethodTestCase(
+            method_name="DELETE",
+            method_func=delete_with_automatic_retry_async,
+            client_method="delete",
+            success_code=204,
+        ),
         id="DELETE",
     ),
     pytest.param(
-        AsyncHttpMethodTestCase("PATCH", patch_with_automatic_retry_async, "patch", 200),
+        AsyncHttpMethodTestCase(
+            method_name="PATCH",
+            method_func=patch_with_automatic_retry_async,
+            client_method="patch",
+            success_code=200,
+        ),
         id="PATCH",
     ),
     pytest.param(
-        AsyncHttpMethodTestCase("HEAD", head_with_automatic_retry_async, "head", 200),
+        AsyncHttpMethodTestCase(
+            method_name="HEAD",
+            method_func=head_with_automatic_retry_async,
+            client_method="head",
+            success_code=200,
+        ),
         id="HEAD",
     ),
     pytest.param(
-        AsyncHttpMethodTestCase("OPTIONS", options_with_automatic_retry_async, "options", 200),
+        AsyncHttpMethodTestCase(
+            method_name="OPTIONS",
+            method_func=options_with_automatic_retry_async,
+            client_method="options",
+            success_code=200,
+        ),
         id="OPTIONS",
     ),
 ]

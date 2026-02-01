@@ -52,31 +52,66 @@ class HttpMethodTestCase:
 # Define test parameters for all HTTP methods
 HTTP_METHODS = [
     pytest.param(
-        HttpMethodTestCase("GET", get_with_automatic_retry, "get", 200),
+        HttpMethodTestCase(
+            method_name="GET",
+            method_func=get_with_automatic_retry,
+            client_method="get",
+            status_code=200,
+        ),
         id="GET",
     ),
     pytest.param(
-        HttpMethodTestCase("POST", post_with_automatic_retry, "post", 201),
+        HttpMethodTestCase(
+            method_name="POST",
+            method_func=post_with_automatic_retry,
+            client_method="post",
+            status_code=201,
+        ),
         id="POST",
     ),
     pytest.param(
-        HttpMethodTestCase("PUT", put_with_automatic_retry, "put", 200),
+        HttpMethodTestCase(
+            method_name="PUT",
+            method_func=put_with_automatic_retry,
+            client_method="put",
+            status_code=200,
+        ),
         id="PUT",
     ),
     pytest.param(
-        HttpMethodTestCase("DELETE", delete_with_automatic_retry, "delete", 204),
+        HttpMethodTestCase(
+            method_name="DELETE",
+            method_func=delete_with_automatic_retry,
+            client_method="delete",
+            status_code=204,
+        ),
         id="DELETE",
     ),
     pytest.param(
-        HttpMethodTestCase("PATCH", patch_with_automatic_retry, "patch", 200),
+        HttpMethodTestCase(
+            method_name="PATCH",
+            method_func=patch_with_automatic_retry,
+            client_method="patch",
+            status_code=200,
+        ),
         id="PATCH",
     ),
     pytest.param(
-        HttpMethodTestCase("HEAD", head_with_automatic_retry, "head", 200),
+        HttpMethodTestCase(
+            method_name="HEAD",
+            method_func=head_with_automatic_retry,
+            client_method="head",
+            status_code=200,
+        ),
         id="HEAD",
     ),
     pytest.param(
-        HttpMethodTestCase("OPTIONS", options_with_automatic_retry, "options", 200),
+        HttpMethodTestCase(
+            method_name="OPTIONS",
+            method_func=options_with_automatic_retry,
+            client_method="options",
+            status_code=200,
+        ),
         id="OPTIONS",
     ),
 ]
