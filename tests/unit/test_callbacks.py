@@ -412,7 +412,7 @@ def test_all_callbacks_together_on_failure(mock_sleep: Mock) -> None:
 
 
 def test_callback_exception_does_not_break_retry_logic(
-    mock_response: httpx.Response, mock_request_func: Mock, mock_sleep: Mock
+    mock_request_func: Mock, mock_sleep: Mock
 ) -> None:
     """Test that exceptions in callbacks do not break the retry
     logic."""
