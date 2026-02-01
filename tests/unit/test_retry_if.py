@@ -33,7 +33,10 @@ def test_retry_if_returns_false_for_successful_response(
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,  # noqa: ARG001
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         return False
 
     response = test_case.method_func(TEST_URL, client=mock_client, retry_if=retry_predicate)
@@ -52,7 +55,10 @@ def test_retry_if_returns_true_for_successful_response(
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_ok))
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,  # noqa: ARG001
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         # Always retry - should exhaust retries
         return True
 
@@ -79,7 +85,10 @@ def test_retry_if_checks_response_content(test_case: HttpMethodTestCase, mock_sl
         Mock(side_effect=[mock_response_retry, mock_response_ok]),
     )
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         # Retry if response contains "retry"
         return bool(response and "retry" in response.text.lower())
 
@@ -106,7 +115,10 @@ def test_retry_if_returns_false_for_error_response(
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_error))
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,  # noqa: ARG001
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         return False  # Never retry
 
     with pytest.raises(HttpRequestError, match="failed with status 500"):
@@ -131,7 +143,10 @@ def test_retry_if_returns_true_for_error_response(
         Mock(side_effect=[mock_response_error, mock_response_ok]),
     )
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         return bool(response and response.status_code >= 500)
 
     response = test_case.method_func(
@@ -154,7 +169,10 @@ def test_retry_if_with_status_code_logic(test_case: HttpMethodTestCase, mock_sle
         Mock(side_effect=[mock_response_429, mock_response_ok]),
     )
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         # Only retry on 429
         return bool(response and response.status_code == 429)
 
@@ -175,7 +193,10 @@ def test_retry_if_does_not_retry_non_retryable_status(
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_404))
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         # Only retry on server errors (5xx)
         return bool(response and 500 <= response.status_code < 600)
 
@@ -201,7 +222,10 @@ def test_retry_if_returns_false_for_exception(
         mock_client, test_case.client_method, Mock(side_effect=httpx.TimeoutException("timeout"))
     )
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,  # noqa: ARG001
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         return False  # Never retry
 
     with pytest.raises(HttpRequestError, match="timed out"):
@@ -225,7 +249,10 @@ def test_retry_if_returns_true_for_exception(
         Mock(side_effect=[httpx.TimeoutException("timeout"), mock_response_ok]),
     )
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,  # noqa: ARG001
+        exception: Exception | None,
+    ) -> bool:
         # Retry on timeout exceptions
         return bool(isinstance(exception, httpx.TimeoutException))
 
@@ -248,7 +275,10 @@ def test_retry_if_with_connection_error(test_case: HttpMethodTestCase, mock_slee
         Mock(side_effect=[httpx.ConnectError("connection failed"), mock_response_ok]),
     )
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,  # noqa: ARG001
+        exception: Exception | None,
+    ) -> bool:
         # Retry on connection errors
         return bool(isinstance(exception, httpx.ConnectError))
 
@@ -270,7 +300,10 @@ def test_retry_if_exhausts_retries_with_exception(
         mock_client, test_case.client_method, Mock(side_effect=httpx.TimeoutException("timeout"))
     )
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,  # noqa: ARG001
+        exception: Exception | None,
+    ) -> bool:
         # Always retry timeouts
         return bool(isinstance(exception, httpx.TimeoutException))
 
@@ -361,7 +394,10 @@ def test_retry_if_with_on_retry_callback(test_case: HttpMethodTestCase, mock_sle
 
     retry_callback = Mock()
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         return bool(response and response.status_code >= 500)
 
     response = test_case.method_func(
@@ -387,7 +423,10 @@ def test_retry_if_with_on_failure_callback(test_case: HttpMethodTestCase, mock_s
 
     failure_callback = Mock()
 
-    def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
+    def retry_predicate(
+        response: httpx.Response | None,
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         return bool(response and response.status_code >= 500)
 
     with pytest.raises(HttpRequestError):

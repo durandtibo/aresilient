@@ -14,7 +14,9 @@ if TYPE_CHECKING:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
-async def test_http_method_async_successful_request_with_client(test_case: AsyncHttpMethodTestCase) -> None:
+async def test_http_method_async_successful_request_with_client(
+    test_case: AsyncHttpMethodTestCase,
+) -> None:
     """Test successful async HTTP request with explicit client."""
     tc = test_case
     async with httpx.AsyncClient() as client:
@@ -41,7 +43,9 @@ async def test_http_method_async_successful_request_with_client(test_case: Async
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
-async def test_http_method_async_successful_request_without_client(test_case: AsyncHttpMethodTestCase) -> None:
+async def test_http_method_async_successful_request_without_client(
+    test_case: AsyncHttpMethodTestCase,
+) -> None:
     """Test successful async HTTP request without explicit client."""
     tc = test_case
     if tc.supports_body:
