@@ -12,6 +12,7 @@ import httpx
 import pytest
 
 from aresilient import post_with_automatic_retry
+from tests.helpers import assert_successful_request, setup_mock_client_for_method
 
 TEST_URL = "https://api.example.com/data"
 
@@ -21,21 +22,26 @@ TEST_URL = "https://api.example.com/data"
 ###############################################
 
 
-def test_post_with_automatic_retry_with_data(mock_client: httpx.Client, mock_sleep: Mock) -> None:
+def test_post_with_automatic_retry_with_data(mock_sleep: Mock) -> None:
     """Test POST request with form data.
 
     This is POST-specific because form data submission is typically done
-    with POST requests.
+    with POST requests. This test demonstrates the use of test utility
+    functions to reduce boilerplate code.
     """
-    mock_response = Mock(spec=httpx.Response, status_code=200)
-    mock_client.post = Mock(return_value=mock_response)
+    # Use utility function to set up mock client - more concise than manual setup
+    client, _ = setup_mock_client_for_method("post", 200)
 
-    response = post_with_automatic_retry(
-        TEST_URL, client=mock_client, data={"username": "test", "password": "secret"}
+    # Use utility function to assert successful request
+    response = assert_successful_request(
+        post_with_automatic_retry,
+        TEST_URL,
+        client,
+        data={"username": "test", "password": "secret"},
     )
 
-    assert response.status_code == 200
-    mock_client.post.assert_called_once_with(
+    # Verify the request was made with correct data
+    client.post.assert_called_once_with(
         url=TEST_URL, data={"username": "test", "password": "secret"}
     )
     mock_sleep.assert_not_called()
