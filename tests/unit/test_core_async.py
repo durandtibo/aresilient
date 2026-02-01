@@ -13,13 +13,16 @@ Method-specific tests remain in their respective test files:
 - test_patch_async.py: PATCH-specific tests
 - test_head_async.py: HEAD-specific tests (e.g., response body handling)
 - test_options_async.py: OPTIONS-specific tests
+
+Retry, backoff, and recovery tests are in their respective specialized files:
+- test_retry_async.py: Retry mechanism tests
+- test_backoff_async.py: Backoff strategy tests
+- test_recovery_async.py: Error recovery and specific exception tests
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, Mock, call, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
@@ -27,104 +30,11 @@ import pytest
 from aresilient import (
     RETRY_STATUS_CODES,
     HttpRequestError,
-    delete_with_automatic_retry_async,
-    get_with_automatic_retry_async,
-    head_with_automatic_retry_async,
-    options_with_automatic_retry_async,
-    patch_with_automatic_retry_async,
-    post_with_automatic_retry_async,
-    put_with_automatic_retry_async,
 )
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
+from .helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
 
 TEST_URL = "https://api.example.com/data"
-
-
-@dataclass
-class HttpMethodTestCase:
-    """Test case definition for HTTP method testing.
-
-    Attributes:
-        method_name: The HTTP method name (e.g., "GET", "POST").
-        method_func: The async function to test (e.g., get_with_automatic_retry_async).
-        client_method: The httpx.AsyncClient method name (e.g., "get", "post").
-        status_code: Expected success status code.
-    """
-
-    method_name: str
-    method_func: Callable[..., httpx.Response]
-    client_method: str
-    status_code: int
-
-
-# Define test parameters for all HTTP methods
-HTTP_METHODS = [
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="GET",
-            method_func=get_with_automatic_retry_async,
-            client_method="get",
-            status_code=200,
-        ),
-        id="GET",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="POST",
-            method_func=post_with_automatic_retry_async,
-            client_method="post",
-            status_code=200,
-        ),
-        id="POST",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="PUT",
-            method_func=put_with_automatic_retry_async,
-            client_method="put",
-            status_code=200,
-        ),
-        id="PUT",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="DELETE",
-            method_func=delete_with_automatic_retry_async,
-            client_method="delete",
-            status_code=204,
-        ),
-        id="DELETE",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="PATCH",
-            method_func=patch_with_automatic_retry_async,
-            client_method="patch",
-            status_code=200,
-        ),
-        id="PATCH",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="HEAD",
-            method_func=head_with_automatic_retry_async,
-            client_method="head",
-            status_code=200,
-        ),
-        id="HEAD",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="OPTIONS",
-            method_func=options_with_automatic_retry_async,
-            client_method="options",
-            status_code=200,
-        ),
-        id="OPTIONS",
-    ),
-]
 
 
 ############################################################
@@ -133,7 +43,7 @@ HTTP_METHODS = [
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_successful_request_with_custom_client(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
@@ -152,7 +62,7 @@ async def test_successful_request_with_custom_client(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_successful_request_with_default_client(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
@@ -168,7 +78,7 @@ async def test_successful_request_with_default_client(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_request_with_json_payload(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
@@ -187,103 +97,7 @@ async def test_request_with_json_payload(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_retry_on_500_status(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test retry logic for 500 status code."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_response_fail = Mock(spec=httpx.Response, status_code=500)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
-
-    response = await test_case.method_func(TEST_URL, client=mock_client)
-
-    assert response.status_code == test_case.status_code
-    mock_asleep.assert_called_once_with(0.3)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_retry_on_503_status(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test retry logic for 503 status code."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_response_fail = Mock(spec=httpx.Response, status_code=503)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
-
-    response = await test_case.method_func(TEST_URL, client=mock_client)
-
-    assert response.status_code == test_case.status_code
-    mock_asleep.assert_called_once_with(0.3)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_max_retries_exceeded(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that HttpRequestError is raised when max retries exceeded."""
-    mock_response = Mock(spec=httpx.Response, status_code=503)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    setattr(mock_client, test_case.client_method, AsyncMock(return_value=mock_response))
-
-    with pytest.raises(HttpRequestError) as exc_info:
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
-
-    assert exc_info.value.status_code == 503
-    assert "failed with status 503 after 3 attempts" in str(exc_info.value)
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_non_retryable_status_code(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that 404 status code is not retried."""
-    mock_response = Mock(spec=httpx.Response, status_code=404)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    setattr(mock_client, test_case.client_method, AsyncMock(return_value=mock_response))
-
-    with pytest.raises(
-        HttpRequestError,
-        match=rf"{test_case.method_name} request to https://api\.example\.com/data failed with status 404",
-    ):
-        await test_case.method_func(TEST_URL, client=mock_client)
-
-    mock_asleep.assert_not_called()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_exponential_backoff(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test exponential backoff timing."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_response_fail = Mock(spec=httpx.Response, status_code=503)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
-
-    await test_case.method_func(TEST_URL, client=mock_client, backoff_factor=2.0)
-
-    # Should have slept twice (after 1st and 2nd failures)
-    assert mock_asleep.call_args_list == [call(2.0), call(4.0)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_timeout_exception(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
@@ -303,27 +117,7 @@ async def test_timeout_exception(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_timeout_exception_with_retries(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test timeout exception with retries."""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=httpx.TimeoutException("Request timeout"))
-    setattr(mock_client, test_case.client_method, client_method)
-
-    with pytest.raises(
-        HttpRequestError,
-        match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(3 attempts\)",
-    ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
-
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_request_error(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
@@ -346,24 +140,7 @@ async def test_request_error(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_request_error_with_retries(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test handling of general request errors with retries."""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=httpx.RequestError("Connection failed"))
-    setattr(mock_client, test_case.client_method, client_method)
-
-    with pytest.raises(HttpRequestError, match=r"failed after 3 attempts"):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
-
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_negative_max_retries(test_case: HttpMethodTestCase) -> None:
     """Test that negative max_retries raises ValueError."""
     with pytest.raises(ValueError, match=r"max_retries must be >= 0"):
@@ -371,70 +148,7 @@ async def test_negative_max_retries(test_case: HttpMethodTestCase) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_negative_backoff_factor(test_case: HttpMethodTestCase) -> None:
-    """Test that negative backoff_factor raises ValueError."""
-    with pytest.raises(ValueError, match=r"backoff_factor must be >= 0"):
-        await test_case.method_func(TEST_URL, backoff_factor=-1.0)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_negative_jitter_factor(test_case: HttpMethodTestCase) -> None:
-    """Test that negative jitter_factor raises ValueError."""
-    with pytest.raises(ValueError, match=r"jitter_factor must be >= 0"):
-        await test_case.method_func(TEST_URL, jitter_factor=-0.1)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_with_jitter_factor(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that jitter_factor is applied during retries."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_response_fail = Mock(spec=httpx.Response, status_code=500)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
-
-    with patch("aresilient.utils.random.uniform", return_value=0.05):
-        response = await test_case.method_func(
-            TEST_URL, client=mock_client, backoff_factor=1.0, jitter_factor=0.1
-        )
-
-    assert response.status_code == test_case.status_code
-    # Base sleep: 1.0 * 2^0 = 1.0
-    # Jitter: 0.05 * 1.0 = 0.05
-    # Total: 1.05
-    mock_asleep.assert_called_once_with(1.05)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_zero_jitter_factor(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that zero jitter_factor results in no jitter."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_response_fail = Mock(spec=httpx.Response, status_code=500)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
-
-    response = await test_case.method_func(
-        TEST_URL, client=mock_client, backoff_factor=1.0, jitter_factor=0.0
-    )
-
-    assert response.status_code == test_case.status_code
-    # No jitter applied
-    mock_asleep.assert_called_once_with(1.0)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_negative_timeout(test_case: HttpMethodTestCase) -> None:
     """Test that negative timeout raises ValueError."""
     with pytest.raises(ValueError, match=r"timeout must be > 0"):
@@ -442,7 +156,7 @@ async def test_negative_timeout(test_case: HttpMethodTestCase) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_zero_timeout(test_case: HttpMethodTestCase) -> None:
     """Test that zero timeout raises ValueError."""
     with pytest.raises(ValueError, match=r"timeout must be > 0"):
@@ -450,67 +164,7 @@ async def test_zero_timeout(test_case: HttpMethodTestCase) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_zero_max_retries(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test with zero retries - should only try once."""
-    mock_response = Mock(spec=httpx.Response, status_code=503)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    setattr(mock_client, test_case.client_method, AsyncMock(return_value=mock_response))
-
-    with pytest.raises(
-        HttpRequestError,
-        match=rf"{test_case.method_name} request to {TEST_URL} failed with status 503 after 1 attempts",
-    ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=0)
-
-    mock_asleep.assert_not_called()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_custom_status_forcelist(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test custom status codes for retry."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_response_fail = Mock(spec=httpx.Response, status_code=404)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
-
-    response = await test_case.method_func(TEST_URL, client=mock_client, status_forcelist=(404,))
-
-    assert response.status_code == test_case.status_code
-    mock_asleep.assert_called_once_with(0.3)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-@pytest.mark.parametrize("status_code", RETRY_STATUS_CODES)
-async def test_default_retry_status_codes(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-    status_code: int,
-) -> None:
-    """Test default retry status codes."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_response_fail = Mock(spec=httpx.Response, status_code=status_code)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
-
-    response = await test_case.method_func(TEST_URL, client=mock_client)
-
-    assert response.status_code == test_case.status_code
-    mock_asleep.assert_called_once_with(0.3)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_client_close_when_owns_client(test_case: HttpMethodTestCase) -> None:
     """Test that client is closed when created internally."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
@@ -524,7 +178,7 @@ async def test_client_close_when_owns_client(test_case: HttpMethodTestCase) -> N
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_client_not_closed_when_provided(test_case: HttpMethodTestCase) -> None:
     """Test that external client is not closed."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
@@ -537,7 +191,7 @@ async def test_client_not_closed_when_provided(test_case: HttpMethodTestCase) ->
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_custom_timeout(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
@@ -556,26 +210,7 @@ async def test_custom_timeout(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_all_retries_with_429(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test retry behavior with 429 Too Many Requests."""
-    mock_response = Mock(spec=httpx.Response, status_code=429)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    setattr(mock_client, test_case.client_method, AsyncMock(return_value=mock_response))
-
-    with pytest.raises(HttpRequestError) as exc_info:
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=1)
-
-    assert exc_info.value.status_code == 429
-    assert "failed with status 429 after 2 attempts" in str(exc_info.value)
-    assert mock_asleep.call_args_list == [call(0.3)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_with_httpx_timeout_object(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
@@ -597,32 +232,7 @@ async def test_with_httpx_timeout_object(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_recovery_after_multiple_failures(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test successful recovery after multiple transient failures."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(
-        side_effect=[
-            Mock(spec=httpx.Response, status_code=429),
-            Mock(spec=httpx.Response, status_code=503),
-            Mock(spec=httpx.Response, status_code=500),
-            mock_response,
-        ]
-    )
-    setattr(mock_client, test_case.client_method, client_method)
-
-    response = await test_case.method_func(TEST_URL, client=mock_client, max_retries=5)
-
-    assert response.status_code == test_case.status_code
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 @pytest.mark.parametrize("status_code", [200, 201, 202, 204, 206])
 async def test_successful_2xx_status_codes(
     test_case: HttpMethodTestCase,
@@ -641,7 +251,7 @@ async def test_successful_2xx_status_codes(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 @pytest.mark.parametrize("status_code", [301, 302, 303, 304, 307, 308])
 async def test_successful_3xx_status_codes(
     test_case: HttpMethodTestCase,
@@ -660,7 +270,7 @@ async def test_successful_3xx_status_codes(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_with_headers(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
@@ -686,7 +296,7 @@ async def test_with_headers(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_error_message_includes_url(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
@@ -709,7 +319,7 @@ async def test_error_message_includes_url(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_client_close_on_exception(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
@@ -730,168 +340,3 @@ async def test_client_close_on_exception(
 
     mock_client.aclose.assert_called_once()
     mock_asleep.assert_not_called()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_mixed_error_and_status_failures(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test recovery from mix of errors and retryable status codes."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(
-        side_effect=[
-            httpx.RequestError("Network error"),
-            Mock(spec=httpx.Response, status_code=502),
-            httpx.TimeoutException("Timeout"),
-            mock_response,
-        ]
-    )
-    setattr(mock_client, test_case.client_method, client_method)
-
-    response = await test_case.method_func(TEST_URL, client=mock_client, max_retries=5)
-
-    assert response.status_code == test_case.status_code
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_network_error(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that NetworkError is retried appropriately."""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=httpx.NetworkError("Network unreachable"))
-    setattr(mock_client, test_case.client_method, client_method)
-
-    with pytest.raises(
-        HttpRequestError,
-        match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
-    ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
-
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_read_error(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that ReadError is retried appropriately."""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=httpx.ReadError("Connection broken"))
-    setattr(mock_client, test_case.client_method, client_method)
-
-    with pytest.raises(
-        HttpRequestError,
-        match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
-    ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
-
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_write_error(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that WriteError is retried appropriately."""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=httpx.WriteError("Write failed"))
-    setattr(mock_client, test_case.client_method, client_method)
-
-    with pytest.raises(
-        HttpRequestError,
-        match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
-    ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
-
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_connect_timeout(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that ConnectTimeout is retried appropriately."""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=httpx.ConnectTimeout("Connection timeout"))
-    setattr(mock_client, test_case.client_method, client_method)
-
-    with pytest.raises(
-        HttpRequestError,
-        match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(4 attempts\)",
-    ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
-
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_read_timeout(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that ReadTimeout is retried appropriately."""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=httpx.ReadTimeout("Read timeout"))
-    setattr(mock_client, test_case.client_method, client_method)
-
-    with pytest.raises(
-        HttpRequestError,
-        match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(4 attempts\)",
-    ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
-
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_pool_timeout(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that PoolTimeout is retried appropriately."""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=httpx.PoolTimeout("Connection pool exhausted"))
-    setattr(mock_client, test_case.client_method, client_method)
-
-    with pytest.raises(
-        HttpRequestError,
-        match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(4 attempts\)",
-    ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
-
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-async def test_proxy_error(
-    test_case: HttpMethodTestCase,
-    mock_asleep: Mock,
-) -> None:
-    """Test that ProxyError is retried appropriately."""
-    mock_client = AsyncMock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=httpx.ProxyError("Proxy connection failed"))
-    setattr(mock_client, test_case.client_method, client_method)
-
-    with pytest.raises(
-        HttpRequestError,
-        match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
-    ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
-
-    assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
