@@ -16,12 +16,6 @@ from aresilient import put_with_automatic_retry_async
 TEST_URL = "https://api.example.com/data"
 
 
-@pytest.fixture
-def mock_client() -> httpx.AsyncClient:
-    """Create a mock httpx.AsyncClient for testing."""
-    return Mock(spec=httpx.AsyncClient, aclose=AsyncMock())
-
-
 ####################################################
 #     Tests for put_with_automatic_retry_async     #
 ####################################################
@@ -29,7 +23,7 @@ def mock_client() -> httpx.AsyncClient:
 
 @pytest.mark.asyncio
 async def test_put_with_automatic_retry_async_with_data(
-    mock_client: httpx.AsyncClient, mock_asleep: Mock
+    mock_async_client: httpx.AsyncClient, mock_asleep: Mock
 ) -> None:
     """Test async PUT request with form data.
 
@@ -37,14 +31,14 @@ async def test_put_with_automatic_retry_async_with_data(
     with PUT requests.
     """
     mock_response = Mock(spec=httpx.Response, status_code=200)
-    mock_client.put = AsyncMock(return_value=mock_response)
+    mock_async_client.put = AsyncMock(return_value=mock_response)
 
     response = await put_with_automatic_retry_async(
-        TEST_URL, client=mock_client, data={"username": "test", "role": "admin"}
+        TEST_URL, client=mock_async_client, data={"username": "test", "role": "admin"}
     )
 
     assert response.status_code == 200
-    mock_client.put.assert_called_once_with(
+    mock_async_client.put.assert_called_once_with(
         url=TEST_URL, data={"username": "test", "role": "admin"}
     )
     mock_asleep.assert_not_called()

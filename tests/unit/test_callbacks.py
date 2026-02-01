@@ -17,16 +17,6 @@ from aresilient.request import request_with_automatic_retry
 TEST_URL = "https://api.example.com/data"
 
 
-@pytest.fixture
-def mock_response() -> httpx.Response:
-    return Mock(spec=httpx.Response, status_code=200)
-
-
-@pytest.fixture
-def mock_request_func(mock_response: httpx.Response) -> Mock:
-    return Mock(return_value=mock_response)
-
-
 ##################################################
 #     Tests for on_request callback              #
 ##################################################

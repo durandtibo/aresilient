@@ -10,16 +10,6 @@ import pytest
 from aresilient import HttpRequestError, request_with_automatic_retry_async
 
 
-@pytest.fixture
-def mock_response() -> httpx.Response:
-    return Mock(spec=httpx.Response, status_code=200)
-
-
-@pytest.fixture
-def mock_request_func(mock_response: httpx.Response) -> AsyncMock:
-    return AsyncMock(return_value=mock_response)
-
-
 ########################################################
 #     Tests for request_with_automatic_retry_async     #
 ########################################################
@@ -27,18 +17,18 @@ def mock_request_func(mock_response: httpx.Response) -> AsyncMock:
 
 @pytest.mark.asyncio
 async def test_request_with_automatic_retry_async_successful_request_on_first_attempt(
-    mock_response: httpx.Response, mock_request_func: AsyncMock, mock_asleep: Mock
+    mock_response: httpx.Response, mock_async_request_func: AsyncMock, mock_asleep: Mock
 ) -> None:
     """Test that a successful request returns immediately without
     retries."""
     result = await request_with_automatic_retry_async(
         url="https://example.com",
         method="GET",
-        request_func=mock_request_func,
+        request_func=mock_async_request_func,
     )
 
     assert result == mock_response
-    mock_request_func.assert_called_once_with(url="https://example.com")
+    mock_async_request_func.assert_called_once_with(url="https://example.com")
     mock_asleep.assert_not_called()
 
 
@@ -237,19 +227,19 @@ async def test_request_with_automatic_retry_async_custom_status_forcelist(
 
 @pytest.mark.asyncio
 async def test_request_with_automatic_retry_async_kwargs_passed_to_request_func(
-    mock_request_func: AsyncMock, mock_asleep: Mock
+    mock_async_request_func: AsyncMock, mock_asleep: Mock
 ) -> None:
     """Test that additional kwargs are passed to the request
     function."""
     await request_with_automatic_retry_async(
         url="https://example.com",
         method="POST",
-        request_func=mock_request_func,
+        request_func=mock_async_request_func,
         json={"key": "value"},
         headers={"Authorization": "Bearer token"},
         timeout=30,
     )
-    mock_request_func.assert_called_once_with(
+    mock_async_request_func.assert_called_once_with(
         url="https://example.com",
         json={"key": "value"},
         headers={"Authorization": "Bearer token"},
@@ -333,7 +323,7 @@ async def test_request_with_automatic_retry_async_timeout_exception_after_succes
 
 @pytest.mark.asyncio
 async def test_request_with_automatic_retry_async_retry_if_returns_false_for_success(
-    mock_response: httpx.Response, mock_request_func: AsyncMock, mock_asleep: Mock
+    mock_response: httpx.Response, mock_async_request_func: AsyncMock, mock_asleep: Mock
 ) -> None:
     """Test retry_if that returns False for successful response (no
     retry)."""
@@ -347,12 +337,12 @@ async def test_request_with_automatic_retry_async_retry_if_returns_false_for_suc
     response = await request_with_automatic_retry_async(
         url="https://example.com",
         method="GET",
-        request_func=mock_request_func,
+        request_func=mock_async_request_func,
         retry_if=retry_predicate,
     )
 
     assert response == mock_response
-    mock_request_func.assert_called_once_with(url="https://example.com")
+    mock_async_request_func.assert_called_once_with(url="https://example.com")
     mock_asleep.assert_not_called()
 
 
