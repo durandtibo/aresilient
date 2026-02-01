@@ -6,12 +6,13 @@ Common tests across all HTTP methods are in test_core.py.
 
 from __future__ import annotations
 
-from unittest.mock import Mock
-
-import httpx
+from typing import TYPE_CHECKING
 
 from aresilient import post_with_automatic_retry
 from tests.helpers import assert_successful_request, setup_mock_client_for_method
+
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
 TEST_URL = "https://api.example.com/data"
 
@@ -32,7 +33,7 @@ def test_post_with_automatic_retry_with_data(mock_sleep: Mock) -> None:
     client, _ = setup_mock_client_for_method("post", 200)
 
     # Use utility function to assert successful request
-    response = assert_successful_request(
+    assert_successful_request(
         post_with_automatic_retry,
         TEST_URL,
         client,
