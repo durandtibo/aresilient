@@ -14,7 +14,7 @@ import httpx
 import pytest
 
 from aresilient import RETRY_STATUS_CODES, HttpRequestError
-from tests.helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
+from tests.helpers import HTTP_METHODS_ASYNC, AsyncHttpMethodTestCase
 
 TEST_URL = "https://api.example.com/data"
 
@@ -22,7 +22,7 @@ TEST_URL = "https://api.example.com/data"
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_retry_on_500_status(
-    test_case: HttpMethodTestCase,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test retry logic for 500 status code."""
@@ -41,7 +41,7 @@ async def test_retry_on_500_status(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_retry_on_503_status(
-    test_case: HttpMethodTestCase,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test retry logic for 503 status code."""
@@ -60,7 +60,7 @@ async def test_retry_on_503_status(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_max_retries_exceeded(
-    test_case: HttpMethodTestCase,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test that HttpRequestError is raised when max retries
@@ -80,7 +80,7 @@ async def test_max_retries_exceeded(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_non_retryable_status_code(
-    test_case: HttpMethodTestCase,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test that 404 status code is not retried."""
@@ -100,7 +100,7 @@ async def test_non_retryable_status_code(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_zero_max_retries(
-    test_case: HttpMethodTestCase,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test with zero retries - should only try once."""
@@ -120,7 +120,7 @@ async def test_zero_max_retries(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_custom_status_forcelist(
-    test_case: HttpMethodTestCase,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test custom status codes for retry."""
@@ -140,7 +140,7 @@ async def test_custom_status_forcelist(
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 @pytest.mark.parametrize("status_code", RETRY_STATUS_CODES)
 async def test_default_retry_status_codes(
-    test_case: HttpMethodTestCase,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
     status_code: int,
 ) -> None:
@@ -160,7 +160,7 @@ async def test_default_retry_status_codes(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_all_retries_with_429(
-    test_case: HttpMethodTestCase,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test retry behavior with 429 Too Many Requests."""
@@ -179,7 +179,7 @@ async def test_all_retries_with_429(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_timeout_exception_with_retries(
-    test_case: HttpMethodTestCase,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test timeout exception with retries."""
@@ -199,7 +199,7 @@ async def test_timeout_exception_with_retries(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_request_error_with_retries(
-    test_case: HttpMethodTestCase,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test handling of general request errors with retries."""
