@@ -11,9 +11,6 @@ from tests.unit.helpers import HTTP_METHODS
 if TYPE_CHECKING:
     from _pytest.mark.structures import ParameterSet
 
-# Use httpbin.org for real HTTP testing
-HTTPBIN_URL = "https://httpbin.org"
-
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_http_method_successful_request_with_client(test_case: ParameterSet) -> None:
@@ -22,19 +19,19 @@ def test_http_method_successful_request_with_client(test_case: ParameterSet) -> 
     with httpx.Client() as client:
         if tc.supports_body:
             response = tc.method_func(
-                url=f"{HTTPBIN_URL}{tc.test_url}",
+                url=tc.test_url,
                 json={"test": "data", "number": 42},
                 client=client,
             )
         else:
-            response = tc.method_func(url=f"{HTTPBIN_URL}{tc.test_url}", client=client)
+            response = tc.method_func(url=tc.test_url, client=client)
 
     assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
 
     # Verify response data (except for HEAD and OPTIONS which have no body)
     if tc.method_name not in ("HEAD", "OPTIONS"):
         response_data = response.json()
-        assert f"https://httpbin.org{tc.test_url}" in response_data["url"]
+        assert tc.test_url in response_data["url"]
         if tc.supports_body:
             assert response_data["json"] == {"test": "data", "number": 42}
 
@@ -45,11 +42,11 @@ def test_http_method_successful_request_without_client(test_case: ParameterSet) 
     tc = test_case.values[0]
     if tc.supports_body:
         response = tc.method_func(
-            url=f"{HTTPBIN_URL}{tc.test_url}",
+            url=tc.test_url,
             json={"test": "data", "number": 42},
         )
     else:
-        response = tc.method_func(url=f"{HTTPBIN_URL}{tc.test_url}")
+        response = tc.method_func(url=tc.test_url)
 
     assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
 
@@ -67,11 +64,13 @@ def test_http_method_successful_request_without_client(test_case: ParameterSet) 
 def test_http_method_non_retryable_status_fails_immediately(test_case: ParameterSet) -> None:
     """Test that 404 (non-retryable) fails immediately without retries."""
     tc = test_case.values[0]
+    # Extract base URL from test_url
+    base_url = tc.test_url.rsplit("/", 1)[0]
     with (
         httpx.Client() as client,
         pytest.raises(HttpRequestError, match=rf"{tc.method_name} request to .* failed with status 404"),
     ):
-        tc.method_func(url=f"{HTTPBIN_URL}/status/404", client=client)
+        tc.method_func(url=f"{base_url}/status/404", client=client)
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -81,16 +80,17 @@ def test_http_method_with_custom_headers(test_case: ParameterSet) -> None:
     with httpx.Client() as client:
         if tc.supports_body:
             response = tc.method_func(
-                url=f"{HTTPBIN_URL}{tc.test_url}",
+                url=tc.test_url,
                 client=client,
                 json={"test": "data"},
                 headers={"X-Custom-Header": "test-value"},
             )
         else:
             # Use /headers endpoint for methods that don't support body
-            test_endpoint = "/headers" if tc.method_name != "OPTIONS" else tc.test_url
+            base_url = tc.test_url.rsplit("/", 1)[0]
+            test_endpoint = f"{base_url}/headers" if tc.method_name != "OPTIONS" else tc.test_url
             response = tc.method_func(
-                url=f"{HTTPBIN_URL}{test_endpoint}",
+                url=test_endpoint,
                 client=client,
                 headers={"X-Custom-Header": "test-value"},
             )
@@ -118,7 +118,7 @@ def test_http_method_with_query_params(test_case: ParameterSet) -> None:
     tc = test_case.values[0]
     with httpx.Client() as client:
         response = tc.method_func(
-            url=f"{HTTPBIN_URL}{tc.test_url}",
+            url=tc.test_url,
             params={"param1": "value1", "param2": "value2"},
             client=client,
         )

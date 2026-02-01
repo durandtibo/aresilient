@@ -33,6 +33,9 @@ if TYPE_CHECKING:
 
     import httpx
 
+# Use httpbin.org for real HTTP testing
+HTTPBIN_URL = "https://httpbin.org"
+
 
 @dataclass
 class HttpMethodTestCase:
@@ -43,16 +46,16 @@ class HttpMethodTestCase:
         method_func: The function to test (e.g., get_with_automatic_retry).
         client_method: The httpx.Client method name (e.g., "get", "post").
         status_code: Expected success status code.
-        test_url: The test URL endpoint path (e.g., "/get", "/post").
-        supports_body: Whether the HTTP method supports request bodies.
+        test_url: The full test URL (e.g., "https://httpbin.org/get"). Optional.
+        supports_body: Whether the HTTP method supports request bodies. Optional.
     """
 
     method_name: str
     method_func: Callable[..., httpx.Response]
     client_method: str
     status_code: int
-    test_url: str
-    supports_body: bool
+    test_url: str | None = None
+    supports_body: bool | None = None
 
 
 # Define test parameters for all sync HTTP methods
@@ -63,7 +66,7 @@ HTTP_METHODS = [
             method_func=get_with_automatic_retry,
             client_method="get",
             status_code=200,
-            test_url="/get",
+            test_url=f"{HTTPBIN_URL}/get",
             supports_body=False,
         ),
         id="GET",
@@ -74,7 +77,7 @@ HTTP_METHODS = [
             method_func=post_with_automatic_retry,
             client_method="post",
             status_code=200,
-            test_url="/post",
+            test_url=f"{HTTPBIN_URL}/post",
             supports_body=True,
         ),
         id="POST",
@@ -85,7 +88,7 @@ HTTP_METHODS = [
             method_func=put_with_automatic_retry,
             client_method="put",
             status_code=200,
-            test_url="/put",
+            test_url=f"{HTTPBIN_URL}/put",
             supports_body=True,
         ),
         id="PUT",
@@ -96,7 +99,7 @@ HTTP_METHODS = [
             method_func=delete_with_automatic_retry,
             client_method="delete",
             status_code=204,
-            test_url="/delete",
+            test_url=f"{HTTPBIN_URL}/delete",
             supports_body=False,
         ),
         id="DELETE",
@@ -107,7 +110,7 @@ HTTP_METHODS = [
             method_func=patch_with_automatic_retry,
             client_method="patch",
             status_code=200,
-            test_url="/patch",
+            test_url=f"{HTTPBIN_URL}/patch",
             supports_body=True,
         ),
         id="PATCH",
@@ -118,7 +121,7 @@ HTTP_METHODS = [
             method_func=head_with_automatic_retry,
             client_method="head",
             status_code=200,
-            test_url="/get",
+            test_url=f"{HTTPBIN_URL}/get",
             supports_body=False,
         ),
         id="HEAD",
@@ -129,7 +132,7 @@ HTTP_METHODS = [
             method_func=options_with_automatic_retry,
             client_method="options",
             status_code=200,
-            test_url="/get",
+            test_url=f"{HTTPBIN_URL}/get",
             supports_body=False,
         ),
         id="OPTIONS",
@@ -145,7 +148,7 @@ HTTP_METHODS_ASYNC = [
             method_func=get_with_automatic_retry_async,
             client_method="get",
             status_code=200,
-            test_url="/get",
+            test_url=f"{HTTPBIN_URL}/get",
             supports_body=False,
         ),
         id="GET",
@@ -156,7 +159,7 @@ HTTP_METHODS_ASYNC = [
             method_func=post_with_automatic_retry_async,
             client_method="post",
             status_code=200,
-            test_url="/post",
+            test_url=f"{HTTPBIN_URL}/post",
             supports_body=True,
         ),
         id="POST",
@@ -167,7 +170,7 @@ HTTP_METHODS_ASYNC = [
             method_func=put_with_automatic_retry_async,
             client_method="put",
             status_code=200,
-            test_url="/put",
+            test_url=f"{HTTPBIN_URL}/put",
             supports_body=True,
         ),
         id="PUT",
@@ -178,7 +181,7 @@ HTTP_METHODS_ASYNC = [
             method_func=delete_with_automatic_retry_async,
             client_method="delete",
             status_code=204,
-            test_url="/delete",
+            test_url=f"{HTTPBIN_URL}/delete",
             supports_body=False,
         ),
         id="DELETE",
@@ -189,7 +192,7 @@ HTTP_METHODS_ASYNC = [
             method_func=patch_with_automatic_retry_async,
             client_method="patch",
             status_code=200,
-            test_url="/patch",
+            test_url=f"{HTTPBIN_URL}/patch",
             supports_body=True,
         ),
         id="PATCH",
@@ -200,7 +203,7 @@ HTTP_METHODS_ASYNC = [
             method_func=head_with_automatic_retry_async,
             client_method="head",
             status_code=200,
-            test_url="/get",
+            test_url=f"{HTTPBIN_URL}/get",
             supports_body=False,
         ),
         id="HEAD",
@@ -211,7 +214,7 @@ HTTP_METHODS_ASYNC = [
             method_func=options_with_automatic_retry_async,
             client_method="options",
             status_code=200,
-            test_url="/get",
+            test_url=f"{HTTPBIN_URL}/get",
             supports_body=False,
         ),
         id="OPTIONS",
