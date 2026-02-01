@@ -16,9 +16,14 @@ from aresilient.config import (
 )
 from aresilient.utils import (
     calculate_sleep_time,
+    handle_exception_with_callback,
     handle_request_error,
     handle_response,
     handle_timeout_exception,
+    invoke_on_request,
+    invoke_on_retry,
+    invoke_on_success,
+    raise_final_error,
 )
 
 if TYPE_CHECKING:
@@ -26,8 +31,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 import httpx
-
-from aresilient.exceptions import HttpRequestError
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -130,14 +133,13 @@ def request_with_automatic_retry(
     for attempt in range(max_retries + 1):
         try:
             # Call on_request callback before each attempt
-            if on_request is not None:
-                request_info: RequestInfo = {
-                    "url": url,
-                    "method": method,
-                    "attempt": attempt + 1,
-                    "max_retries": max_retries,
-                }
-                on_request(request_info)
+            invoke_on_request(
+                on_request,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+            )
 
             response = request_func(url=url, **kwargs)
 
@@ -147,16 +149,15 @@ def request_with_automatic_retry(
                     logger.debug(f"{method} request to {url} succeeded on attempt {attempt + 1}")
 
                 # Call on_success callback
-                if on_success is not None:
-                    response_info: ResponseInfo = {
-                        "url": url,
-                        "method": method,
-                        "attempt": attempt + 1,
-                        "max_retries": max_retries,
-                        "response": response,
-                        "total_time": time.time() - start_time,
-                    }
-                    on_success(response_info)
+                invoke_on_success(
+                    on_success,
+                    url=url,
+                    method=method,
+                    attempt=attempt,
+                    max_retries=max_retries,
+                    response=response,
+                    start_time=start_time,
+                )
 
                 return response
 
@@ -172,60 +173,45 @@ def request_with_automatic_retry(
 
         except httpx.TimeoutException as exc:
             last_error = exc
-            try:
-                handle_timeout_exception(exc, url, method, attempt, max_retries)
-            except HttpRequestError as err:
-                # This is the final attempt - call on_failure callback
-                if on_failure is not None:
-                    total_time = time.time() - start_time
-                    failure_info: FailureInfo = {
-                        "url": url,
-                        "method": method,
-                        "attempt": attempt + 1,
-                        "max_retries": max_retries,
-                        "error": err,
-                        "status_code": None,
-                        "total_time": total_time,
-                    }
-                    on_failure(failure_info)
-                raise
+            handle_exception_with_callback(
+                exc,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+                handler_func=handle_timeout_exception,
+                on_failure=on_failure,
+                start_time=start_time,
+            )
 
         except httpx.RequestError as exc:
             last_error = exc
-            try:
-                handle_request_error(exc, url, method, attempt, max_retries)
-            except HttpRequestError as err:
-                # This is the final attempt - call on_failure callback
-                if on_failure is not None:
-                    total_time = time.time() - start_time
-                    failure_info: FailureInfo = {
-                        "url": url,
-                        "method": method,
-                        "attempt": attempt + 1,
-                        "max_retries": max_retries,
-                        "error": err,
-                        "status_code": None,
-                        "total_time": total_time,
-                    }
-                    on_failure(failure_info)
-                raise
+            handle_exception_with_callback(
+                exc,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+                handler_func=handle_request_error,
+                on_failure=on_failure,
+                start_time=start_time,
+            )
 
         # Exponential backoff with jitter before next retry (skip on last attempt since we're about to fail)
         if attempt < max_retries:
             sleep_time = calculate_sleep_time(attempt, backoff_factor, jitter_factor, response)
 
             # Call on_retry callback before sleeping
-            if on_retry is not None:
-                retry_info: RetryInfo = {
-                    "url": url,
-                    "method": method,
-                    "attempt": attempt + 2,  # Next attempt number
-                    "max_retries": max_retries,
-                    "wait_time": sleep_time,
-                    "error": last_error,
-                    "status_code": last_status_code,
-                }
-                on_retry(retry_info)
+            invoke_on_retry(
+                on_retry,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+                sleep_time=sleep_time,
+                last_error=last_error,
+                last_status_code=last_status_code,
+            )
 
             time.sleep(sleep_time)
 
@@ -233,54 +219,11 @@ def request_with_automatic_retry(
     # Note: response cannot be None here because if all attempts raised exceptions,
     # they would have been caught by the exception handlers above and raised before
     # reaching this point.
-    total_time = time.time() - start_time
-
-    if response is None:  # pragma: no cover
-        # This should never happen in practice, but we check for type safety
-        msg = f"{method} request to {url} failed after {max_retries + 1} attempts"
-        error = HttpRequestError(
-            method=method,
-            url=url,
-            message=msg,
-        )
-
-        # Call on_failure callback
-        if on_failure is not None:
-            failure_info: FailureInfo = {
-                "url": url,
-                "method": method,
-                "attempt": max_retries + 1,
-                "max_retries": max_retries,
-                "error": error,
-                "status_code": None,
-                "total_time": total_time,
-            }
-            on_failure(failure_info)
-
-        raise error
-
-    error = HttpRequestError(
-        method=method,
+    raise_final_error(
         url=url,
-        message=(
-            f"{method} request to {url} failed with status "
-            f"{response.status_code} after {max_retries + 1} attempts"
-        ),
-        status_code=response.status_code,
+        method=method,
+        max_retries=max_retries,
         response=response,
+        on_failure=on_failure,
+        start_time=start_time,
     )
-
-    # Call on_failure callback
-    if on_failure is not None:
-        failure_info: FailureInfo = {
-            "url": url,
-            "method": method,
-            "attempt": max_retries + 1,
-            "max_retries": max_retries,
-            "error": error,
-            "status_code": response.status_code,
-            "total_time": total_time,
-        }
-        on_failure(failure_info)
-
-    raise error
