@@ -33,6 +33,7 @@ async def head_with_automatic_retry_async(
     backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
     status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
     jitter_factor: float = 0.0,
+    retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
     on_request: Callable[[RequestInfo], None] | None = None,
     on_retry: Callable[[RetryInfo], None] | None = None,
     on_success: Callable[[ResponseInfo], None] | None = None,
@@ -68,6 +69,11 @@ async def head_with_automatic_retry_async(
             and this jitter is ADDED to the base sleep time. Set to 0 to disable
             jitter (default). Recommended value is 0.1 for 10% jitter to prevent
             thundering herd issues. Must be >= 0.
+        retry_if: Optional custom predicate function to determine whether to retry
+            based on the response or exception. Called with (response, exception)
+            where at least one will be non-None. Should return True to retry, False
+            to not retry. If provided, this takes precedence over status_forcelist
+            for determining retry behavior.
         on_request: Optional callback called before each request attempt.
             Receives RequestInfo with url, method, attempt, max_retries.
         on_retry: Optional callback called before each retry (after backoff).
@@ -126,6 +132,7 @@ async def head_with_automatic_retry_async(
             backoff_factor=backoff_factor,
             status_forcelist=status_forcelist,
             jitter_factor=jitter_factor,
+            retry_if=retry_if,
             on_request=on_request,
             on_retry=on_retry,
             on_success=on_success,
