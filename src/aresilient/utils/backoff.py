@@ -1,7 +1,7 @@
 r"""Backoff and sleep time calculation utilities.
 
-This module provides functions for calculating sleep time with exponential
-backoff and jitter for HTTP request retries.
+This module provides functions for calculating sleep time with
+exponential backoff and jitter for HTTP request retries.
 """
 
 from __future__ import annotations

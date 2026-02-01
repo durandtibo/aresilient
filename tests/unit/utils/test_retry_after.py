@@ -7,7 +7,6 @@ import pytest
 
 from aresilient.utils import parse_retry_after
 
-
 #######################################
 #     Tests for parse_retry_after     #
 #######################################

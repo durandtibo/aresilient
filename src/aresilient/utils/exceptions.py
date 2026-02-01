@@ -1,8 +1,8 @@
 r"""Exception handling utilities for HTTP request retries.
 
 This module provides functions for handling various types of exceptions
-that can occur during HTTP requests, including timeouts, connection errors,
-and other request failures.
+that can occur during HTTP requests, including timeouts, connection
+errors, and other request failures.
 """
 
 from __future__ import annotations

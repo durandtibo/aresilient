@@ -1,8 +1,8 @@
 r"""Callback invocation utilities for HTTP request lifecycle events.
 
-This module provides functions for invoking user-defined callbacks at various
-points in the HTTP request lifecycle, including before requests, after success,
-before retries, and on failures.
+This module provides functions for invoking user-defined callbacks at
+various points in the HTTP request lifecycle, including before requests,
+after success, before retries, and on failures.
 """
 
 from __future__ import annotations

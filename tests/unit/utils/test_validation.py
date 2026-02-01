@@ -4,7 +4,6 @@ import pytest
 
 from aresilient.utils import validate_retry_params
 
-
 ###########################################
 #     Tests for validate_retry_params     #
 ###########################################
