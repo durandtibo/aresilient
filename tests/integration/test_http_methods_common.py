@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
-from tests.unit.helpers import HTTP_METHODS
+from tests.unit.helpers import HTTPBIN_URL, HTTP_METHODS
 
 if TYPE_CHECKING:
     from _pytest.mark.structures import ParameterSet
@@ -64,13 +64,11 @@ def test_http_method_successful_request_without_client(test_case: ParameterSet) 
 def test_http_method_non_retryable_status_fails_immediately(test_case: ParameterSet) -> None:
     """Test that 404 (non-retryable) fails immediately without retries."""
     tc = test_case.values[0]
-    # Extract base URL from test_url
-    base_url = tc.test_url.rsplit("/", 1)[0]
     with (
         httpx.Client() as client,
         pytest.raises(HttpRequestError, match=rf"{tc.method_name} request to .* failed with status 404"),
     ):
-        tc.method_func(url=f"{base_url}/status/404", client=client)
+        tc.method_func(url=f"{HTTPBIN_URL}/status/404", client=client)
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -87,8 +85,7 @@ def test_http_method_with_custom_headers(test_case: ParameterSet) -> None:
             )
         else:
             # Use /headers endpoint for methods that don't support body
-            base_url = tc.test_url.rsplit("/", 1)[0]
-            test_endpoint = f"{base_url}/headers" if tc.method_name != "OPTIONS" else tc.test_url
+            test_endpoint = f"{HTTPBIN_URL}/headers" if tc.method_name != "OPTIONS" else tc.test_url
             response = tc.method_func(
                 url=test_endpoint,
                 client=client,
