@@ -7,7 +7,6 @@ HEAD, OPTIONS) in a consistent and maintainable way.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, call
 
@@ -24,96 +23,12 @@ from aresilient import (
     post_with_automatic_retry,
     put_with_automatic_retry,
 )
+from tests.helpers import HTTP_METHODS, HttpMethodTestCase
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 TEST_URL = "https://api.example.com/data"
-
-
-@dataclass
-class HttpMethodTestCase:
-    """Test case definition for HTTP method testing.
-
-    Attributes:
-        method_name: The HTTP method name (e.g., "GET", "POST").
-        method_func: The function to test (e.g., get_with_automatic_retry).
-        client_method: The httpx.Client method name (e.g., "get", "post").
-        status_code: Expected success status code.
-    """
-
-    method_name: str
-    method_func: Callable[..., httpx.Response]
-    client_method: str
-    status_code: int
-
-
-# Define test parameters for all HTTP methods
-HTTP_METHODS = [
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="GET",
-            method_func=get_with_automatic_retry,
-            client_method="get",
-            status_code=200,
-        ),
-        id="GET",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="POST",
-            method_func=post_with_automatic_retry,
-            client_method="post",
-            status_code=201,
-        ),
-        id="POST",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="PUT",
-            method_func=put_with_automatic_retry,
-            client_method="put",
-            status_code=200,
-        ),
-        id="PUT",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="DELETE",
-            method_func=delete_with_automatic_retry,
-            client_method="delete",
-            status_code=204,
-        ),
-        id="DELETE",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="PATCH",
-            method_func=patch_with_automatic_retry,
-            client_method="patch",
-            status_code=200,
-        ),
-        id="PATCH",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="HEAD",
-            method_func=head_with_automatic_retry,
-            client_method="head",
-            status_code=200,
-        ),
-        id="HEAD",
-    ),
-    pytest.param(
-        HttpMethodTestCase(
-            method_name="OPTIONS",
-            method_func=options_with_automatic_retry,
-            client_method="options",
-            status_code=200,
-        ),
-        id="OPTIONS",
-    ),
-]
 
 
 ########################################################
