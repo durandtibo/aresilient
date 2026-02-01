@@ -29,14 +29,13 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, NoReturn
 
+from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 from aresilient.exceptions import HttpRequestError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     import httpx
-
-    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -388,12 +387,12 @@ def invoke_on_request(
         max_retries: Maximum number of retry attempts.
     """
     if on_request is not None:
-        request_info: RequestInfo = {
-            "url": url,
-            "method": method,
-            "attempt": attempt + 1,
-            "max_retries": max_retries,
-        }
+        request_info = RequestInfo(
+            url=url,
+            method=method,
+            attempt=attempt + 1,
+            max_retries=max_retries,
+        )
         on_request(request_info)
 
 
@@ -419,14 +418,14 @@ def invoke_on_success(
         start_time: The timestamp when the request started.
     """
     if on_success is not None:
-        response_info: ResponseInfo = {
-            "url": url,
-            "method": method,
-            "attempt": attempt + 1,
-            "max_retries": max_retries,
-            "response": response,
-            "total_time": time.time() - start_time,
-        }
+        response_info = ResponseInfo(
+            url=url,
+            method=method,
+            attempt=attempt + 1,
+            max_retries=max_retries,
+            response=response,
+            total_time=time.time() - start_time,
+        )
         on_success(response_info)
 
 
@@ -454,15 +453,15 @@ def invoke_on_retry(
         last_status_code: The HTTP status code that triggered the retry (if any).
     """
     if on_retry is not None:
-        retry_info: RetryInfo = {
-            "url": url,
-            "method": method,
-            "attempt": attempt + 2,  # Next attempt number
-            "max_retries": max_retries,
-            "wait_time": sleep_time,
-            "error": last_error,
-            "status_code": last_status_code,
-        }
+        retry_info = RetryInfo(
+            url=url,
+            method=method,
+            attempt=attempt + 2,  # Next attempt number
+            max_retries=max_retries,
+            wait_time=sleep_time,
+            error=last_error,
+            status_code=last_status_code,
+        )
         on_retry(retry_info)
 
 
@@ -497,15 +496,15 @@ def handle_exception_with_callback(
     except HttpRequestError as err:
         # This is the final attempt - call on_failure callback
         if on_failure is not None:
-            failure_info: FailureInfo = {
-                "url": url,
-                "method": method,
-                "attempt": attempt + 1,
-                "max_retries": max_retries,
-                "error": err,
-                "status_code": None,
-                "total_time": time.time() - start_time,
-            }
+            failure_info = FailureInfo(
+                url=url,
+                method=method,
+                attempt=attempt + 1,
+                max_retries=max_retries,
+                error=err,
+                status_code=None,
+                total_time=time.time() - start_time,
+            )
             on_failure(failure_info)
         raise
 
@@ -545,15 +544,15 @@ def raise_final_error(
 
         # Call on_failure callback
         if on_failure is not None:
-            failure_info: FailureInfo = {
-                "url": url,
-                "method": method,
-                "attempt": max_retries + 1,
-                "max_retries": max_retries,
-                "error": error,
-                "status_code": None,
-                "total_time": total_time,
-            }
+            failure_info = FailureInfo(
+                url=url,
+                method=method,
+                attempt=max_retries + 1,
+                max_retries=max_retries,
+                error=error,
+                status_code=None,
+                total_time=total_time,
+            )
             on_failure(failure_info)
 
         raise error
@@ -571,15 +570,15 @@ def raise_final_error(
 
     # Call on_failure callback
     if on_failure is not None:
-        failure_info: FailureInfo = {
-            "url": url,
-            "method": method,
-            "attempt": max_retries + 1,
-            "max_retries": max_retries,
-            "error": error,
-            "status_code": response.status_code,
-            "total_time": total_time,
-        }
+        failure_info = FailureInfo(
+            url=url,
+            method=method,
+            attempt=max_retries + 1,
+            max_retries=max_retries,
+            error=error,
+            status_code=response.status_code,
+            total_time=total_time,
+        )
         on_failure(failure_info)
 
     raise error
