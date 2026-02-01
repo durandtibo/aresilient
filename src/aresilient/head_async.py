@@ -1,4 +1,4 @@
-r"""Contain asynchronous HTTP HEAD request with automatic retry
+r"""Contains asynchronous HTTP HEAD request with automatic retry
 logic."""
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-r"""Contain synchronous HTTP DELETE request with automatic retry
+r"""Contains synchronous HTTP DELETE request with automatic retry
 logic."""
 
 from __future__ import annotations

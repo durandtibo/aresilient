@@ -1,4 +1,4 @@
-r"""Contain synchronous HTTP OPTIONS request with automatic retry
+r"""Contains synchronous HTTP OPTIONS request with automatic retry
 logic."""
 
 from __future__ import annotations

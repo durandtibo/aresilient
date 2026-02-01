@@ -383,7 +383,8 @@ def invoke_on_request(
         on_request: Optional callback to invoke before each request attempt.
         url: The URL being requested.
         method: The HTTP method (e.g., "GET", "POST").
-        attempt: The current attempt number (0-indexed).
+        attempt: The current attempt number (0-indexed internally). The callback
+            receives this as a 1-indexed value (attempt + 1).
         max_retries: Maximum number of retry attempts.
     """
     if on_request is not None:
@@ -412,7 +413,8 @@ def invoke_on_success(
         on_success: Optional callback to invoke when request succeeds.
         url: The URL that was requested.
         method: The HTTP method (e.g., "GET", "POST").
-        attempt: The attempt number that succeeded (0-indexed).
+        attempt: The attempt number that succeeded (0-indexed internally). The
+            callback receives this as a 1-indexed value (attempt + 1).
         max_retries: Maximum number of retry attempts.
         response: The successful HTTP response object.
         start_time: The timestamp when the request started.
@@ -446,7 +448,8 @@ def invoke_on_retry(
         on_retry: Optional callback to invoke before each retry.
         url: The URL being requested.
         method: The HTTP method (e.g., "GET", "POST").
-        attempt: The current attempt number (0-indexed).
+        attempt: The current attempt number (0-indexed internally). The callback
+            receives the next attempt number as a 1-indexed value (attempt + 2).
         max_retries: Maximum number of retry attempts.
         sleep_time: The sleep time in seconds before this retry.
         last_error: The exception that triggered the retry (if any).

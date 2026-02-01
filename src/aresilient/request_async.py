@@ -1,4 +1,4 @@
-r"""Contain utility functions for asynchronous HTTP requests with
+r"""Contains utility functions for asynchronous HTTP requests with
 automatic retry logic."""
 
 from __future__ import annotations
