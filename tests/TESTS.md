@@ -291,9 +291,9 @@ To get current test statistics, run:
 pytest tests/ --collect-only
 
 # Count test files by category
-find tests/unit -name "*.py" ! -name "__init__.py" | wc -l      # Unit test files
-find tests/integration -name "*.py" ! -name "__init__.py" | wc -l  # Integration test files
-find tests -name "*_async.py" | wc -l                            # Async test files
+find tests/unit -type f -name "*.py" ! -name "__init__.py" | wc -l      # Unit test files
+find tests/integration -type f -name "*.py" ! -name "__init__.py" | wc -l  # Integration test files
+find tests -type f -name "*_async.py" | wc -l                            # Async test files
 ```
 
 ## Adding New Tests
