@@ -9,6 +9,7 @@ requests with automatic retry logic.
 - [Async Usage](#async-usage)
 - [Configuration Options](#configuration-options)
 - [Advanced Usage](#advanced-usage)
+- [Callbacks and Observability](#callbacks-and-observability)
 - [Error Handling](#error-handling)
 - [Custom HTTP Methods](#custom-http-methods)
 - [Best Practices](#best-practices)
@@ -116,15 +117,22 @@ print(f"Status: {status}")
 
 ### Other Async HTTP Methods
 
-All HTTP methods have async versions:
+All HTTP methods have async versions with identical parameters and callback support:
 
 ```python
 from aresilient import (
     put_with_automatic_retry_async,
     delete_with_automatic_retry_async,
     patch_with_automatic_retry_async,
+    head_with_automatic_retry_async,
+    options_with_automatic_retry_async,
 )
 ```
+
+**Note**: All async functions support the same parameters as their synchronous counterparts, including:
+- `max_retries`, `backoff_factor`, `jitter_factor`
+- `status_forcelist`, `retry_if`
+- `on_request`, `on_retry`, `on_success`, `on_failure` callbacks
 
 ### Using Async with httpx.AsyncClient
 
@@ -415,6 +423,456 @@ response = post_with_automatic_retry(
     files={"attachment": open("file.txt", "rb")},
 )
 ```
+
+## Callbacks and Observability
+
+`aresilient` provides a comprehensive callback/event system for observability, enabling you to hook into the retry lifecycle for logging, metrics collection, alerting, and custom behavior. This is particularly useful for production applications where you need to monitor HTTP request patterns, track retry rates, and integrate with your observability stack.
+
+### Available Callbacks
+
+The library provides four lifecycle hooks:
+
+- **`on_request`**: Called before each request attempt (including the initial request)
+- **`on_retry`**: Called before each retry (after backoff delay calculation)
+- **`on_success`**: Called when a request succeeds
+- **`on_failure`**: Called when all retries are exhausted and the request fails
+
+All callbacks are optional and can be used independently or together. They work with both synchronous and asynchronous functions.
+
+### Callback Signatures
+
+Each callback receives a dataclass with relevant information:
+
+#### RequestInfo (for `on_request`)
+
+```python
+@dataclass
+class RequestInfo:
+    url: str          # The URL being requested
+    method: str       # HTTP method (e.g., "GET", "POST")
+    attempt: int      # Current attempt number (1-indexed, first attempt is 1)
+    max_retries: int  # Maximum number of retry attempts configured
+```
+
+#### RetryInfo (for `on_retry`)
+
+```python
+@dataclass
+class RetryInfo:
+    url: str               # The URL being requested
+    method: str            # HTTP method
+    attempt: int           # Current attempt number (1-indexed, first retry is attempt 2)
+    max_retries: int       # Maximum retry attempts configured
+    wait_time: float       # Sleep time in seconds before this retry
+    error: Exception | None      # Exception that triggered the retry (if any)
+    status_code: int | None      # HTTP status code that triggered retry (if any)
+```
+
+#### ResponseInfo (for `on_success`)
+
+```python
+@dataclass
+class ResponseInfo:
+    url: str                   # The URL that was requested
+    method: str                # HTTP method
+    attempt: int               # Attempt number that succeeded (1-indexed)
+    max_retries: int           # Maximum retry attempts configured
+    response: httpx.Response   # The successful HTTP response object
+    total_time: float          # Total time spent on all attempts including backoff (seconds)
+```
+
+#### FailureInfo (for `on_failure`)
+
+```python
+@dataclass
+class FailureInfo:
+    url: str             # The URL that was requested
+    method: str          # HTTP method
+    attempt: int         # Final attempt number (1-indexed)
+    max_retries: int     # Maximum retry attempts configured
+    error: Exception     # The final exception that caused failure
+    status_code: int | None  # Final HTTP status code (if any)
+    total_time: float    # Total time spent on all attempts including backoff (seconds)
+```
+
+### Basic Logging Example
+
+Track each phase of the request lifecycle:
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+def log_request(info):
+    print(f"[REQUEST] {info.method} {info.url} - Attempt {info.attempt}/{info.max_retries + 1}")
+
+
+def log_retry(info):
+    reason = f"status={info.status_code}" if info.status_code else f"error={type(info.error).__name__}"
+    print(
+        f"[RETRY] {info.method} {info.url} - "
+        f"Attempt {info.attempt}/{info.max_retries + 1}, "
+        f"waiting {info.wait_time:.2f}s, reason={reason}"
+    )
+
+
+def log_success(info):
+    print(
+        f"[SUCCESS] {info.method} {info.url} - "
+        f"Succeeded on attempt {info.attempt} "
+        f"({info.total_time:.2f}s total, status={info.response.status_code})"
+    )
+
+
+def log_failure(info):
+    reason = f"status={info.status_code}" if info.status_code else f"error={type(info.error).__name__}"
+    print(
+        f"[FAILURE] {info.method} {info.url} - "
+        f"Failed after {info.attempt} attempts "
+        f"({info.total_time:.2f}s total), reason={reason}"
+    )
+
+
+# Use callbacks for comprehensive logging
+try:
+    response = get_with_automatic_retry(
+        "https://api.example.com/data",
+        max_retries=3,
+        on_request=log_request,
+        on_retry=log_retry,
+        on_success=log_success,
+        on_failure=log_failure,
+    )
+except Exception as e:
+    pass  # Error already logged in on_failure
+```
+
+Example output:
+```
+[REQUEST] GET https://api.example.com/data - Attempt 1/4
+[RETRY] GET https://api.example.com/data - Attempt 2/4, waiting 0.30s, reason=status=503
+[REQUEST] GET https://api.example.com/data - Attempt 2/4
+[RETRY] GET https://api.example.com/data - Attempt 3/4, waiting 0.60s, reason=status=503
+[REQUEST] GET https://api.example.com/data - Attempt 3/4
+[SUCCESS] GET https://api.example.com/data - Succeeded on attempt 3 (1.15s total, status=200)
+```
+
+### Metrics Collection Example
+
+Track statistics across multiple requests:
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+class RequestMetrics:
+    """Collect metrics for HTTP requests with retries."""
+
+    def __init__(self):
+        self.total_requests = 0
+        self.total_retries = 0
+        self.successes = 0
+        self.failures = 0
+        self.total_time = 0.0
+        self.retry_reasons = {}  # Track why retries happened
+
+    def on_request(self, info):
+        self.total_requests += 1
+
+    def on_retry(self, info):
+        self.total_retries += 1
+        # Track retry reasons
+        reason = info.status_code if info.status_code else type(info.error).__name__
+        self.retry_reasons[reason] = self.retry_reasons.get(reason, 0) + 1
+
+    def on_success(self, info):
+        self.successes += 1
+        self.total_time += info.total_time
+
+    def on_failure(self, info):
+        self.failures += 1
+        self.total_time += info.total_time
+
+    def summary(self):
+        """Print a summary of collected metrics."""
+        total_completed = self.successes + self.failures
+        success_rate = (self.successes / total_completed * 100) if total_completed > 0 else 0
+        avg_time = (self.total_time / total_completed) if total_completed > 0 else 0
+
+        print(f"=== Request Metrics Summary ===")
+        print(f"Total requests made: {self.total_requests}")
+        print(f"Total retries: {self.total_retries}")
+        print(f"Successes: {self.successes}")
+        print(f"Failures: {self.failures}")
+        print(f"Success rate: {success_rate:.1f}%")
+        print(f"Average time: {avg_time:.2f}s")
+        print(f"Retry reasons: {self.retry_reasons}")
+
+
+# Collect metrics across multiple requests
+metrics = RequestMetrics()
+
+urls = [
+    "https://api.example.com/endpoint1",
+    "https://api.example.com/endpoint2",
+    "https://api.example.com/endpoint3",
+]
+
+for url in urls:
+    try:
+        response = get_with_automatic_retry(
+            url,
+            on_request=metrics.on_request,
+            on_retry=metrics.on_retry,
+            on_success=metrics.on_success,
+            on_failure=metrics.on_failure,
+        )
+    except Exception:
+        pass  # Metrics already tracked
+
+metrics.summary()
+```
+
+### Integration with Logging Frameworks
+
+Integrate with Python's standard logging module:
+
+```python
+import logging
+from aresilient import get_with_automatic_retry
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+logger = logging.getLogger("http_client")
+
+
+def log_retry_event(info):
+    """Log retry events with structured information."""
+    logger.warning(
+        "HTTP request retry",
+        extra={
+            "url": info.url,
+            "method": info.method,
+            "attempt": info.attempt,
+            "max_retries": info.max_retries,
+            "wait_time": info.wait_time,
+            "status_code": info.status_code,
+            "error": str(info.error) if info.error else None,
+        },
+    )
+
+
+def log_failure_event(info):
+    """Log failure events with full context."""
+    logger.error(
+        "HTTP request failed after retries",
+        extra={
+            "url": info.url,
+            "method": info.method,
+            "attempts": info.attempt,
+            "total_time": info.total_time,
+            "status_code": info.status_code,
+            "error": str(info.error),
+        },
+    )
+
+
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    on_retry=log_retry_event,
+    on_failure=log_failure_event,
+)
+```
+
+### Monitoring and Alerting
+
+Send metrics to a monitoring system:
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+class MonitoringClient:
+    """Send metrics to your monitoring system (e.g., Prometheus, Datadog, CloudWatch)."""
+
+    def __init__(self):
+        # Initialize your metrics client here
+        pass
+
+    def increment_counter(self, metric_name, tags=None):
+        """Increment a counter metric."""
+        # Your implementation here
+        pass
+
+    def record_histogram(self, metric_name, value, tags=None):
+        """Record a histogram/distribution value."""
+        # Your implementation here
+        pass
+
+
+monitoring = MonitoringClient()
+
+
+def track_retry(info):
+    """Track retry events in monitoring system."""
+    monitoring.increment_counter(
+        "http.retries",
+        tags={
+            "method": info.method,
+            "status_code": str(info.status_code) if info.status_code else "network_error",
+        },
+    )
+
+
+def track_success(info):
+    """Track successful requests."""
+    monitoring.increment_counter("http.success", tags={"method": info.method})
+    monitoring.record_histogram("http.duration", info.total_time, tags={"method": info.method})
+
+
+def track_failure(info):
+    """Track failed requests."""
+    monitoring.increment_counter(
+        "http.failure",
+        tags={
+            "method": info.method,
+            "status_code": str(info.status_code) if info.status_code else "network_error",
+        },
+    )
+
+
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    on_retry=track_retry,
+    on_success=track_success,
+    on_failure=track_failure,
+)
+```
+
+### Async Callbacks
+
+Callbacks work identically with async functions:
+
+```python
+import asyncio
+from aresilient import get_with_automatic_retry_async
+
+
+async def async_log_retry(info):
+    """Callbacks for async functions are still synchronous."""
+    print(f"Retrying {info.url} after {info.wait_time:.2f}s")
+
+
+async def fetch_data():
+    response = await get_with_automatic_retry_async(
+        "https://api.example.com/data", on_retry=async_log_retry
+    )
+    return response.json()
+
+
+asyncio.run(fetch_data())
+```
+
+**Note**: Callbacks themselves are synchronous functions even when used with async HTTP methods. If you need to perform async operations in callbacks (e.g., async logging), you'll need to handle that separately.
+
+### Custom Alerting on Failures
+
+Send alerts when requests fail after all retries:
+
+```python
+from aresilient import post_with_automatic_retry
+
+
+def send_alert_on_failure(info):
+    """Send an alert when a critical API request fails."""
+    if "critical-api" in info.url:
+        alert_message = (
+            f"CRITICAL: API request failed!\n"
+            f"URL: {info.url}\n"
+            f"Method: {info.method}\n"
+            f"Attempts: {info.attempt}\n"
+            f"Total Time: {info.total_time:.2f}s\n"
+            f"Error: {info.error}\n"
+            f"Status Code: {info.status_code}"
+        )
+        # Send to your alerting system (PagerDuty, Slack, email, etc.)
+        # send_slack_alert(alert_message)
+        # send_email_alert(alert_message)
+        print(alert_message)
+
+
+try:
+    response = post_with_automatic_retry(
+        "https://critical-api.example.com/important",
+        json={"data": "value"},
+        on_failure=send_alert_on_failure,
+    )
+except Exception:
+    pass  # Alert already sent
+```
+
+### Combining Multiple Callbacks
+
+You can use multiple callbacks together for comprehensive observability:
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+class RequestObserver:
+    """Comprehensive request observer combining logging, metrics, and alerting."""
+
+    def __init__(self, logger, metrics, alerting):
+        self.logger = logger
+        self.metrics = metrics
+        self.alerting = alerting
+
+    def on_request(self, info):
+        self.logger.debug(f"Starting {info.method} {info.url}")
+        self.metrics.on_request(info)
+
+    def on_retry(self, info):
+        self.logger.warning(f"Retrying {info.method} {info.url}")
+        self.metrics.on_retry(info)
+
+    def on_success(self, info):
+        self.logger.info(f"Success {info.method} {info.url} in {info.total_time:.2f}s")
+        self.metrics.on_success(info)
+
+    def on_failure(self, info):
+        self.logger.error(f"Failed {info.method} {info.url}")
+        self.metrics.on_failure(info)
+        self.alerting.send_alert(info)
+
+
+# Create observer with your components
+observer = RequestObserver(logger, metrics, alerting)
+
+# Use all callbacks
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    on_request=observer.on_request,
+    on_retry=observer.on_retry,
+    on_success=observer.on_success,
+    on_failure=observer.on_failure,
+)
+```
+
+### Best Practices for Callbacks
+
+1. **Keep callbacks lightweight**: Callbacks are called synchronously and will block the request flow. Avoid heavy computations or blocking I/O.
+
+2. **Handle exceptions in callbacks**: If a callback raises an exception, it will propagate and potentially abort the request. Wrap callback code in try/except if needed.
+
+3. **Use structured logging**: Include relevant context (URL, method, attempt number) in log messages for better debugging.
+
+4. **Sample high-volume metrics**: For high-traffic applications, consider sampling metrics to reduce overhead.
+
+5. **Separate concerns**: Use `on_retry` for retry-specific metrics, `on_success` for latency tracking, and `on_failure` for alerting.
 
 ## Error Handling
 

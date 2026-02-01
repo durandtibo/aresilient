@@ -74,6 +74,9 @@ HTTP communications, making your applications more robust and fault-tolerant.
 - **Configurable**: Customize timeout, retry attempts, backoff factors, jitter, and retryable status codes
 - **Enhanced Error Handling**: Comprehensive error handling with detailed exception information
   including HTTP status codes and response objects
+- **Callbacks for Observability**: Built-in callback system for logging, metrics, and alerting
+  (on_request, on_retry, on_success, on_failure)
+- **Custom Retry Predicates**: Define custom logic for retry decisions based on response content or business rules
 - **Type-Safe**: Fully typed with comprehensive type hints
 - **Well-Tested**: Extensive test coverage ensuring reliability
 
@@ -303,6 +306,142 @@ def retry_on_business_error(response, exception):
     return False
 ```
 
+### Callbacks and Observability
+
+`aresilient` provides a callback/event system for observability, enabling you to hook into the retry lifecycle for logging, metrics, alerting, and custom behavior.
+
+#### Available Callbacks
+
+- **`on_request`**: Called before each request attempt
+- **`on_retry`**: Called before each retry (after backoff delay)
+- **`on_success`**: Called when a request succeeds
+- **`on_failure`**: Called when all retries are exhausted
+
+#### Example: Logging Retries
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+def log_request(info):
+    print(f"Attempting {info.method} {info.url} (attempt {info.attempt}/{info.max_retries + 1})")
+
+
+def log_retry(info):
+    print(
+        f"Retrying {info.method} {info.url} after {info.wait_time:.2f}s "
+        f"(attempt {info.attempt}/{info.max_retries + 1}), "
+        f"status={info.status_code}, error={info.error}"
+    )
+
+
+def log_success(info):
+    print(
+        f"Success! {info.method} {info.url} on attempt {info.attempt} "
+        f"({info.total_time:.2f}s total)"
+    )
+
+
+def log_failure(info):
+    print(
+        f"Failed! {info.method} {info.url} after {info.attempt} attempts "
+        f"({info.total_time:.2f}s total), final error: {info.error}"
+    )
+
+
+# Use callbacks to monitor request behavior
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    on_request=log_request,
+    on_retry=log_retry,
+    on_success=log_success,
+    on_failure=log_failure,
+)
+```
+
+#### Example: Metrics Collection
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+class MetricsCollector:
+    def __init__(self):
+        self.retry_count = 0
+        self.success_count = 0
+        self.failure_count = 0
+        self.total_time = 0.0
+
+    def on_retry(self, info):
+        self.retry_count += 1
+
+    def on_success(self, info):
+        self.success_count += 1
+        self.total_time += info.total_time
+
+    def on_failure(self, info):
+        self.failure_count += 1
+        self.total_time += info.total_time
+
+
+metrics = MetricsCollector()
+
+# Make multiple requests with metrics collection
+for url in urls:
+    try:
+        response = get_with_automatic_retry(
+            url,
+            on_retry=metrics.on_retry,
+            on_success=metrics.on_success,
+            on_failure=metrics.on_failure,
+        )
+    except Exception:
+        pass  # Metrics already recorded in on_failure
+
+print(f"Total retries: {metrics.retry_count}")
+print(f"Successes: {metrics.success_count}")
+print(f"Failures: {metrics.failure_count}")
+print(f"Average time: {metrics.total_time / (metrics.success_count + metrics.failure_count):.2f}s")
+```
+
+#### Callback Information
+
+Each callback receives a dataclass with relevant information:
+
+**`RequestInfo`** (for `on_request`):
+- `url`: The URL being requested
+- `method`: HTTP method (e.g., "GET", "POST")
+- `attempt`: Current attempt number (1-indexed)
+- `max_retries`: Maximum retry attempts configured
+
+**`RetryInfo`** (for `on_retry`):
+- `url`: The URL being requested
+- `method`: HTTP method
+- `attempt`: Current attempt number (1-indexed)
+- `max_retries`: Maximum retry attempts configured
+- `wait_time`: Sleep time in seconds before this retry
+- `error`: Exception that triggered the retry (if any)
+- `status_code`: HTTP status code that triggered retry (if any)
+
+**`ResponseInfo`** (for `on_success`):
+- `url`: The URL that was requested
+- `method`: HTTP method
+- `attempt`: Attempt number that succeeded (1-indexed)
+- `max_retries`: Maximum retry attempts configured
+- `response`: The successful HTTP response object
+- `total_time`: Total time spent on all attempts (seconds)
+
+**`FailureInfo`** (for `on_failure`):
+- `url`: The URL that was requested
+- `method`: HTTP method
+- `attempt`: Final attempt number (1-indexed)
+- `max_retries`: Maximum retry attempts configured
+- `error`: The final exception that caused failure
+- `status_code`: Final HTTP status code (if any)
+- `total_time`: Total time spent on all attempts (seconds)
+
+All callbacks work with both synchronous and async functions.
+
 ## Configuration
 
 ### Default Settings
@@ -364,6 +503,10 @@ Performs an HTTP GET request with automatic retry logic.
 - `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
 - `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
 - `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate function to determine whether to retry. If provided, takes precedence over `status_forcelist`. Called with `(response, exception)` and should return `True` to retry, `False` otherwise.
+- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
+- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
+- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
+- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are exhausted
 - `**kwargs`: Additional arguments passed to `httpx.Client.get()`
 
 **Returns:** `httpx.Response`
@@ -385,6 +528,12 @@ Performs an HTTP POST request with automatic retry logic.
 - `max_retries` (int): Maximum number of retry attempts
 - `backoff_factor` (float): Exponential backoff factor
 - `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
+- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate function to determine whether to retry
+- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
+- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
+- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
+- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are exhausted
 - `**kwargs`: Additional arguments passed to `httpx.Client.post()`
 
 **Returns:** `httpx.Response`
@@ -406,6 +555,12 @@ Performs an HTTP PUT request with automatic retry logic.
 - `max_retries` (int): Maximum number of retry attempts
 - `backoff_factor` (float): Exponential backoff factor
 - `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
+- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate function to determine whether to retry
+- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
+- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
+- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
+- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are exhausted
 - `**kwargs`: Additional arguments passed to `httpx.Client.put()`
 
 **Returns:** `httpx.Response`
@@ -427,6 +582,12 @@ Performs an HTTP DELETE request with automatic retry logic.
 - `max_retries` (int): Maximum number of retry attempts
 - `backoff_factor` (float): Exponential backoff factor
 - `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
+- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate function to determine whether to retry
+- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
+- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
+- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
+- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are exhausted
 - `**kwargs`: Additional arguments passed to `httpx.Client.delete()`
 
 **Returns:** `httpx.Response`
@@ -448,6 +609,12 @@ Performs an HTTP PATCH request with automatic retry logic.
 - `max_retries` (int): Maximum number of retry attempts
 - `backoff_factor` (float): Exponential backoff factor
 - `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
+- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate function to determine whether to retry
+- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
+- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
+- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
+- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are exhausted
 - `**kwargs`: Additional arguments passed to `httpx.Client.patch()`
 
 **Returns:** `httpx.Response`
@@ -469,6 +636,12 @@ Performs an HTTP HEAD request with automatic retry logic.
 - `max_retries` (int): Maximum number of retry attempts
 - `backoff_factor` (float): Exponential backoff factor
 - `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
+- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate function to determine whether to retry
+- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
+- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
+- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
+- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are exhausted
 - `**kwargs`: Additional arguments passed to `httpx.Client.head()`
 
 **Returns:** `httpx.Response`
@@ -492,6 +665,12 @@ Performs an HTTP OPTIONS request with automatic retry logic.
 - `max_retries` (int): Maximum number of retry attempts
 - `backoff_factor` (float): Exponential backoff factor
 - `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
+- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate function to determine whether to retry
+- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
+- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
+- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
+- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are exhausted
 - `**kwargs`: Additional arguments passed to `httpx.Client.options()`
 
 **Returns:** `httpx.Response`
