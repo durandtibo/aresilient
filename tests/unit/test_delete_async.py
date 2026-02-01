@@ -1,7 +1,8 @@
 r"""Unit tests for delete_with_automatic_retry_async function.
 
-This file contains tests that are specific to the async DELETE HTTP method.
-Common tests across all async HTTP methods are in test_core_async.py.
+This file contains tests that are specific to the async DELETE HTTP
+method. Common tests across all async HTTP methods are in
+test_core_async.py.
 """
 
 from __future__ import annotations
@@ -33,7 +34,8 @@ async def test_delete_with_automatic_retry_async_with_data(
 ) -> None:
     """Test async DELETE request with form data.
 
-    This is DELETE-specific because some APIs accept data with DELETE requests.
+    This is DELETE-specific because some APIs accept data with DELETE
+    requests.
     """
     mock_response = Mock(spec=httpx.Response, status_code=204)
     mock_client.delete = AsyncMock(return_value=mock_response)

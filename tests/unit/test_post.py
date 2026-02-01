@@ -30,7 +30,8 @@ def mock_client() -> httpx.Client:
 def test_post_with_automatic_retry_with_data(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test POST request with form data.
 
-    This is POST-specific because form data submission is typically done with POST requests.
+    This is POST-specific because form data submission is typically done
+    with POST requests.
     """
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_client.post = Mock(return_value=mock_response)

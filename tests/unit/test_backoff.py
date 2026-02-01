@@ -1,23 +1,17 @@
 r"""Parametrized unit tests for backoff and jitter functionality.
 
-This test module tests backoff and jitter behavior across all HTTP methods
-using pytest parametrization.
+This test module tests backoff and jitter behavior across all HTTP
+methods using pytest parametrization.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import Mock, call, patch
 
 import httpx
 import pytest
 
-from aresilient import HttpRequestError
-
 from .helpers import HTTP_METHODS, HttpMethodTestCase
-
-if TYPE_CHECKING:
-    pass
 
 TEST_URL = "https://api.example.com/data"
 

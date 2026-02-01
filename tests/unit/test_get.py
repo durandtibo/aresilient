@@ -30,7 +30,8 @@ def mock_client() -> httpx.Client:
 def test_get_with_automatic_retry_with_params(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test GET request with query parameters.
 
-    This is GET-specific because query parameters are typically used with GET requests.
+    This is GET-specific because query parameters are typically used
+    with GET requests.
     """
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_client.get = Mock(return_value=mock_response)

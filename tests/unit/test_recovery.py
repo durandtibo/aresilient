@@ -1,4 +1,5 @@
-r"""Parametrized unit tests for recovery functionality in all HTTP method wrappers.
+r"""Parametrized unit tests for recovery functionality in all HTTP method
+wrappers.
 
 This test module tests recovery behavior after various types of failures
 across all HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS).

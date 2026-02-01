@@ -1,7 +1,8 @@
 r"""Unit tests for post_with_automatic_retry_async function.
 
-This file contains tests that are specific to the async POST HTTP method.
-Common tests across all async HTTP methods are in test_core_async.py.
+This file contains tests that are specific to the async POST HTTP
+method. Common tests across all async HTTP methods are in
+test_core_async.py.
 """
 
 from __future__ import annotations
@@ -33,7 +34,8 @@ async def test_post_with_automatic_retry_async_with_data(
 ) -> None:
     """Test async POST request with form data.
 
-    This is POST-specific because form data submission is typically done with POST requests.
+    This is POST-specific because form data submission is typically done
+    with POST requests.
     """
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_client.post = AsyncMock(return_value=mock_response)
