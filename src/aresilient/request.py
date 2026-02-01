@@ -161,7 +161,7 @@ def request_with_automatic_retry(
                 return response
 
             # Client/Server error: check if it's retryable
-            handle_response(response, url, method, status_forcelist)
+            handle_response(response, url, method=method, status_forcelist=status_forcelist)
 
             # Retryable HTTP status - log and continue to retry
             logger.debug(
@@ -173,7 +173,7 @@ def request_with_automatic_retry(
         except httpx.TimeoutException as exc:
             last_error = exc
             try:
-                handle_timeout_exception(exc, url, method, attempt, max_retries)
+                handle_timeout_exception(exc, url, method=method, attempt=attempt, max_retries=max_retries)
             except HttpRequestError as err:
                 # This is the final attempt - call on_failure callback
                 if on_failure is not None:
@@ -193,7 +193,7 @@ def request_with_automatic_retry(
         except httpx.RequestError as exc:
             last_error = exc
             try:
-                handle_request_error(exc, url, method, attempt, max_retries)
+                handle_request_error(exc, url, method=method, attempt=attempt, max_retries=max_retries)
             except HttpRequestError as err:
                 # This is the final attempt - call on_failure callback
                 if on_failure is not None:
@@ -212,7 +212,7 @@ def request_with_automatic_retry(
 
         # Exponential backoff with jitter before next retry (skip on last attempt since we're about to fail)
         if attempt < max_retries:
-            sleep_time = calculate_sleep_time(attempt, backoff_factor, jitter_factor, response)
+            sleep_time = calculate_sleep_time(attempt, backoff_factor, jitter_factor=jitter_factor, response=response)
 
             # Call on_retry callback before sleeping
             if on_retry is not None:

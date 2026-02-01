@@ -59,7 +59,7 @@ def test_validate_retry_params_rejects_negative_jitter_factor() -> None:
     """Test that validate_retry_params rejects negative
     jitter_factor."""
     with pytest.raises(ValueError, match=r"jitter_factor must be >= 0, got -0.1"):
-        validate_retry_params(3, 0.5, -0.1)
+        validate_retry_params(3, 0.5, jitter_factor=-0.1)
 
 
 def test_validate_retry_params_accepts_valid_timeout() -> None:
@@ -181,7 +181,7 @@ def test_handle_response_retryable_status() -> None:
     mock_response = Mock(spec=httpx.Response, status_code=503)
 
     # Should not raise for status in forcelist
-    handle_response(mock_response, TEST_URL, "GET", (503, 500))
+    handle_response(mock_response, TEST_URL, method="GET", status_forcelist=(503, 500))
 
 
 def test_handle_response_non_retryable_status() -> None:
@@ -189,7 +189,7 @@ def test_handle_response_non_retryable_status() -> None:
     mock_response = Mock(spec=httpx.Response, status_code=404)
 
     with pytest.raises(HttpRequestError, match=r"failed with status 404") as exc_info:
-        handle_response(mock_response, TEST_URL, "GET", (503, 500))
+        handle_response(mock_response, TEST_URL, method="GET", status_forcelist=(503, 500))
 
     error = exc_info.value
     assert error.method == "GET"
@@ -204,7 +204,7 @@ def test_handle_response_various_non_retryable_codes(status_code: int) -> None:
     mock_response = Mock(spec=httpx.Response, status_code=status_code)
 
     with pytest.raises(HttpRequestError, match=rf"failed with status {status_code}") as exc_info:
-        handle_response(mock_response, TEST_URL, "POST", (500, 503))
+        handle_response(mock_response, TEST_URL, method="POST", status_forcelist=(500, 503))
 
     assert exc_info.value.status_code == status_code
 
@@ -231,7 +231,7 @@ def test_handle_timeout_exception_at_max_retries() -> None:
         HttpRequestError,
         match=r"GET request to https://api.example.com/data timed out \(4 attempts\)",
     ) as exc_info:
-        handle_timeout_exception(exc, TEST_URL, "GET", 3, 3)
+        handle_timeout_exception(exc, TEST_URL, method="GET", attempt=3, max_retries=3)
 
     error = exc_info.value
     assert error.method == "GET"
@@ -247,7 +247,7 @@ def test_handle_timeout_exception_zero_max_retries() -> None:
         HttpRequestError,
         match=r"POST request to https://api.example.com/data timed out \(1 attempts\)",
     ):
-        handle_timeout_exception(exc, TEST_URL, "POST", 0, 0)
+        handle_timeout_exception(exc, TEST_URL, method="POST", attempt=0, max_retries=0)
 
 
 def test_handle_timeout_exception_preserves_cause() -> None:
@@ -258,7 +258,7 @@ def test_handle_timeout_exception_preserves_cause() -> None:
         HttpRequestError,
         match=r"GET request to https://api.example.com/data timed out \(3 attempts\)",
     ) as exc_info:
-        handle_timeout_exception(exc, TEST_URL, "GET", 2, 2)
+        handle_timeout_exception(exc, TEST_URL, method="GET", attempt=2, max_retries=2)
 
     assert exc_info.value.__cause__ == exc
 
@@ -288,7 +288,7 @@ def test_handle_request_error_at_max_retries() -> None:
             r"Connection failed"
         ),
     ) as exc_info:
-        handle_request_error(exc, TEST_URL, "GET", 3, 3)
+        handle_request_error(exc, TEST_URL, method="GET", attempt=3, max_retries=3)
 
     error = exc_info.value
     assert error.method == "GET"
@@ -307,7 +307,7 @@ def test_handle_request_error_zero_max_retries() -> None:
             r"Connection refused"
         ),
     ):
-        handle_request_error(exc, TEST_URL, "POST", 0, 0)
+        handle_request_error(exc, TEST_URL, method="POST", attempt=0, max_retries=0)
 
 
 def test_handle_request_error_preserves_cause() -> None:
@@ -315,7 +315,7 @@ def test_handle_request_error_preserves_cause() -> None:
     exc = httpx.ConnectError("Connection refused")
 
     with pytest.raises(HttpRequestError) as exc_info:
-        handle_request_error(exc, TEST_URL, "GET", 2, 2)
+        handle_request_error(exc, TEST_URL, method="GET", attempt=2, max_retries=2)
 
     assert exc_info.value.__cause__ == exc
 
@@ -332,6 +332,6 @@ def test_handle_request_error_preserves_cause() -> None:
 def test_handle_request_error_various_error_types(exc: httpx.RequestError) -> None:
     """Test handling of various request error types."""
     with pytest.raises(HttpRequestError) as exc_info:
-        handle_request_error(exc, TEST_URL, "GET", 1, 1)
+        handle_request_error(exc, TEST_URL, method="GET", attempt=1, max_retries=1)
 
     assert exc_info.value.__cause__ == exc

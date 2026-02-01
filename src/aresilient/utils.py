@@ -34,6 +34,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 def validate_retry_params(
     max_retries: int,
     backoff_factor: float,
+    *,
     jitter_factor: float = 0.0,
     timeout: float | httpx.Timeout | None = None,
 ) -> None:
@@ -137,6 +138,7 @@ def parse_retry_after(retry_after_header: str | None) -> float | None:
 def calculate_sleep_time(
     attempt: int,
     backoff_factor: float,
+    *,
     jitter_factor: float,
     response: httpx.Response | None,
 ) -> float:
@@ -175,13 +177,13 @@ def calculate_sleep_time(
         ```pycon
         >>> from aresilient.utils import calculate_sleep_time
         >>> # First retry with backoff_factor=0.3, no jitter
-        >>> calculate_sleep_time(0, 0.3, 0.0, None)
+        >>> calculate_sleep_time(0, 0.3, jitter_factor=0.0, response=None)
         0.3
         >>> # Second retry
-        >>> calculate_sleep_time(1, 0.3, 0.0, None)
+        >>> calculate_sleep_time(1, 0.3, jitter_factor=0.0, response=None)
         0.6
         >>> # Third retry
-        >>> calculate_sleep_time(2, 0.3, 0.0, None)
+        >>> calculate_sleep_time(2, 0.3, jitter_factor=0.0, response=None)
         1.2
 
         ```
@@ -216,6 +218,7 @@ def calculate_sleep_time(
 def handle_response(
     response: httpx.Response,
     url: str,
+    *,
     method: str,
     status_forcelist: tuple[int, ...],
 ) -> None:
@@ -266,6 +269,7 @@ def handle_response(
 def handle_timeout_exception(
     exc: Exception,
     url: str,
+    *,
     method: str,
     attempt: int,
     max_retries: int,
@@ -312,6 +316,7 @@ def handle_timeout_exception(
 def handle_request_error(
     exc: Exception,
     url: str,
+    *,
     method: str,
     attempt: int,
     max_retries: int,
