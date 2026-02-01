@@ -64,20 +64,27 @@ Standalone validation script that:
 
 ### File Naming
 
-1. **Synchronous Tests:** `test_<feature>.py`
+Tests are organized by synchronous vs. asynchronous execution:
+
+**Synchronous Tests:** `test_<feature>.py`
    - Example: `test_retry_if.py` (sync tests for custom retry predicates)
    - Example: `test_get.py` (sync tests for GET requests)
 
-2. **Asynchronous Tests:** `test_<feature>_async.py`
+**Asynchronous Tests:** `test_<feature>_async.py`
    - Example: `test_retry_if_async.py` (async tests for custom retry predicates)
    - Example: `test_get_async.py` (async tests for GET requests)
    - All async test files end with `_async.py` suffix
 
-3. **Feature-Specific Tests:**
-   - HTTP Methods: `test_get.py`, `test_post.py`, `test_put.py`, `test_delete.py`, `test_patch.py`, `test_head.py`, `test_options.py`
-   - Core Features: `test_core.py`, `test_retry.py`, `test_backoff.py`, `test_callbacks.py`
-   - Specific Features: `test_retry_if.py`, `test_retry_after.py`, `test_recovery.py`
-   - Utilities: `test_utils.py`, `test_config.py`, `test_exceptions.py`, `test_dataclasses.py`
+### Common Test Files
+
+The following feature-specific test files follow the above naming pattern:
+
+- **HTTP Methods:** `test_get.py`, `test_post.py`, `test_put.py`, `test_delete.py`, `test_patch.py`, `test_head.py`, `test_options.py`
+- **Core Features:** `test_core.py`, `test_retry.py`, `test_backoff.py`, `test_callbacks.py`
+- **Specific Features:** `test_retry_if.py`, `test_retry_after.py`, `test_recovery.py`
+- **Utilities:** `test_utils.py`, `test_config.py`, `test_exceptions.py`, `test_dataclasses.py`
+
+Each of these has an async counterpart with the `_async.py` suffix where applicable.
 
 ### Test Function Naming
 
@@ -184,8 +191,14 @@ def test_successful_request_with_custom_client(
     mock_sleep: Mock,
 ) -> None:
     """Test successful request with custom client."""
+    # Setup mock client and response
+    test_url = "https://api.example.com/data"
+    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
+    mock_client = Mock(spec=httpx.Client)
+    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
+    
     # Test logic that works for all HTTP methods
-    response = test_case.method_func(TEST_URL, client=mock_client)
+    response = test_case.method_func(test_url, client=mock_client)
     assert response.status_code == test_case.status_code
 ```
 
