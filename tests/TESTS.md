@@ -33,8 +33,6 @@ Unit tests validate individual components in isolation using mocked dependencies
 - Test edge cases, error conditions, and business logic
 - Use fixtures like `mock_sleep` and `mock_asleep` to avoid actual delays
 
-**File Count:** 37 test files
-
 **Examples:**
 - `test_retry_if.py` - Tests for custom retry predicates (synchronous)
 - `test_callbacks.py` - Tests for callback/event system
@@ -48,8 +46,6 @@ Integration tests validate the library against real HTTP endpoints. These tests:
 - Verify end-to-end functionality
 - Test real retry behavior, timeouts, and network errors
 - Run slower than unit tests
-
-**File Count:** 17 test files
 
 **Examples:**
 - `test_get.py` - Integration tests for GET requests
@@ -289,13 +285,15 @@ pytest tests/ --cov=aresilient --cov-report=html
 
 ## Test Statistics
 
-- **Total Unit Tests:** 37 test files
-- **Total Integration Tests:** 17 test files
-- **Async Test Files:** 23 files (ending with `_async.py`)
-
-To get the current test count, run:
+To get current test statistics, run:
 ```bash
+# Get total test count
 pytest tests/ --collect-only
+
+# Count test files by category
+find tests/unit -name "*.py" ! -name "__init__.py" | wc -l      # Unit test files
+find tests/integration -name "*.py" ! -name "__init__.py" | wc -l  # Integration test files
+find tests -name "*_async.py" | wc -l                            # Async test files
 ```
 
 ## Adding New Tests
