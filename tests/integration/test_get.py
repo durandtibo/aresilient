@@ -37,3 +37,21 @@ def test_get_with_automatic_retry_large_response() -> None:
 
     assert response.status_code == 200
     assert len(response.content) == 10240
+
+
+def test_get_with_automatic_retry_with_custom_headers() -> None:
+    """Test GET request with custom headers."""
+    with httpx.Client() as client:
+        response = get_with_automatic_retry(
+            url=f"{HTTPBIN_URL}/headers",
+            client=client,
+            headers={"X-Custom-Header": "test-value"},
+        )
+
+    assert response.status_code == 200
+
+    # Verify headers in response
+    response_data = response.json()
+    assert "headers" in response_data
+    assert "X-Custom-Header" in response_data["headers"]
+    assert response_data["headers"]["X-Custom-Header"] == "test-value"

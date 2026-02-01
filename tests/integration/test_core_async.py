@@ -13,58 +13,89 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
-async def test_http_method_async_successful_request_with_client(
+@pytest.mark.parametrize(
+    "test_case",
+    [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].supports_body],
+)
+async def test_http_method_async_successful_request_with_client_with_body(
     test_case: AsyncHttpMethodTestCase,
 ) -> None:
-    """Test successful async HTTP request with explicit client."""
+    """Test successful async HTTP request with explicit client for methods that support body."""
     tc = test_case
     async with httpx.AsyncClient() as client:
-        if tc.supports_body:
-            response = await tc.method_func(
-                url=tc.test_url,
-                json={"test": "data", "number": 42},
-                client=client,
-            )
-        else:
-            response = await tc.method_func(url=tc.test_url, client=client)
-
-    assert response.status_code == 200 or (
-        tc.method_name == "OPTIONS" and response.status_code == 405
-    )
-
-    # Verify response data (except for HEAD and OPTIONS which have no body)
-    if tc.method_name not in ("HEAD", "OPTIONS"):
-        response_data = response.json()
-        assert tc.test_url in response_data["url"]
-        if tc.supports_body:
-            assert response_data["json"] == {"test": "data", "number": 42}
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
-async def test_http_method_async_successful_request_without_client(
-    test_case: AsyncHttpMethodTestCase,
-) -> None:
-    """Test successful async HTTP request without explicit client."""
-    tc = test_case
-    if tc.supports_body:
         response = await tc.method_func(
             url=tc.test_url,
             json={"test": "data", "number": 42},
+            client=client,
         )
-    else:
-        response = await tc.method_func(url=tc.test_url)
 
-    assert response.status_code == 200 or (
-        tc.method_name == "OPTIONS" and response.status_code == 405
+    assert response.status_code == 200
+
+    # Verify response data
+    response_data = response.json()
+    assert tc.test_url in response_data["url"]
+    assert response_data["json"] == {"test": "data", "number": 42}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "test_case",
+    [tc for tc in HTTP_METHODS_ASYNC if not tc.values[0].supports_body and tc.values[0].method_name not in ("HEAD", "OPTIONS")],
+)
+async def test_http_method_async_successful_request_with_client_without_body(
+    test_case: AsyncHttpMethodTestCase,
+) -> None:
+    """Test successful async HTTP request with explicit client for methods without body support."""
+    tc = test_case
+    async with httpx.AsyncClient() as client:
+        response = await tc.method_func(url=tc.test_url, client=client)
+
+    assert response.status_code == 200
+
+    # Verify response data
+    response_data = response.json()
+    assert tc.test_url in response_data["url"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "test_case",
+    [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].supports_body],
+)
+async def test_http_method_async_successful_request_without_client_with_body(
+    test_case: AsyncHttpMethodTestCase,
+) -> None:
+    """Test successful async HTTP request without explicit client for methods that support body."""
+    tc = test_case
+    response = await tc.method_func(
+        url=tc.test_url,
+        json={"test": "data", "number": 42},
     )
 
-    # Verify response data (except for HEAD and OPTIONS which have no body)
-    if tc.method_name not in ("HEAD", "OPTIONS"):
-        response_data = response.json()
-        if tc.supports_body:
-            assert response_data["json"] == {"test": "data", "number": 42}
+    assert response.status_code == 200
+
+    # Verify response data
+    response_data = response.json()
+    assert response_data["json"] == {"test": "data", "number": 42}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "test_case",
+    [tc for tc in HTTP_METHODS_ASYNC if not tc.values[0].supports_body and tc.values[0].method_name not in ("HEAD", "OPTIONS")],
+)
+async def test_http_method_async_successful_request_without_client_without_body(
+    test_case: AsyncHttpMethodTestCase,
+) -> None:
+    """Test successful async HTTP request without explicit client for methods without body support."""
+    tc = test_case
+    response = await tc.method_func(url=tc.test_url)
+
+    assert response.status_code == 200
+
+    # Verify response data
+    response_data = response.json()
+    assert "url" in response_data
 
 
 @pytest.mark.asyncio
@@ -86,44 +117,56 @@ async def test_http_method_async_non_retryable_status_fails_immediately(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
-async def test_http_method_async_with_custom_headers(test_case: AsyncHttpMethodTestCase) -> None:
-    """Test async HTTP request with custom headers."""
+@pytest.mark.parametrize(
+    "test_case",
+    [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].supports_body],
+)
+async def test_http_method_async_with_custom_headers_with_body(
+    test_case: AsyncHttpMethodTestCase,
+) -> None:
+    """Test async HTTP request with custom headers for methods that support body."""
     tc = test_case
     async with httpx.AsyncClient() as client:
-        if tc.supports_body:
-            response = await tc.method_func(
-                url=tc.test_url,
-                client=client,
-                json={"test": "data"},
-                headers={"X-Custom-Header": "test-value"},
-            )
-        else:
-            # Use /headers endpoint for GET and HEAD to verify headers, otherwise use method's test_url
-            if tc.method_name in ("GET", "HEAD"):
-                test_endpoint = f"{HTTPBIN_URL}/headers"
-            else:
-                test_endpoint = tc.test_url
-            response = await tc.method_func(
-                url=test_endpoint,
-                client=client,
-                headers={"X-Custom-Header": "test-value"},
-            )
+        response = await tc.method_func(
+            url=tc.test_url,
+            client=client,
+            json={"test": "data"},
+            headers={"X-Custom-Header": "test-value"},
+        )
 
-    assert response.status_code == 200 or (
-        tc.method_name == "OPTIONS" and response.status_code == 405
-    )
+    assert response.status_code == 200
 
-    # Verify headers in response (except for HEAD which has no body)
-    if tc.method_name == "HEAD":
-        # HEAD request should succeed but have no body
-        assert len(response.content) == 0
-    elif tc.method_name != "OPTIONS":
-        # For OPTIONS, httpbin might not return the headers in the body
-        response_data = response.json()
-        if "headers" in response_data:
-            assert "X-Custom-Header" in response_data["headers"]
-            assert response_data["headers"]["X-Custom-Header"] == "test-value"
+    # Verify headers in response
+    response_data = response.json()
+    assert "headers" in response_data
+    assert "X-Custom-Header" in response_data["headers"]
+    assert response_data["headers"]["X-Custom-Header"] == "test-value"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "test_case",
+    [tc for tc in HTTP_METHODS_ASYNC if not tc.values[0].supports_body and tc.values[0].method_name not in ("GET", "HEAD", "OPTIONS")],
+)
+async def test_http_method_async_with_custom_headers_without_body(
+    test_case: AsyncHttpMethodTestCase,
+) -> None:
+    """Test async HTTP request with custom headers for methods without body support (except GET, HEAD, OPTIONS)."""
+    tc = test_case
+    async with httpx.AsyncClient() as client:
+        response = await tc.method_func(
+            url=tc.test_url,
+            client=client,
+            headers={"X-Custom-Header": "test-value"},
+        )
+
+    assert response.status_code == 200
+
+    # Verify headers in response
+    response_data = response.json()
+    assert "headers" in response_data
+    assert "X-Custom-Header" in response_data["headers"]
+    assert response_data["headers"]["X-Custom-Header"] == "test-value"
 
 
 @pytest.mark.asyncio

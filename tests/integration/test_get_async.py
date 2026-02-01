@@ -44,3 +44,22 @@ async def test_get_with_automatic_retry_async_large_response() -> None:
 
     assert response.status_code == 200
     assert len(response.content) == 10240
+
+
+@pytest.mark.asyncio
+async def test_get_with_automatic_retry_async_with_custom_headers() -> None:
+    """Test async GET request with custom headers."""
+    async with httpx.AsyncClient() as client:
+        response = await get_with_automatic_retry_async(
+            url=f"{HTTPBIN_URL}/headers",
+            client=client,
+            headers={"X-Custom-Header": "test-value"},
+        )
+
+    assert response.status_code == 200
+
+    # Verify headers in response
+    response_data = response.json()
+    assert "headers" in response_data
+    assert "X-Custom-Header" in response_data["headers"]
+    assert response_data["headers"]["X-Custom-Header"] == "test-value"
