@@ -292,8 +292,11 @@ pytest tests/ --cov=aresilient --cov-report=html
 - **Total Unit Tests:** 37 test files
 - **Total Integration Tests:** 17 test files
 - **Async Test Files:** 23 files (ending with `_async.py`)
-- **Total Test Count:** 789+ test cases (as of latest run)
-- **Test Pass Rate:** 100%
+
+To get the current test count, run:
+```bash
+pytest tests/ --collect-only
+```
 
 ## Adding New Tests
 
