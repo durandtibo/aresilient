@@ -8,6 +8,7 @@ PATCH, HEAD, OPTIONS) in a consistent and maintainable way.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock
 
@@ -31,55 +32,51 @@ if TYPE_CHECKING:
 TEST_URL = "https://api.example.com/data"
 
 
+@dataclass
+class AsyncHttpMethodTestCase:
+    """Test case definition for async HTTP method testing.
+
+    Attributes:
+        method_name: The HTTP method name (e.g., "GET", "POST").
+        method_func: The async function to test (e.g., get_with_automatic_retry_async).
+        client_method: The httpx.AsyncClient method name (e.g., "get", "post").
+        success_code: Expected success status code. Optional, not used in all tests.
+    """
+
+    method_name: str
+    method_func: Callable[..., httpx.Response]
+    client_method: str
+    success_code: int | None = None
+
+
 # Define test parameters for all async HTTP methods
 HTTP_METHODS_ASYNC = [
     pytest.param(
-        "GET",
-        get_with_automatic_retry_async,
-        "get",
-        200,
+        AsyncHttpMethodTestCase("GET", get_with_automatic_retry_async, "get", 200),
         id="GET",
     ),
     pytest.param(
-        "POST",
-        post_with_automatic_retry_async,
-        "post",
-        201,
+        AsyncHttpMethodTestCase("POST", post_with_automatic_retry_async, "post", 201),
         id="POST",
     ),
     pytest.param(
-        "PUT",
-        put_with_automatic_retry_async,
-        "put",
-        200,
+        AsyncHttpMethodTestCase("PUT", put_with_automatic_retry_async, "put", 200),
         id="PUT",
     ),
     pytest.param(
-        "DELETE",
-        delete_with_automatic_retry_async,
-        "delete",
-        204,
+        AsyncHttpMethodTestCase("DELETE", delete_with_automatic_retry_async, "delete", 204),
         id="DELETE",
     ),
     pytest.param(
-        "PATCH",
-        patch_with_automatic_retry_async,
-        "patch",
-        200,
+        AsyncHttpMethodTestCase("PATCH", patch_with_automatic_retry_async, "patch", 200),
         id="PATCH",
     ),
     pytest.param(
-        "HEAD",
-        head_with_automatic_retry_async,
-        "head",
-        200,
+        AsyncHttpMethodTestCase("HEAD", head_with_automatic_retry_async, "head", 200),
         id="HEAD",
     ),
     pytest.param(
-        "OPTIONS",
-        options_with_automatic_retry_async,
-        "options",
-        200,
+        AsyncHttpMethodTestCase("OPTIONS", options_with_automatic_retry_async, "options", 200),
         id="OPTIONS",
     ),
 ]
@@ -92,103 +89,89 @@ HTTP_METHODS_ASYNC = [
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "success_code"), HTTP_METHODS_ASYNC
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_http_method_async_on_request_callback(
-    method_name: str,
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    success_code: int,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test that on_request callback is called for all async HTTP
     methods."""
     on_request_callback = Mock()
-    mock_response = Mock(spec=httpx.Response, status_code=success_code)
+    mock_response = Mock(spec=httpx.Response, status_code=test_case.success_code)
     mock_async_client = Mock(spec=httpx.AsyncClient)
-    setattr(mock_async_client, client_method, AsyncMock(return_value=mock_response))
+    setattr(mock_async_client, test_case.client_method, AsyncMock(return_value=mock_response))
 
-    response = await method_func(TEST_URL, client=mock_async_client, on_request=on_request_callback)
+    response = await test_case.method_func(
+        TEST_URL, client=mock_async_client, on_request=on_request_callback
+    )
 
-    assert response.status_code == success_code
+    assert response.status_code == test_case.success_code
     on_request_callback.assert_called_once()
     call_args = on_request_callback.call_args[0][0]
     assert call_args["url"] == TEST_URL
-    assert call_args["method"] == method_name
+    assert call_args["method"] == test_case.method_name
     assert call_args["attempt"] == 1
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "success_code"), HTTP_METHODS_ASYNC
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_http_method_async_on_success_callback(
-    method_name: str,
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    success_code: int,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test that on_success callback is called for successful async HTTP
     requests."""
     on_success_callback = Mock()
-    mock_response = Mock(spec=httpx.Response, status_code=success_code)
+    mock_response = Mock(spec=httpx.Response, status_code=test_case.success_code)
     mock_async_client = Mock(spec=httpx.AsyncClient)
-    setattr(mock_async_client, client_method, AsyncMock(return_value=mock_response))
+    setattr(mock_async_client, test_case.client_method, AsyncMock(return_value=mock_response))
 
-    response = await method_func(TEST_URL, client=mock_async_client, on_success=on_success_callback)
+    response = await test_case.method_func(
+        TEST_URL, client=mock_async_client, on_success=on_success_callback
+    )
 
-    assert response.status_code == success_code
+    assert response.status_code == test_case.success_code
     on_success_callback.assert_called_once()
     call_args = on_success_callback.call_args[0][0]
     assert call_args["url"] == TEST_URL
-    assert call_args["method"] == method_name
-    assert call_args["response"].status_code == success_code
+    assert call_args["method"] == test_case.method_name
+    assert call_args["response"].status_code == test_case.success_code
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "success_code"), HTTP_METHODS_ASYNC
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_http_method_async_on_retry_callback(
-    method_name: str,
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    success_code: int,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test that on_retry callback is called when async HTTP request is
     retried."""
     on_retry_callback = Mock()
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_success_response = Mock(spec=httpx.Response, status_code=success_code)
+    mock_success_response = Mock(spec=httpx.Response, status_code=test_case.success_code)
     mock_async_client = Mock(spec=httpx.AsyncClient)
     setattr(
         mock_async_client,
-        client_method,
+        test_case.client_method,
         AsyncMock(side_effect=[mock_fail_response, mock_success_response]),
     )
 
-    response = await method_func(TEST_URL, client=mock_async_client, on_retry=on_retry_callback)
+    response = await test_case.method_func(
+        TEST_URL, client=mock_async_client, on_retry=on_retry_callback
+    )
 
-    assert response.status_code == success_code
+    assert response.status_code == test_case.success_code
     on_retry_callback.assert_called_once()
     call_args = on_retry_callback.call_args[0][0]
     assert call_args["url"] == TEST_URL
-    assert call_args["method"] == method_name
+    assert call_args["method"] == test_case.method_name
     assert call_args["status_code"] == 503
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "success_code"), HTTP_METHODS_ASYNC
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_http_method_async_on_failure_callback(
-    method_name: str,
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    success_code: int,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test that on_failure callback is called when async retries are
@@ -196,10 +179,10 @@ async def test_http_method_async_on_failure_callback(
     on_failure_callback = Mock()
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_async_client = Mock(spec=httpx.AsyncClient)
-    setattr(mock_async_client, client_method, AsyncMock(return_value=mock_fail_response))
+    setattr(mock_async_client, test_case.client_method, AsyncMock(return_value=mock_fail_response))
 
     with pytest.raises(HttpRequestError):
-        await method_func(
+        await test_case.method_func(
             TEST_URL,
             client=mock_async_client,
             max_retries=2,
@@ -209,19 +192,14 @@ async def test_http_method_async_on_failure_callback(
     on_failure_callback.assert_called_once()
     call_args = on_failure_callback.call_args[0][0]
     assert call_args["url"] == TEST_URL
-    assert call_args["method"] == method_name
+    assert call_args["method"] == test_case.method_name
     assert call_args["status_code"] == 503
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "success_code"), HTTP_METHODS_ASYNC
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_http_method_async_all_callbacks_together(
-    method_name: str,
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    success_code: int,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test that all callbacks work together for async HTTP requests."""
@@ -231,15 +209,15 @@ async def test_http_method_async_all_callbacks_together(
     on_failure_callback = Mock()
 
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_success_response = Mock(spec=httpx.Response, status_code=success_code)
+    mock_success_response = Mock(spec=httpx.Response, status_code=test_case.success_code)
     mock_async_client = Mock(spec=httpx.AsyncClient)
     setattr(
         mock_async_client,
-        client_method,
+        test_case.client_method,
         AsyncMock(side_effect=[mock_fail_response, mock_success_response]),
     )
 
-    response = await method_func(
+    response = await test_case.method_func(
         TEST_URL,
         client=mock_async_client,
         on_request=on_request_callback,
@@ -248,7 +226,7 @@ async def test_http_method_async_all_callbacks_together(
         on_failure=on_failure_callback,
     )
 
-    assert response.status_code == success_code
+    assert response.status_code == test_case.success_code
     assert on_request_callback.call_count == 2  # Two attempts
     on_retry_callback.assert_called_once()  # One retry
     on_success_callback.assert_called_once()  # One success
@@ -256,14 +234,9 @@ async def test_http_method_async_all_callbacks_together(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "success_code"), HTTP_METHODS_ASYNC
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_http_method_async_callbacks_with_timeout_error(
-    method_name: str,
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    success_code: int,
+    test_case: AsyncHttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
     """Test that callbacks work when async HTTP request times out."""
@@ -271,15 +244,15 @@ async def test_http_method_async_callbacks_with_timeout_error(
     on_retry_callback = Mock()
     on_failure_callback = Mock()
 
-    mock_success_response = Mock(spec=httpx.Response, status_code=success_code)
+    mock_success_response = Mock(spec=httpx.Response, status_code=test_case.success_code)
     mock_async_client = Mock(spec=httpx.AsyncClient)
     setattr(
         mock_async_client,
-        client_method,
+        test_case.client_method,
         AsyncMock(side_effect=[httpx.TimeoutException("timeout"), mock_success_response]),
     )
 
-    response = await method_func(
+    response = await test_case.method_func(
         TEST_URL,
         client=mock_async_client,
         on_request=on_request_callback,
@@ -287,7 +260,7 @@ async def test_http_method_async_callbacks_with_timeout_error(
         on_failure=on_failure_callback,
     )
 
-    assert response.status_code == success_code
+    assert response.status_code == test_case.success_code
     assert on_request_callback.call_count == 2
     on_retry_callback.assert_called_once()
 
