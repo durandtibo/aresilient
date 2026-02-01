@@ -13,7 +13,6 @@ import pytest
 
 from aresilient import HttpRequestError, get_with_automatic_retry_async
 
-
 ####################################################
 #     Integration tests for retry_if predicate     #
 ####################################################
@@ -192,9 +191,7 @@ async def test_retry_if_with_complex_business_logic() -> None:
     mock_response_rate_limit = Mock(
         spec=httpx.Response, status_code=200, text='{"status": "rate_limited"}'
     )
-    mock_response_ok = Mock(
-        spec=httpx.Response, status_code=200, text='{"status": "success"}'
-    )
+    mock_response_ok = Mock(spec=httpx.Response, status_code=200, text='{"status": "success"}')
 
     responses = [mock_response_insufficient, mock_response_rate_limit, mock_response_ok]
     call_count = 0

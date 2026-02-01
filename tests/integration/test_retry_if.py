@@ -13,7 +13,6 @@ import pytest
 
 from aresilient import HttpRequestError, get_with_automatic_retry
 
-
 ####################################################
 #     Integration tests for retry_if predicate     #
 ####################################################
@@ -53,9 +52,7 @@ def test_retry_if_with_custom_status_logic() -> None:
     mock_response_ok = Mock(spec=httpx.Response, status_code=200)
 
     mock_client = Mock(spec=httpx.Client)
-    mock_client.get = Mock(
-        side_effect=[mock_response_429, mock_response_500, mock_response_ok]
-    )
+    mock_client.get = Mock(side_effect=[mock_response_429, mock_response_500, mock_response_ok])
 
     def should_retry(response: httpx.Response | None, exception: Exception | None) -> bool:
         """Retry on 429 or 500."""
@@ -159,9 +156,7 @@ def test_retry_if_with_complex_business_logic() -> None:
     mock_response_rate_limit = Mock(
         spec=httpx.Response, status_code=200, text='{"status": "rate_limited"}'
     )
-    mock_response_ok = Mock(
-        spec=httpx.Response, status_code=200, text='{"status": "success"}'
-    )
+    mock_response_ok = Mock(spec=httpx.Response, status_code=200, text='{"status": "success"}')
 
     mock_client = Mock(spec=httpx.Client)
     mock_client.get = Mock(

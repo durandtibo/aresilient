@@ -223,9 +223,7 @@ def test_retry_if_returns_false_for_exception(mock_sleep: Mock) -> None:
 def test_retry_if_returns_true_for_exception(mock_sleep: Mock) -> None:
     """Test retry_if that returns True for exceptions (triggers retry)."""
     mock_response_ok = Mock(spec=httpx.Response, status_code=200)
-    mock_request_func = Mock(
-        side_effect=[httpx.TimeoutException("timeout"), mock_response_ok]
-    )
+    mock_request_func = Mock(side_effect=[httpx.TimeoutException("timeout"), mock_response_ok])
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         # Retry on timeout exceptions

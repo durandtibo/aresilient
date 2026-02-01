@@ -319,9 +319,7 @@ async def test_retry_if_exhausts_retries_with_exception(mock_asleep: Mock) -> No
 async def test_retry_if_complex_logic(mock_asleep: Mock) -> None:
     """Test retry_if with complex custom logic combining response and exception checks."""
     mock_response_500 = Mock(spec=httpx.Response, status_code=500, text="server error")
-    mock_response_200_retry = Mock(
-        spec=httpx.Response, status_code=200, text="rate limit exceeded"
-    )
+    mock_response_200_retry = Mock(spec=httpx.Response, status_code=200, text="rate limit exceeded")
     mock_response_ok = Mock(spec=httpx.Response, status_code=200, text="success")
 
     responses = [mock_response_500, mock_response_200_retry, mock_response_ok]

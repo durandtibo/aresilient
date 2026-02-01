@@ -156,12 +156,15 @@ def request_with_automatic_retry(
                 if retry_if is not None and retry_if(response, None):
                     logger.debug(
                         f"{method} request to {url} has status {response.status_code} but "
-                        f"retry_if predicate returned True (attempt {attempt + 1}/{max_retries + 1})"
+                        f"retry_if predicate returned True "
+                        f"(attempt {attempt + 1}/{max_retries + 1})"
                     )
                     last_status_code = response.status_code
                 else:
                     if attempt > 0:
-                        logger.debug(f"{method} request to {url} succeeded on attempt {attempt + 1}")
+                        logger.debug(
+                            f"{method} request to {url} succeeded on attempt {attempt + 1}"
+                        )
 
                     # Call on_success callback
                     invoke_on_success(
@@ -188,7 +191,10 @@ def request_with_automatic_retry(
                     raise HttpRequestError(
                         method=method,
                         url=url,
-                        message=f"{method} request to {url} failed with status {response.status_code}",
+                        message=(
+                            f"{method} request to {url} "
+                            f"failed with status {response.status_code}"
+                        ),
                         status_code=response.status_code,
                         response=response,
                     )
@@ -258,7 +264,10 @@ def request_with_automatic_retry(
                     error = HttpRequestError(
                         method=method,
                         url=url,
-                        message=f"{method} request to {url} failed after {attempt + 1} attempts: {exc}",
+                        message=(
+                            f"{method} request to {url} "
+                            f"failed after {attempt + 1} attempts: {exc}"
+                        ),
                         cause=exc,
                     )
                     if on_failure is not None:
@@ -285,7 +294,8 @@ def request_with_automatic_retry(
                     start_time=start_time,
                 )
 
-        # Exponential backoff with jitter before next retry (skip on last attempt since we're about to fail)
+        # Exponential backoff with jitter before next retry
+        # (skip on last attempt since we're about to fail)
         if attempt < max_retries:
             sleep_time = calculate_sleep_time(attempt, backoff_factor, jitter_factor, response)
 
