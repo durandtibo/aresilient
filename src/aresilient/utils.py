@@ -185,13 +185,13 @@ def calculate_sleep_time(
         ```pycon
         >>> from aresilient.utils import calculate_sleep_time
         >>> # First retry with backoff_factor=0.3, no jitter
-        >>> calculate_sleep_time(0, 0.3, jitter_factor=0.0, response=None)
+        >>> calculate_sleep_time(attempt=0, backoff_factor=0.3, jitter_factor=0.0, response=None)
         0.3
         >>> # Second retry
-        >>> calculate_sleep_time(1, 0.3, jitter_factor=0.0, response=None)
+        >>> calculate_sleep_time(attempt=1, backoff_factor=0.3, jitter_factor=0.0, response=None)
         0.6
         >>> # Third retry
-        >>> calculate_sleep_time(2, 0.3, jitter_factor=0.0, response=None)
+        >>> calculate_sleep_time(attempt=2, backoff_factor=0.3, jitter_factor=0.0, response=None)
         1.2
 
         ```
