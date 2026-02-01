@@ -9,32 +9,8 @@ import httpx
 import pytest
 
 from aresilient.request_async import request_with_automatic_retry_async
-from aresilient.utils import parse_retry_after
 
 TEST_URL = "https://api.example.com/data"
-
-
-#######################################
-#     Tests for parse_retry_after     #
-#######################################
-
-
-def testparse_retry_after_integer_async() -> None:
-    """Test parsing Retry-After header with integer seconds."""
-    assert parse_retry_after("120") == 120.0
-    assert parse_retry_after("0") == 0.0
-    assert parse_retry_after("3600") == 3600.0
-
-
-def testparse_retry_after_none_async() -> None:
-    """Test parsing None Retry-After header."""
-    assert parse_retry_after(None) is None
-
-
-def testparse_retry_after_invalid_string_async() -> None:
-    """Test parsing invalid Retry-After header."""
-    assert parse_retry_after("invalid") is None
-    assert parse_retry_after("not a number") is None
 
 
 ################################################
