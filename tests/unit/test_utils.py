@@ -348,7 +348,8 @@ def test_handle_request_error_various_error_types(exc: httpx.RequestError) -> No
 
 
 def test_invoke_on_request_with_none_callback() -> None:
-    """Test that invoke_on_request does nothing when callback is None."""
+    """Test that invoke_on_request does nothing when callback is
+    None."""
 
     # Should not raise any errors
     invoke_on_request(
@@ -402,7 +403,8 @@ def test_invoke_on_request_converts_attempt_to_1_indexed() -> None:
 
 
 def test_invoke_on_success_with_none_callback() -> None:
-    """Test that invoke_on_success does nothing when callback is None."""
+    """Test that invoke_on_success does nothing when callback is
+    None."""
 
     mock_response = Mock(spec=httpx.Response)
     invoke_on_success(
@@ -584,7 +586,9 @@ def test_handle_exception_with_callback_non_final_attempt() -> None:
 def test_handle_exception_with_callback_final_attempt_without_callback() -> None:
     """Test final attempt without on_failure callback."""
 
-    def failing_handler(_exc: Exception, url: str, method: str, _attempt: int, _max_retries: int) -> None:
+    def failing_handler(
+        _exc: Exception, url: str, method: str, _attempt: int, _max_retries: int
+    ) -> None:
         raise HttpRequestError(method=method, url=url, message="Failed")
 
     exc = Exception("Test error")
@@ -605,7 +609,9 @@ def test_handle_exception_with_callback_final_attempt_without_callback() -> None
 def test_handle_exception_with_callback_final_attempt_with_callback() -> None:
     """Test that callback is called on final attempt."""
 
-    def failing_handler(exc: Exception, url: str, method: str, _attempt: int, _max_retries: int) -> None:
+    def failing_handler(
+        exc: Exception, url: str, method: str, _attempt: int, _max_retries: int
+    ) -> None:
         raise HttpRequestError(method=method, url=url, message="Failed", cause=exc)
 
     mock_on_failure = Mock()
@@ -640,7 +646,9 @@ def test_handle_exception_with_callback_final_attempt_with_callback() -> None:
 def test_handle_exception_with_callback_reraises_error() -> None:
     """Test that the HttpRequestError is re-raised."""
 
-    def failing_handler(_exc: Exception, url: str, method: str, _attempt: int, _max_retries: int) -> None:
+    def failing_handler(
+        _exc: Exception, url: str, method: str, _attempt: int, _max_retries: int
+    ) -> None:
         raise HttpRequestError(method=method, url=url, message="Test failure")
 
     exc = Exception("Original error")
