@@ -51,34 +51,6 @@ def test_http_method_successful_request_with_client_without_body(test_case: Http
     assert tc.test_url in response_data["url"]
 
 
-@pytest.mark.parametrize(
-    "test_case",
-    [tc for tc in HTTP_METHODS if tc.values[0].method_name == "HEAD"],
-)
-def test_http_method_successful_request_with_client_head(test_case: HttpMethodTestCase) -> None:
-    """Test successful HEAD request with explicit client."""
-    tc = test_case
-    with httpx.Client() as client:
-        response = tc.method_func(url=tc.test_url, client=client)
-
-    assert response.status_code == 200
-    # HEAD has no body
-    assert len(response.content) == 0
-
-
-@pytest.mark.parametrize(
-    "test_case",
-    [tc for tc in HTTP_METHODS if tc.values[0].method_name == "OPTIONS"],
-)
-def test_http_method_successful_request_with_client_options(test_case: HttpMethodTestCase) -> None:
-    """Test successful OPTIONS request with explicit client."""
-    tc = test_case
-    with httpx.Client() as client:
-        response = tc.method_func(url=tc.test_url, client=client)
-
-    # OPTIONS may return 405 on httpbin
-    assert response.status_code in (200, 405)
-
 
 @pytest.mark.parametrize(
     "test_case",
@@ -117,37 +89,6 @@ def test_http_method_successful_request_without_client_without_body(
     # Verify response data
     response_data = response.json()
     assert "url" in response_data
-
-
-@pytest.mark.parametrize(
-    "test_case",
-    [tc for tc in HTTP_METHODS if tc.values[0].method_name == "HEAD"],
-)
-def test_http_method_successful_request_without_client_head(
-    test_case: HttpMethodTestCase,
-) -> None:
-    """Test successful HEAD request without explicit client."""
-    tc = test_case
-    response = tc.method_func(url=tc.test_url)
-
-    assert response.status_code == 200
-    # HEAD has no body
-    assert len(response.content) == 0
-
-
-@pytest.mark.parametrize(
-    "test_case",
-    [tc for tc in HTTP_METHODS if tc.values[0].method_name == "OPTIONS"],
-)
-def test_http_method_successful_request_without_client_options(
-    test_case: HttpMethodTestCase,
-) -> None:
-    """Test successful OPTIONS request without explicit client."""
-    tc = test_case
-    response = tc.method_func(url=tc.test_url)
-
-    # OPTIONS may return 405 on httpbin
-    assert response.status_code in (200, 405)
 
 
 @pytest.mark.parametrize(

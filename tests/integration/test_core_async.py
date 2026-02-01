@@ -60,41 +60,6 @@ async def test_http_method_async_successful_request_with_client_without_body(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_case",
-    [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].method_name == "HEAD"],
-)
-async def test_http_method_async_successful_request_with_client_head(
-    test_case: AsyncHttpMethodTestCase,
-) -> None:
-    """Test successful async HEAD request with explicit client."""
-    tc = test_case
-    async with httpx.AsyncClient() as client:
-        response = await tc.method_func(url=tc.test_url, client=client)
-
-    assert response.status_code == 200
-    # HEAD has no body
-    assert len(response.content) == 0
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "test_case",
-    [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].method_name == "OPTIONS"],
-)
-async def test_http_method_async_successful_request_with_client_options(
-    test_case: AsyncHttpMethodTestCase,
-) -> None:
-    """Test successful async OPTIONS request with explicit client."""
-    tc = test_case
-    async with httpx.AsyncClient() as client:
-        response = await tc.method_func(url=tc.test_url, client=client)
-
-    # OPTIONS may return 405 on httpbin
-    assert response.status_code in (200, 405)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "test_case",
     [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].supports_body],
 )
 async def test_http_method_async_successful_request_without_client_with_body(
@@ -131,39 +96,6 @@ async def test_http_method_async_successful_request_without_client_without_body(
     # Verify response data
     response_data = response.json()
     assert "url" in response_data
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "test_case",
-    [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].method_name == "HEAD"],
-)
-async def test_http_method_async_successful_request_without_client_head(
-    test_case: AsyncHttpMethodTestCase,
-) -> None:
-    """Test successful async HEAD request without explicit client."""
-    tc = test_case
-    response = await tc.method_func(url=tc.test_url)
-
-    assert response.status_code == 200
-    # HEAD has no body
-    assert len(response.content) == 0
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "test_case",
-    [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].method_name == "OPTIONS"],
-)
-async def test_http_method_async_successful_request_without_client_options(
-    test_case: AsyncHttpMethodTestCase,
-) -> None:
-    """Test successful async OPTIONS request without explicit client."""
-    tc = test_case
-    response = await tc.method_func(url=tc.test_url)
-
-    # OPTIONS may return 405 on httpbin
-    assert response.status_code in (200, 405)
 
 
 @pytest.mark.asyncio

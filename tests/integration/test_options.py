@@ -27,3 +27,20 @@ def test_options_with_automatic_retry_with_custom_headers() -> None:
 
     # OPTIONS may return 405 on httpbin
     assert response.status_code in (200, 405)
+
+
+def test_options_with_automatic_retry_successful_request_with_client() -> None:
+    """Test successful OPTIONS request with explicit client."""
+    with httpx.Client() as client:
+        response = options_with_automatic_retry(url=f"{HTTPBIN_URL}/get", client=client)
+
+    # OPTIONS may return 405 on httpbin
+    assert response.status_code in (200, 405)
+
+
+def test_options_with_automatic_retry_successful_request_without_client() -> None:
+    """Test successful OPTIONS request without explicit client."""
+    response = options_with_automatic_retry(url=f"{HTTPBIN_URL}/get")
+
+    # OPTIONS may return 405 on httpbin
+    assert response.status_code in (200, 405)

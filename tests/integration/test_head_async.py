@@ -68,3 +68,24 @@ async def test_head_with_automatic_retry_async_with_custom_headers() -> None:
     assert response.status_code == 200
     # HEAD request should succeed but have no body
     assert len(response.content) == 0
+
+
+@pytest.mark.asyncio
+async def test_head_with_automatic_retry_async_successful_request_with_client() -> None:
+    """Test successful async HEAD request with explicit client."""
+    async with httpx.AsyncClient() as client:
+        response = await head_with_automatic_retry_async(url=f"{HTTPBIN_URL}/get", client=client)
+
+    assert response.status_code == 200
+    # HEAD has no body
+    assert len(response.content) == 0
+
+
+@pytest.mark.asyncio
+async def test_head_with_automatic_retry_async_successful_request_without_client() -> None:
+    """Test successful async HEAD request without explicit client."""
+    response = await head_with_automatic_retry_async(url=f"{HTTPBIN_URL}/get")
+
+    assert response.status_code == 200
+    # HEAD has no body
+    assert len(response.content) == 0

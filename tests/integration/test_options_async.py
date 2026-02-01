@@ -48,3 +48,24 @@ async def test_options_with_automatic_retry_async_with_custom_headers() -> None:
 
     # OPTIONS may return 405 on httpbin
     assert response.status_code in (200, 405)
+
+
+@pytest.mark.asyncio
+async def test_options_with_automatic_retry_async_successful_request_with_client() -> None:
+    """Test successful async OPTIONS request with explicit client."""
+    async with httpx.AsyncClient() as client:
+        response = await options_with_automatic_retry_async(
+            url=f"{HTTPBIN_URL}/get", client=client
+        )
+
+    # OPTIONS may return 405 on httpbin
+    assert response.status_code in (200, 405)
+
+
+@pytest.mark.asyncio
+async def test_options_with_automatic_retry_async_successful_request_without_client() -> None:
+    """Test successful async OPTIONS request without explicit client."""
+    response = await options_with_automatic_retry_async(url=f"{HTTPBIN_URL}/get")
+
+    # OPTIONS may return 405 on httpbin
+    assert response.status_code in (200, 405)
