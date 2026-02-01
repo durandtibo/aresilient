@@ -1,7 +1,9 @@
-r"""Parametrized unit tests for async recovery functionality in all HTTP method wrappers.
+r"""Parametrized unit tests for async recovery functionality in all HTTP
+method wrappers.
 
 This test module tests recovery behavior after various types of failures
-across all async HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS).
+across all async HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD,
+OPTIONS).
 """
 
 from __future__ import annotations

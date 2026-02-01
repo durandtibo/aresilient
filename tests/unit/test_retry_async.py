@@ -1,13 +1,13 @@
-r"""Parametrized unit tests for async retry functionality in all HTTP method wrappers.
+r"""Parametrized unit tests for async retry functionality in all HTTP
+method wrappers.
 
-This test module contains retry-related tests that verify the async retry behavior
-across all async HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
-in a consistent and maintainable way.
+This test module contains retry-related tests that verify the async
+retry behavior across all async HTTP methods (GET, POST, PUT, DELETE,
+PATCH, HEAD, OPTIONS) in a consistent and maintainable way.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock, call
 
 import httpx
@@ -16,9 +16,6 @@ import pytest
 from aresilient import RETRY_STATUS_CODES, HttpRequestError
 
 from .helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
-
-if TYPE_CHECKING:
-    pass
 
 TEST_URL = "https://api.example.com/data"
 
@@ -67,7 +64,8 @@ async def test_max_retries_exceeded(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
-    """Test that HttpRequestError is raised when max retries exceeded."""
+    """Test that HttpRequestError is raised when max retries
+    exceeded."""
     mock_response = Mock(spec=httpx.Response, status_code=503)
     mock_client = Mock(spec=httpx.AsyncClient)
     setattr(mock_client, test_case.client_method, AsyncMock(return_value=mock_response))

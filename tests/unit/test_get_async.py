@@ -33,7 +33,8 @@ async def test_get_with_automatic_retry_async_with_params(
 ) -> None:
     """Test async GET request with query parameters.
 
-    This is GET-specific because query parameters are typically used with GET requests.
+    This is GET-specific because query parameters are typically used
+    with GET requests.
     """
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_client.get = AsyncMock(return_value=mock_response)

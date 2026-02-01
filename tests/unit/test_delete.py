@@ -30,7 +30,8 @@ def mock_client() -> httpx.Client:
 def test_delete_with_automatic_retry_with_data(mock_client: httpx.Client, mock_sleep: Mock) -> None:
     """Test DELETE request with form data.
 
-    This is DELETE-specific because some APIs accept data with DELETE requests.
+    This is DELETE-specific because some APIs accept data with DELETE
+    requests.
     """
     mock_response = Mock(spec=httpx.Response, status_code=204)
     mock_client.delete = Mock(return_value=mock_response)

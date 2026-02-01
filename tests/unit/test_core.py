@@ -1,4 +1,5 @@
-r"""Parametrized unit tests for core functionality in all HTTP method wrappers.
+r"""Parametrized unit tests for core functionality in all HTTP method
+wrappers.
 
 This test module uses pytest parametrization to test core functionality
 across all HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
@@ -27,10 +28,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
-from aresilient import (
-    RETRY_STATUS_CODES,
-    HttpRequestError,
-)
+from aresilient import HttpRequestError
 
 from .helpers import HTTP_METHODS, HttpMethodTestCase
 

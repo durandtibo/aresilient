@@ -1,4 +1,5 @@
-r"""Parametrized unit tests for async core functionality in all HTTP method wrappers.
+r"""Parametrized unit tests for async core functionality in all HTTP
+method wrappers.
 
 This test module uses pytest parametrization to test core functionality
 across all async HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
@@ -27,10 +28,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import httpx
 import pytest
 
-from aresilient import (
-    RETRY_STATUS_CODES,
-    HttpRequestError,
-)
+from aresilient import HttpRequestError
 
 from .helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
 
@@ -221,7 +219,9 @@ async def test_with_httpx_timeout_object(
 
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client_instance = AsyncMock()
-        setattr(mock_client_instance, test_case.client_method, AsyncMock(return_value=mock_response))
+        setattr(
+            mock_client_instance, test_case.client_method, AsyncMock(return_value=mock_response)
+        )
         mock_client_instance.aclose = AsyncMock()
         mock_client_class.return_value = mock_client_instance
         response = await test_case.method_func(TEST_URL, timeout=timeout_config)

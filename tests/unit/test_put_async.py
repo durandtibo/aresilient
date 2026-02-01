@@ -33,7 +33,8 @@ async def test_put_with_automatic_retry_async_with_data(
 ) -> None:
     """Test async PUT request with form data.
 
-    This is PUT-specific because form data submission is typically done with PUT requests.
+    This is PUT-specific because form data submission is typically done
+    with PUT requests.
     """
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_client.put = AsyncMock(return_value=mock_response)
