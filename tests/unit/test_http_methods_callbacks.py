@@ -8,6 +8,7 @@ HEAD, OPTIONS) in a consistent and maintainable way.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, call, patch
 
@@ -30,55 +31,87 @@ if TYPE_CHECKING:
 
 TEST_URL = "https://api.example.com/data"
 
+
+@dataclass
+class HttpMethodTestCase:
+    """Test case definition for HTTP method testing.
+
+    Attributes:
+        method_name: The HTTP method name (e.g., "GET", "POST").
+        method_func: The function to test (e.g., get_with_automatic_retry).
+        client_method: The httpx.Client method name (e.g., "get", "post").
+        status_code: Expected success status code. Optional, not used in all tests.
+    """
+
+    method_name: str
+    method_func: Callable[..., httpx.Response]
+    client_method: str
+    status_code: int | None = None
+
+
 # Define test parameters for all HTTP methods
 HTTP_METHODS = [
     pytest.param(
-        "GET",
-        get_with_automatic_retry,
-        "get",
-        200,
+        HttpMethodTestCase(
+            method_name="GET",
+            method_func=get_with_automatic_retry,
+            client_method="get",
+            status_code=200,
+        ),
         id="GET",
     ),
     pytest.param(
-        "POST",
-        post_with_automatic_retry,
-        "post",
-        201,
+        HttpMethodTestCase(
+            method_name="POST",
+            method_func=post_with_automatic_retry,
+            client_method="post",
+            status_code=201,
+        ),
         id="POST",
     ),
     pytest.param(
-        "PUT",
-        put_with_automatic_retry,
-        "put",
-        200,
+        HttpMethodTestCase(
+            method_name="PUT",
+            method_func=put_with_automatic_retry,
+            client_method="put",
+            status_code=200,
+        ),
         id="PUT",
     ),
     pytest.param(
-        "DELETE",
-        delete_with_automatic_retry,
-        "delete",
-        204,
+        HttpMethodTestCase(
+            method_name="DELETE",
+            method_func=delete_with_automatic_retry,
+            client_method="delete",
+            status_code=204,
+        ),
         id="DELETE",
     ),
     pytest.param(
-        "PATCH",
-        patch_with_automatic_retry,
-        "patch",
-        200,
+        HttpMethodTestCase(
+            method_name="PATCH",
+            method_func=patch_with_automatic_retry,
+            client_method="patch",
+            status_code=200,
+        ),
         id="PATCH",
     ),
     pytest.param(
-        "HEAD",
-        head_with_automatic_retry,
-        "head",
-        200,
+        HttpMethodTestCase(
+            method_name="HEAD",
+            method_func=head_with_automatic_retry,
+            client_method="head",
+            status_code=200,
+        ),
         id="HEAD",
     ),
     pytest.param(
-        "OPTIONS",
-        options_with_automatic_retry,
-        "options",
-        200,
+        HttpMethodTestCase(
+            method_name="OPTIONS",
+            method_func=options_with_automatic_retry,
+            client_method="options",
+            status_code=200,
+        ),
         id="OPTIONS",
     ),
 ]
@@ -90,102 +123,82 @@ HTTP_METHODS = [
 ##################################################
 
 
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "status_code"), HTTP_METHODS
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_http_method_on_request_callback(
-    method_name: str,
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    status_code: int,
+    test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
     """Test that on_request callback is called for all HTTP methods."""
     on_request_callback = Mock()
-    mock_response = Mock(spec=httpx.Response, status_code=status_code)
+    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, client_method, Mock(return_value=mock_response))
+    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
 
-    response = method_func(TEST_URL, client=mock_client, on_request=on_request_callback)
+    response = test_case.method_func(TEST_URL, client=mock_client, on_request=on_request_callback)
 
-    assert response.status_code == status_code
+    assert response.status_code == test_case.status_code
     on_request_callback.assert_called_once()
     call_args = on_request_callback.call_args[0][0]
     assert call_args["url"] == TEST_URL
-    assert call_args["method"] == method_name
+    assert call_args["method"] == test_case.method_name
     assert call_args["attempt"] == 1
     mock_sleep.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "status_code"), HTTP_METHODS
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_http_method_on_success_callback(
-    method_name: str,
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    status_code: int,
+    test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
     """Test that on_success callback is called for successful HTTP
     requests."""
     on_success_callback = Mock()
-    mock_response = Mock(spec=httpx.Response, status_code=status_code)
+    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, client_method, Mock(return_value=mock_response))
+    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
 
-    response = method_func(TEST_URL, client=mock_client, on_success=on_success_callback)
+    response = test_case.method_func(TEST_URL, client=mock_client, on_success=on_success_callback)
 
-    assert response.status_code == status_code
+    assert response.status_code == test_case.status_code
     on_success_callback.assert_called_once()
     call_args = on_success_callback.call_args[0][0]
     assert call_args["url"] == TEST_URL
-    assert call_args["method"] == method_name
-    assert call_args["response"].status_code == status_code
+    assert call_args["method"] == test_case.method_name
+    assert call_args["response"].status_code == test_case.status_code
     mock_sleep.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "status_code"), HTTP_METHODS
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_http_method_on_retry_callback(
-    method_name: str,
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    status_code: int,
+    test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
     """Test that on_retry callback is called when HTTP request is
     retried."""
     on_retry_callback = Mock()
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_success_response = Mock(spec=httpx.Response, status_code=status_code)
+    mock_success_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = Mock(spec=httpx.Client)
     setattr(
         mock_client,
-        client_method,
+        test_case.client_method,
         Mock(side_effect=[mock_fail_response, mock_success_response]),
     )
 
-    response = method_func(TEST_URL, client=mock_client, on_retry=on_retry_callback)
+    response = test_case.method_func(TEST_URL, client=mock_client, on_retry=on_retry_callback)
 
-    assert response.status_code == status_code
+    assert response.status_code == test_case.status_code
     on_retry_callback.assert_called_once()
     call_args = on_retry_callback.call_args[0][0]
     assert call_args["url"] == TEST_URL
-    assert call_args["method"] == method_name
+    assert call_args["method"] == test_case.method_name
     assert call_args["status_code"] == 503
     mock_sleep.assert_called_once_with(0.3)
 
 
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "status_code"), HTTP_METHODS
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_http_method_on_failure_callback(
-    method_name: str,
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    status_code: int,  # noqa: ARG001
+    test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
     """Test that on_failure callback is called when retries are
@@ -193,10 +206,10 @@ def test_http_method_on_failure_callback(
     on_failure_callback = Mock()
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, client_method, Mock(return_value=mock_fail_response))
+    setattr(mock_client, test_case.client_method, Mock(return_value=mock_fail_response))
 
     with pytest.raises(HttpRequestError):
-        method_func(
+        test_case.method_func(
             TEST_URL,
             client=mock_client,
             max_retries=2,
@@ -206,19 +219,14 @@ def test_http_method_on_failure_callback(
     on_failure_callback.assert_called_once()
     call_args = on_failure_callback.call_args[0][0]
     assert call_args["url"] == TEST_URL
-    assert call_args["method"] == method_name
+    assert call_args["method"] == test_case.method_name
     assert call_args["status_code"] == 503
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "status_code"), HTTP_METHODS
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_http_method_all_callbacks_together(
-    method_name: str,  # noqa: ARG001
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    status_code: int,
+    test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
     """Test that all callbacks work together for HTTP requests."""
@@ -228,15 +236,15 @@ def test_http_method_all_callbacks_together(
     on_failure_callback = Mock()
 
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_success_response = Mock(spec=httpx.Response, status_code=status_code)
+    mock_success_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = Mock(spec=httpx.Client)
     setattr(
         mock_client,
-        client_method,
+        test_case.client_method,
         Mock(side_effect=[mock_fail_response, mock_success_response]),
     )
 
-    response = method_func(
+    response = test_case.method_func(
         TEST_URL,
         client=mock_client,
         on_request=on_request_callback,
@@ -245,7 +253,7 @@ def test_http_method_all_callbacks_together(
         on_failure=on_failure_callback,
     )
 
-    assert response.status_code == status_code
+    assert response.status_code == test_case.status_code
     assert on_request_callback.call_count == 2  # Two attempts
     on_retry_callback.assert_called_once()  # One retry
     on_success_callback.assert_called_once()  # One success
@@ -253,14 +261,9 @@ def test_http_method_all_callbacks_together(
     mock_sleep.assert_called_once_with(0.3)
 
 
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "status_code"), HTTP_METHODS
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_http_method_callbacks_with_timeout_error(
-    method_name: str,  # noqa: ARG001
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    status_code: int,
+    test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
     """Test that callbacks work when HTTP request times out."""
@@ -268,15 +271,15 @@ def test_http_method_callbacks_with_timeout_error(
     on_retry_callback = Mock()
     on_failure_callback = Mock()
 
-    mock_success_response = Mock(spec=httpx.Response, status_code=status_code)
+    mock_success_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = Mock(spec=httpx.Client)
     setattr(
         mock_client,
-        client_method,
+        test_case.client_method,
         Mock(side_effect=[httpx.TimeoutException("timeout"), mock_success_response]),
     )
 
-    response = method_func(
+    response = test_case.method_func(
         TEST_URL,
         client=mock_client,
         on_request=on_request_callback,
@@ -284,7 +287,7 @@ def test_http_method_callbacks_with_timeout_error(
         on_failure=on_failure_callback,
     )
 
-    assert response.status_code == status_code
+    assert response.status_code == test_case.status_code
     assert on_request_callback.call_count == 2
     on_retry_callback.assert_called_once()
 
@@ -294,29 +297,24 @@ def test_http_method_callbacks_with_timeout_error(
     mock_sleep.assert_called_once_with(0.3)
 
 
-@pytest.mark.parametrize(
-    ("method_name", "method_func", "client_method", "status_code"), HTTP_METHODS
-)
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_http_method_callbacks_with_default_client(
-    method_name: str,  # noqa: ARG001
-    method_func: Callable[..., httpx.Response],
-    client_method: str,
-    status_code: int,
+    test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
     """Test that callbacks work with default client (not provided)."""
     on_request_callback = Mock()
     on_success_callback = Mock()
 
-    mock_response = Mock(spec=httpx.Response, status_code=status_code)
-    with patch(f"httpx.Client.{client_method}", return_value=mock_response):
-        response = method_func(
+    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
+    with patch(f"httpx.Client.{test_case.client_method}", return_value=mock_response):
+        response = test_case.method_func(
             TEST_URL,
             on_request=on_request_callback,
             on_success=on_success_callback,
         )
 
-    assert response.status_code == status_code
+    assert response.status_code == test_case.status_code
     on_request_callback.assert_called_once()
     on_success_callback.assert_called_once()
     mock_sleep.assert_not_called()
