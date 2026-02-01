@@ -546,7 +546,9 @@ Each new feature needs:
 
 ## Conclusion
 
-The aresilient library has a solid foundation with comprehensive retry logic, async support, complete HTTP method coverage, and a callback system for observability. The highest priority additions to bring it to feature parity with leading resilience libraries while maintaining its focused, lightweight design philosophy are:
+The aresilient library has a solid foundation with comprehensive retry logic, async support, complete HTTP method coverage, and a callback system for observability.
+
+The highest priority additions to bring it to feature parity with leading resilience libraries while maintaining its focused, lightweight design philosophy are:
 
 1. **Custom retry predicates** - Flexible retry logic for complex scenarios
 2. **Statistics collection** - Enhanced monitoring and debugging support
