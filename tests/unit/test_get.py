@@ -26,10 +26,8 @@ def test_get_with_automatic_retry_with_params(mock_sleep: Mock) -> None:
     """Test GET request with query parameters.
 
     This is GET-specific because query parameters are typically used
-    with GET requests.
-    
-    This test demonstrates the use of test utility functions to reduce
-    boilerplate code.
+    with GET requests. This test demonstrates the use of test utility
+    functions to reduce boilerplate code.
     """
     # Use utility function to set up mock client - more concise than manual setup
     client, _ = setup_mock_client_for_method("get", 200)

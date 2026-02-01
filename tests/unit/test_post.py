@@ -26,10 +26,8 @@ def test_post_with_automatic_retry_with_data(mock_sleep: Mock) -> None:
     """Test POST request with form data.
 
     This is POST-specific because form data submission is typically done
-    with POST requests.
-    
-    This test demonstrates the use of test utility functions to reduce
-    boilerplate code.
+    with POST requests. This test demonstrates the use of test utility
+    functions to reduce boilerplate code.
     """
     # Use utility function to set up mock client - more concise than manual setup
     client, _ = setup_mock_client_for_method("post", 200)

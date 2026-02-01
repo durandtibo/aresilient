@@ -30,10 +30,8 @@ async def test_get_with_automatic_retry_async_with_params(mock_asleep: Mock) -> 
     """Test async GET request with query parameters.
 
     This is GET-specific because query parameters are typically used
-    with GET requests.
-    
-    This test demonstrates the use of async test utility functions to reduce
-    boilerplate code.
+    with GET requests. This test demonstrates the use of async test
+    utility functions to reduce boilerplate code.
     """
     # Use utility function to set up mock async client - more concise than manual setup
     client, _ = setup_mock_async_client_for_method("get", 200)
