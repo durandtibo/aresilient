@@ -11,8 +11,10 @@ from __future__ import annotations
 __all__ = [
     "calculate_sleep_time",
     "handle_exception_with_callback",
+    "handle_exception_with_retry_if",
     "handle_request_error",
     "handle_response",
+    "handle_response_with_retry_if",
     "handle_timeout_exception",
     "invoke_on_request",
     "invoke_on_retry",
@@ -36,4 +38,8 @@ from aresilient.utils.exceptions import (
 )
 from aresilient.utils.response import handle_response
 from aresilient.utils.retry_after import parse_retry_after
+from aresilient.utils.retry_if_handler import (
+    handle_exception_with_retry_if,
+    handle_response_with_retry_if,
+)
 from aresilient.utils.validation import validate_retry_params
