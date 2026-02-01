@@ -87,7 +87,7 @@ While the current structure is well-organized and maintainable, there remain opp
 
 **Description:** Further extend parametrization to cover additional test scenarios, potentially reducing more method-specific test files.
 
-**Current State:** 
+**Current State:**
 - Already extensively implemented in `test_core.py` and `test_core_async.py`
 - Method-specific tests are already minimal and focused
 - Most common functionality already parametrized
@@ -154,13 +154,13 @@ While the current structure is well-organized and maintainable, there remain opp
    # tests/test_framework.py
    def for_sync_and_async(test_func):
        """Decorator to run test in both sync and async modes."""
-       
+
        def sync_test(*args, **kwargs):
            return test_func(*args, **kwargs, is_async=False)
-       
+
        async def async_test(*args, **kwargs):
            return await test_func(*args, **kwargs, is_async=True)
-       
+
        return pytest.mark.parametrize("mode", ["sync", "async"])(
            lambda mode: async_test if mode == "async" else sync_test
        )

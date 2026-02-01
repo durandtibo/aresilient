@@ -80,14 +80,14 @@ def should_retry_with_predicate(
     """Evaluate retry_if predicate and handle early termination."""
     if retry_if is None:
         return True  # Delegate to other logic
-    
+
     should_retry = retry_if(response, exception)
-    
+
     if not should_retry or attempt == max_retries:
         # Create error and invoke callback
         # Raise appropriate exception
         ...
-    
+
     return should_retry
 ```
 
@@ -116,12 +116,15 @@ def should_retry_with_predicate(
 @dataclass
 class RequestResult:
     """Base class for request results."""
+
     pass
+
 
 @dataclass
 class SuccessResult(RequestResult):
     response: httpx.Response
     attempt: int
+
 
 @dataclass
 class RetryableResult(RequestResult):
@@ -129,10 +132,12 @@ class RetryableResult(RequestResult):
     error: Exception | None = None
     attempt: int = 0
 
+
 @dataclass
 class FinalErrorResult(RequestResult):
     error: Exception
     response: httpx.Response | None = None
+
 
 def execute_request_attempt(
     url: str,
@@ -177,6 +182,7 @@ EXCEPTION_HANDLERS = {
     httpx.RequestError: handle_request_error,
 }
 
+
 def handle_exception_with_retry_if(
     exc: Exception,
     retry_if: Callable | None,
@@ -189,12 +195,12 @@ def handle_exception_with_retry_if(
         should_retry = retry_if(None, exc)
         if not should_retry or attempt == max_retries:
             raise_with_callback(...)
-    
+
     # Delegate to appropriate handler
     handler = EXCEPTION_HANDLERS.get(type(exc))
     if handler:
         handler(exc, ...)
-    
+
     return True  # Should retry
 ```
 
@@ -251,27 +257,31 @@ def handle_exception_with_retry_if(
 @dataclass
 class RetryConfig:
     """Configuration for retry behavior."""
+
     max_retries: int
     backoff_factor: float
     status_forcelist: tuple[int, ...]
     jitter_factor: float
     retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None
 
+
 @dataclass
 class CallbackConfig:
     """Configuration for callbacks."""
+
     on_request: Callable[[RequestInfo], None] | None
     on_retry: Callable[[RetryInfo], None] | None
     on_success: Callable[[ResponseInfo], None] | None
     on_failure: Callable[[FailureInfo], None] | None
 
+
 class RetryStrategy:
     """Strategy for calculating retry delays."""
-    
+
     def __init__(self, backoff_factor: float, jitter_factor: float):
         self.backoff_factor = backoff_factor
         self.jitter_factor = jitter_factor
-    
+
     def calculate_delay(
         self,
         attempt: int,
@@ -285,9 +295,10 @@ class RetryStrategy:
             response,
         )
 
+
 class RetryDecider:
     """Decides whether a request should be retried."""
-    
+
     def __init__(
         self,
         status_forcelist: tuple[int, ...],
@@ -295,7 +306,7 @@ class RetryDecider:
     ):
         self.status_forcelist = status_forcelist
         self.retry_if = retry_if
-    
+
     def should_retry_response(
         self,
         response: httpx.Response,
@@ -304,7 +315,7 @@ class RetryDecider:
     ) -> tuple[bool, str]:
         """
         Determine if response should trigger retry.
-        
+
         Returns:
             (should_retry, reason) tuple
         """
@@ -313,16 +324,16 @@ class RetryDecider:
             if self.retry_if is not None and self.retry_if(response, None):
                 return (True, "retry_if predicate")
             return (False, "success")
-        
+
         # Error case - check retry_if or status_forcelist
         if self.retry_if is not None:
             should_retry = self.retry_if(response, None)
             return (should_retry, "retry_if predicate")
-        
+
         # Check status code
         is_retryable = response.status_code in self.status_forcelist
         return (is_retryable, f"status {response.status_code}")
-    
+
     def should_retry_exception(
         self,
         exception: Exception,
@@ -331,7 +342,7 @@ class RetryDecider:
     ) -> tuple[bool, str]:
         """
         Determine if exception should trigger retry.
-        
+
         Returns:
             (should_retry, reason) tuple
         """
@@ -340,18 +351,19 @@ class RetryDecider:
             if not should_retry or attempt >= max_retries:
                 return (False, "retry_if returned False or max retries")
             return (True, "retry_if predicate")
-        
+
         # Default: retry timeout and request errors
         if attempt >= max_retries:
             return (False, "max retries exhausted")
         return (True, f"{type(exception).__name__}")
 
+
 class CallbackManager:
     """Manages callback invocations."""
-    
+
     def __init__(self, callbacks: CallbackConfig):
         self.callbacks = callbacks
-    
+
     def on_request(self, url: str, method: str, attempt: int, max_retries: int) -> None:
         """Invoke on_request callback."""
         if self.callbacks.on_request:
@@ -362,7 +374,7 @@ class CallbackManager:
                 attempt=attempt,
                 max_retries=max_retries,
             )
-    
+
     def on_retry(
         self,
         url: str,
@@ -385,7 +397,7 @@ class CallbackManager:
                 last_error=error,
                 last_status_code=status_code,
             )
-    
+
     def on_success(
         self,
         url: str,
@@ -406,7 +418,7 @@ class CallbackManager:
                 response=response,
                 start_time=start_time,
             )
-    
+
     def on_failure(
         self,
         url: str,
@@ -430,9 +442,10 @@ class CallbackManager:
             }
             self.callbacks.on_failure(failure_info)
 
+
 class RetryExecutor:
     """Executes HTTP requests with automatic retry logic."""
-    
+
     def __init__(
         self,
         retry_config: RetryConfig,
@@ -448,7 +461,7 @@ class RetryExecutor:
             retry_config.retry_if,
         )
         self.callbacks = CallbackManager(callback_config)
-    
+
     def execute(
         self,
         url: str,
@@ -460,58 +473,72 @@ class RetryExecutor:
         start_time = time.time()
         last_error: Exception | None = None
         last_status_code: int | None = None
-        
+
         for attempt in range(self.config.max_retries + 1):
             try:
                 # Attempt request
                 self.callbacks.on_request(url, method, attempt, self.config.max_retries)
                 response = request_func(url=url, **kwargs)
-                
+
                 # Evaluate response
                 should_retry, reason = self.decider.should_retry_response(
                     response, attempt, self.config.max_retries
                 )
-                
+
                 if not should_retry:
                     # Success!
                     self.callbacks.on_success(
-                        url, method, attempt, self.config.max_retries,
-                        response, start_time
+                        url,
+                        method,
+                        attempt,
+                        self.config.max_retries,
+                        response,
+                        start_time,
                     )
                     return response
-                
+
                 # Mark for retry
                 last_status_code = response.status_code
                 logger.debug(f"{method} to {url}: will retry ({reason})")
-                
+
             except (httpx.TimeoutException, httpx.RequestError) as exc:
                 last_error = exc
-                
+
                 # Evaluate exception
                 should_retry, reason = self.decider.should_retry_exception(
                     exc, attempt, self.config.max_retries
                 )
-                
+
                 if not should_retry:
                     # Create and raise final error
                     error = self._create_error(exc, url, method, attempt)
                     self.callbacks.on_failure(
-                        url, method, attempt + 1, self.config.max_retries,
-                        error, None, start_time
+                        url,
+                        method,
+                        attempt + 1,
+                        self.config.max_retries,
+                        error,
+                        None,
+                        start_time,
                     )
                     raise error from exc
-                
+
                 logger.debug(f"{method} to {url}: will retry ({reason})")
-            
+
             # Sleep before retry (if not last attempt)
             if attempt < self.config.max_retries:
                 sleep_time = self.strategy.calculate_delay(attempt, response)
                 self.callbacks.on_retry(
-                    url, method, attempt, self.config.max_retries,
-                    sleep_time, last_error, last_status_code
+                    url,
+                    method,
+                    attempt,
+                    self.config.max_retries,
+                    sleep_time,
+                    last_error,
+                    last_status_code,
                 )
                 time.sleep(sleep_time)
-        
+
         # All retries exhausted
         raise_final_error(
             url=url,
@@ -521,7 +548,7 @@ class RetryExecutor:
             on_failure=self.callbacks.callbacks.on_failure,
             start_time=start_time,
         )
-    
+
     def _create_error(
         self,
         exc: Exception,
@@ -543,6 +570,7 @@ class RetryExecutor:
             message=f"{method} request to {url} failed after {attempt + 1} attempts: {exc}",
             cause=exc,
         )
+
 
 # Backward-compatible wrapper function
 def request_with_automatic_retry(
@@ -575,7 +603,7 @@ def request_with_automatic_retry(
         on_success=on_success,
         on_failure=on_failure,
     )
-    
+
     executor = RetryExecutor(retry_config, callback_config)
     return executor.execute(url, method, request_func, **kwargs)
 ```
