@@ -232,6 +232,388 @@ def handle_exception_with_retry_if(
 - Still creates additional utility functions
 - May need careful parameter passing
 
+### Approach 5: Class-Based Composition with Strategy Pattern
+
+**Complexity Reduction**: Reduces branches by ~12-15, statements by ~25-30
+
+**Changes**:
+1. Create a `RetryExecutor` class that encapsulates retry logic
+2. Use composition with strategy objects for different concerns:
+   - `RetryStrategy`: Determines retry behavior (exponential backoff, jitter, retry-after)
+   - `RetryDecider`: Evaluates whether to retry (status codes, predicates, exceptions)
+   - `CallbackManager`: Handles all callback invocations
+   - `RequestAttempt`: Encapsulates a single request execution
+3. Replace functional approach with object-oriented design
+4. Maintain backward compatibility by keeping the existing function signatures as thin wrappers
+
+**Example architecture**:
+```python
+@dataclass
+class RetryConfig:
+    """Configuration for retry behavior."""
+    max_retries: int
+    backoff_factor: float
+    status_forcelist: tuple[int, ...]
+    jitter_factor: float
+    retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None
+
+@dataclass
+class CallbackConfig:
+    """Configuration for callbacks."""
+    on_request: Callable[[RequestInfo], None] | None
+    on_retry: Callable[[RetryInfo], None] | None
+    on_success: Callable[[ResponseInfo], None] | None
+    on_failure: Callable[[FailureInfo], None] | None
+
+class RetryStrategy:
+    """Strategy for calculating retry delays."""
+    
+    def __init__(self, backoff_factor: float, jitter_factor: float):
+        self.backoff_factor = backoff_factor
+        self.jitter_factor = jitter_factor
+    
+    def calculate_delay(
+        self,
+        attempt: int,
+        response: httpx.Response | None = None,
+    ) -> float:
+        """Calculate delay before next retry."""
+        return calculate_sleep_time(
+            attempt,
+            self.backoff_factor,
+            self.jitter_factor,
+            response,
+        )
+
+class RetryDecider:
+    """Decides whether a request should be retried."""
+    
+    def __init__(
+        self,
+        status_forcelist: tuple[int, ...],
+        retry_if: Callable | None,
+    ):
+        self.status_forcelist = status_forcelist
+        self.retry_if = retry_if
+    
+    def should_retry_response(
+        self,
+        response: httpx.Response,
+        attempt: int,
+        max_retries: int,
+    ) -> tuple[bool, str]:
+        """
+        Determine if response should trigger retry.
+        
+        Returns:
+            (should_retry, reason) tuple
+        """
+        # Success case
+        if response.status_code < 400:
+            if self.retry_if is not None and self.retry_if(response, None):
+                return (True, "retry_if predicate")
+            return (False, "success")
+        
+        # Error case - check retry_if or status_forcelist
+        if self.retry_if is not None:
+            should_retry = self.retry_if(response, None)
+            return (should_retry, "retry_if predicate")
+        
+        # Check status code
+        is_retryable = response.status_code in self.status_forcelist
+        return (is_retryable, f"status {response.status_code}")
+    
+    def should_retry_exception(
+        self,
+        exception: Exception,
+        attempt: int,
+        max_retries: int,
+    ) -> tuple[bool, str]:
+        """
+        Determine if exception should trigger retry.
+        
+        Returns:
+            (should_retry, reason) tuple
+        """
+        if self.retry_if is not None:
+            should_retry = self.retry_if(None, exception)
+            if not should_retry or attempt >= max_retries:
+                return (False, "retry_if returned False or max retries")
+            return (True, "retry_if predicate")
+        
+        # Default: retry timeout and request errors
+        if attempt >= max_retries:
+            return (False, "max retries exhausted")
+        return (True, f"{type(exception).__name__}")
+
+class CallbackManager:
+    """Manages callback invocations."""
+    
+    def __init__(self, callbacks: CallbackConfig):
+        self.callbacks = callbacks
+    
+    def on_request(self, url: str, method: str, attempt: int, max_retries: int) -> None:
+        """Invoke on_request callback."""
+        if self.callbacks.on_request:
+            invoke_on_request(
+                self.callbacks.on_request,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+            )
+    
+    def on_retry(
+        self,
+        url: str,
+        method: str,
+        attempt: int,
+        max_retries: int,
+        sleep_time: float,
+        error: Exception | None,
+        status_code: int | None,
+    ) -> None:
+        """Invoke on_retry callback."""
+        if self.callbacks.on_retry:
+            invoke_on_retry(
+                self.callbacks.on_retry,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+                sleep_time=sleep_time,
+                last_error=error,
+                last_status_code=status_code,
+            )
+    
+    def on_success(
+        self,
+        url: str,
+        method: str,
+        attempt: int,
+        max_retries: int,
+        response: httpx.Response,
+        start_time: float,
+    ) -> None:
+        """Invoke on_success callback."""
+        if self.callbacks.on_success:
+            invoke_on_success(
+                self.callbacks.on_success,
+                url=url,
+                method=method,
+                attempt=attempt,
+                max_retries=max_retries,
+                response=response,
+                start_time=start_time,
+            )
+    
+    def on_failure(
+        self,
+        url: str,
+        method: str,
+        attempt: int,
+        max_retries: int,
+        error: Exception,
+        status_code: int | None,
+        start_time: float,
+    ) -> None:
+        """Invoke on_failure callback."""
+        if self.callbacks.on_failure:
+            failure_info: FailureInfo = {
+                "url": url,
+                "method": method,
+                "attempt": attempt,
+                "max_retries": max_retries,
+                "error": error,
+                "status_code": status_code,
+                "total_time": time.time() - start_time,
+            }
+            self.callbacks.on_failure(failure_info)
+
+class RetryExecutor:
+    """Executes HTTP requests with automatic retry logic."""
+    
+    def __init__(
+        self,
+        retry_config: RetryConfig,
+        callback_config: CallbackConfig,
+    ):
+        self.config = retry_config
+        self.strategy = RetryStrategy(
+            retry_config.backoff_factor,
+            retry_config.jitter_factor,
+        )
+        self.decider = RetryDecider(
+            retry_config.status_forcelist,
+            retry_config.retry_if,
+        )
+        self.callbacks = CallbackManager(callback_config)
+    
+    def execute(
+        self,
+        url: str,
+        method: str,
+        request_func: Callable[..., httpx.Response],
+        **kwargs: Any,
+    ) -> httpx.Response:
+        """Execute request with retry logic."""
+        start_time = time.time()
+        last_error: Exception | None = None
+        last_status_code: int | None = None
+        
+        for attempt in range(self.config.max_retries + 1):
+            try:
+                # Attempt request
+                self.callbacks.on_request(url, method, attempt, self.config.max_retries)
+                response = request_func(url=url, **kwargs)
+                
+                # Evaluate response
+                should_retry, reason = self.decider.should_retry_response(
+                    response, attempt, self.config.max_retries
+                )
+                
+                if not should_retry:
+                    # Success!
+                    self.callbacks.on_success(
+                        url, method, attempt, self.config.max_retries,
+                        response, start_time
+                    )
+                    return response
+                
+                # Mark for retry
+                last_status_code = response.status_code
+                logger.debug(f"{method} to {url}: will retry ({reason})")
+                
+            except (httpx.TimeoutException, httpx.RequestError) as exc:
+                last_error = exc
+                
+                # Evaluate exception
+                should_retry, reason = self.decider.should_retry_exception(
+                    exc, attempt, self.config.max_retries
+                )
+                
+                if not should_retry:
+                    # Create and raise final error
+                    error = self._create_error(exc, url, method, attempt)
+                    self.callbacks.on_failure(
+                        url, method, attempt + 1, self.config.max_retries,
+                        error, None, start_time
+                    )
+                    raise error from exc
+                
+                logger.debug(f"{method} to {url}: will retry ({reason})")
+            
+            # Sleep before retry (if not last attempt)
+            if attempt < self.config.max_retries:
+                sleep_time = self.strategy.calculate_delay(attempt, response)
+                self.callbacks.on_retry(
+                    url, method, attempt, self.config.max_retries,
+                    sleep_time, last_error, last_status_code
+                )
+                time.sleep(sleep_time)
+        
+        # All retries exhausted
+        raise_final_error(
+            url=url,
+            method=method,
+            max_retries=self.config.max_retries,
+            response=response,
+            on_failure=self.callbacks.callbacks.on_failure,
+            start_time=start_time,
+        )
+    
+    def _create_error(
+        self,
+        exc: Exception,
+        url: str,
+        method: str,
+        attempt: int,
+    ) -> HttpRequestError:
+        """Create appropriate error from exception."""
+        if isinstance(exc, httpx.TimeoutException):
+            return HttpRequestError(
+                method=method,
+                url=url,
+                message=f"{method} request to {url} timed out ({attempt + 1} attempts)",
+                cause=exc,
+            )
+        return HttpRequestError(
+            method=method,
+            url=url,
+            message=f"{method} request to {url} failed after {attempt + 1} attempts: {exc}",
+            cause=exc,
+        )
+
+# Backward-compatible wrapper function
+def request_with_automatic_retry(
+    url: str,
+    method: str,
+    request_func: Callable[..., httpx.Response],
+    *,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
+    status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
+    jitter_factor: float = 0.0,
+    retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
+    on_request: Callable[[RequestInfo], None] | None = None,
+    on_retry: Callable[[RetryInfo], None] | None = None,
+    on_success: Callable[[ResponseInfo], None] | None = None,
+    on_failure: Callable[[FailureInfo], None] | None = None,
+    **kwargs: Any,
+) -> httpx.Response:
+    """Thin wrapper maintaining backward compatibility."""
+    retry_config = RetryConfig(
+        max_retries=max_retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist,
+        jitter_factor=jitter_factor,
+        retry_if=retry_if,
+    )
+    callback_config = CallbackConfig(
+        on_request=on_request,
+        on_retry=on_retry,
+        on_success=on_success,
+        on_failure=on_failure,
+    )
+    
+    executor = RetryExecutor(retry_config, callback_config)
+    return executor.execute(url, method, request_func, **kwargs)
+```
+
+**Pros**:
+- **Excellent separation of concerns**: Each class has a single, well-defined responsibility
+- **Highly testable**: Each component can be tested in isolation
+- **Easy to extend**: New strategies or deciders can be added without modifying existing code
+- **Reduced complexity**: Each method is simple with minimal branches
+- **Better encapsulation**: Related data and behavior are grouped together
+- **Composable**: Different strategies can be mixed and matched
+- **More maintainable**: Changes to retry logic, decision logic, or callbacks are isolated
+- **Follows SOLID principles**: Single Responsibility, Open/Closed, Dependency Inversion
+- **Easier to understand**: Object-oriented design is familiar to most developers
+- **Self-documenting**: Class and method names clearly express intent
+
+**Cons**:
+- **Significant refactoring**: Requires complete rewrite of the functions
+- **More files and classes**: Increases codebase size (though individual pieces are simpler)
+- **Learning curve**: Contributors need to understand the class architecture
+- **Potential over-engineering**: May be too complex for the current use case
+- **Performance overhead**: Object creation and method calls add minimal overhead
+- **Migration path**: Requires careful planning to maintain backward compatibility
+- **Testing effort**: Need to write tests for all new classes and their interactions
+
+**Migration Strategy**:
+1. Implement new classes alongside existing functions
+2. Keep existing functions as thin wrappers around the new classes
+3. Gradually migrate internal usage to use classes directly
+4. Deprecate function-based approach in future version (optional)
+
+**When to Use This Approach**:
+- If the library is expected to grow significantly in complexity
+- If multiple retry strategies are needed (e.g., linear backoff, polynomial backoff)
+- If custom retry behaviors will be common among users
+- If the team values object-oriented design over functional programming
+- If there's a need for dependency injection or mocking in tests
+
 ## Recommended Approach
 
 **Approach 1: Extract retry_if Handling to Helper Function**
@@ -297,8 +679,11 @@ After implementing Approach 1:
 If Approach 1 doesn't reduce complexity enough to pass linting:
 
 1. **Combine with Approach 4**: Extract additional methods for response handling
-2. **Request per-file ignore**: Add PLR0912/PLR0915 to per-file-ignores in pyproject.toml (least preferred)
-3. **Increase limits**: Adjust Ruff configuration to allow higher complexity (not recommended as it defeats the purpose)
+2. **Adopt Approach 5**: Migrate to class-based composition for maximum flexibility and maintainability (requires more effort but provides long-term benefits)
+3. **Request per-file ignore**: Add PLR0912/PLR0915 to per-file-ignores in pyproject.toml (least preferred)
+4. **Increase limits**: Adjust Ruff configuration to allow higher complexity (not recommended as it defeats the purpose)
+
+For future major versions or significant library expansion, Approach 5 (Class-Based Composition) should be seriously considered as it provides the best foundation for growth and maintainability, despite requiring more initial investment.
 
 ## Security Considerations
 
@@ -333,3 +718,17 @@ The recommended approach (Approach 1) provides a pragmatic solution that:
 - Sets foundation for future improvements if needed
 
 The implementation can be completed within 1-2 weeks with proper testing and review.
+
+### Future Consideration
+
+For future major versions (v2.0+) or if the library's complexity continues to grow, **Approach 5 (Class-Based Composition)** should be evaluated as a long-term architectural improvement. While it requires more initial investment, it provides:
+- Superior separation of concerns
+- Better extensibility for new features
+- Easier testing and maintenance
+- A solid foundation for growth
+
+This class-based approach is particularly valuable if:
+- The library needs to support multiple retry strategies
+- Users frequently need custom retry behaviors
+- The codebase is expected to exceed 3,000 lines
+- The team prefers object-oriented design patterns
