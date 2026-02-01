@@ -68,10 +68,13 @@ HTTP communications, making your applications more robust and fault-tolerant.
   optional randomized jitter to prevent thundering herd problems and avoid overwhelming servers
 - **Retry-After Header Support**: Respects server-specified retry delays from `Retry-After` headers
   (supports both integer seconds and HTTP-date formats)
-- **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH)
+- **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
 - **Async Support**: Fully supports asynchronous requests for high-performance applications
 - **Built on httpx**: Leverages the modern, async-capable httpx library
 - **Configurable**: Customize timeout, retry attempts, backoff factors, jitter, and retryable status codes
+- **Callbacks for Observability**: Built-in callback system for logging, metrics, and alerting
+  (on_request, on_retry, on_success, on_failure)
+- **Custom Retry Predicates**: Define custom logic for retry decisions based on response content or business rules
 - **Type-Safe**: Fully typed with comprehensive type hints
 - **Well-Tested**: Extensive test coverage ensuring reliability
 
