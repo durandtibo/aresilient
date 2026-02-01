@@ -61,7 +61,7 @@ class HttpMethodTestCase:
     method_name: str
     method_func: Callable[..., httpx.Response]
     client_method: str
-    status_code: int
+    status_code: int | None = None
     test_url: str | None = None
     supports_body: bool | None = None
 
@@ -82,7 +82,7 @@ class AsyncHttpMethodTestCase:
     method_name: str
     method_func: Callable[..., Awaitable[httpx.Response]]
     client_method: str
-    status_code: int
+    status_code: int | None = None
     test_url: str | None = None
     supports_body: bool | None = None
 
