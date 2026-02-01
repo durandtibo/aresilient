@@ -12,7 +12,7 @@ import httpx
 import pytest
 
 from aresilient import get_with_automatic_retry_async
-from tests.utils_helpers import (
+from tests.helpers import (
     assert_successful_request_async,
     setup_mock_async_client_for_method,
 )

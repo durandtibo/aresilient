@@ -1,4 +1,4 @@
-r"""Unit tests for test utility functions in utils_helpers.py.
+r"""Unit tests for test utility functions in helpers.py.
 
 This module tests the helper functions that are used to reduce boilerplate
 in other test files.
@@ -12,7 +12,7 @@ import httpx
 import pytest
 
 from aresilient import get_with_automatic_retry, get_with_automatic_retry_async
-from tests.utils_helpers import (
+from tests.helpers import (
     assert_successful_request,
     assert_successful_request_async,
     setup_mock_async_client_for_method,

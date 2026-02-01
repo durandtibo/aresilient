@@ -12,7 +12,7 @@ import httpx
 import pytest
 
 from aresilient import get_with_automatic_retry
-from tests.utils_helpers import assert_successful_request, setup_mock_client_for_method
+from tests.helpers import assert_successful_request, setup_mock_client_for_method
 
 TEST_URL = "https://api.example.com/data"
 

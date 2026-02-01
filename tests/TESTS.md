@@ -181,9 +181,9 @@ Provides reusable test utilities and parametrization data:
    - Async versions of all HTTP methods
    - Used with `@pytest.mark.asyncio` and `@pytest.mark.parametrize`
 
-### Test Utility Functions (`utils_helpers.py`)
+### Test Utility Functions
 
-Added in Option 4 implementation, this module provides reusable utility functions to reduce boilerplate in tests:
+Test utility functions added in `helpers.py` to reduce boilerplate in tests:
 
 1. **`setup_mock_client_for_method(client_method, status_code=200, response_kwargs=None)`**
    - Creates a properly configured mock `httpx.Client` for testing
@@ -192,7 +192,7 @@ Added in Option 4 implementation, this module provides reusable utility function
    
    **Example:**
    ```python
-   from tests.utils_helpers import setup_mock_client_for_method
+   from tests.helpers import setup_mock_client_for_method
    
    def test_example(mock_sleep: Mock) -> None:
        # Instead of manual setup:
@@ -214,7 +214,7 @@ Added in Option 4 implementation, this module provides reusable utility function
    
    **Example:**
    ```python
-   from tests.utils_helpers import setup_mock_async_client_for_method
+   from tests.helpers import setup_mock_async_client_for_method
    
    @pytest.mark.asyncio
    async def test_example_async(mock_asleep: Mock) -> None:
@@ -231,7 +231,7 @@ Added in Option 4 implementation, this module provides reusable utility function
    
    **Example:**
    ```python
-   from tests.utils_helpers import assert_successful_request, setup_mock_client_for_method
+   from tests.helpers import assert_successful_request, setup_mock_client_for_method
    
    def test_with_headers(mock_sleep: Mock) -> None:
        client, _ = setup_mock_client_for_method("get", 200)
@@ -258,7 +258,7 @@ Added in Option 4 implementation, this module provides reusable utility function
    
    **Example:**
    ```python
-   from tests.utils_helpers import assert_successful_request_async, setup_mock_async_client_for_method
+   from tests.helpers import assert_successful_request_async, setup_mock_async_client_for_method
    
    @pytest.mark.asyncio
    async def test_with_headers_async(mock_asleep: Mock) -> None:
@@ -282,7 +282,7 @@ Added in Option 4 implementation, this module provides reusable utility function
 - **Faster test writing:** Common patterns are pre-built
 
 **See Also:**
-- Implementation: `tests/utils_helpers.py`
+- Implementation: `tests/helpers.py`
 - Tests: `tests/unit/test_test_utils_helpers.py`
 - Examples: `tests/unit/test_get.py`, `tests/unit/test_post.py`, `tests/unit/test_get_async.py`
 
