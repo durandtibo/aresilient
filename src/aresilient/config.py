@@ -19,7 +19,7 @@ DEFAULT_TIMEOUT = 10.0
 DEFAULT_MAX_RETRIES = 3
 
 # Default backoff factor for exponential backoff
-# Wait time = backoff_factor * (2 ** retry_number)
+# Wait time = backoff_factor * (2 ** attempt)
 # With 0.3: 1st retry waits 0.3s, 2nd waits 0.6s, 3rd waits 1.2s
 DEFAULT_BACKOFF_FACTOR = 0.3
 

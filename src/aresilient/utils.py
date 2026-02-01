@@ -116,9 +116,11 @@ def parse_retry_after(retry_after_header: str | None) -> float | None:
         >>> parse_retry_after("0")
         0.0
         >>> # No header present
-        >>> parse_retry_after(None)
-        >>> # Invalid format
-        >>> parse_retry_after("invalid")
+        >>> parse_retry_after(None) is None
+        True
+        >>> # Invalid format returns None
+        >>> parse_retry_after("invalid") is None
+        True
 
         ```
     """
