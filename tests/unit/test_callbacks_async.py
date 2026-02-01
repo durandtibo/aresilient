@@ -50,10 +50,10 @@ async def test_on_request_callback_called_on_first_attempt_async(
     assert response == mock_response
     on_request_callback.assert_called_once()
     call_args = on_request_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "GET"
-    assert call_args["attempt"] == 1
-    assert call_args["max_retries"] == DEFAULT_MAX_RETRIES
+    assert call_args.url == TEST_URL
+    assert call_args.method == "GET"
+    assert call_args.attempt == 1
+    assert call_args.max_retries == DEFAULT_MAX_RETRIES
     mock_asleep.assert_not_called()
 
 
@@ -108,13 +108,13 @@ async def test_on_retry_callback_called_before_retry_async(
     assert response == mock_response
     on_retry_callback.assert_called_once()
     call_args = on_retry_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "GET"
-    assert call_args["attempt"] == 2  # Next attempt
-    assert call_args["max_retries"] == DEFAULT_MAX_RETRIES
-    assert call_args["wait_time"] == DEFAULT_BACKOFF_FACTOR
-    assert call_args["status_code"] == 503
-    assert call_args["error"] is None
+    assert call_args.url == TEST_URL
+    assert call_args.method == "GET"
+    assert call_args.attempt == 2  # Next attempt
+    assert call_args.max_retries == DEFAULT_MAX_RETRIES
+    assert call_args.wait_time == DEFAULT_BACKOFF_FACTOR
+    assert call_args.status_code == 503
+    assert call_args.error is None
     mock_asleep.assert_called_once_with(0.3)
 
 
@@ -160,8 +160,8 @@ async def test_on_retry_callback_with_timeout_exception_async(
     assert response == mock_response
     on_retry_callback.assert_called_once()
     call_args = on_retry_callback.call_args[0][0]
-    assert isinstance(call_args["error"], httpx.TimeoutException)
-    assert call_args["status_code"] is None
+    assert isinstance(call_args.error, httpx.TimeoutException)
+    assert call_args.status_code is None
     mock_asleep.assert_called_once_with(0.3)
 
 
@@ -188,13 +188,12 @@ async def test_on_success_callback_called_on_success_async(
     assert response == mock_response
     on_success_callback.assert_called_once()
     call_args = on_success_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "GET"
-    assert call_args["attempt"] == 1
-    assert call_args["max_retries"] == DEFAULT_MAX_RETRIES
-    assert call_args["response"] == mock_response
-    assert "total_time" in call_args
-    assert call_args["total_time"] >= 0
+    assert call_args.url == TEST_URL
+    assert call_args.method == "GET"
+    assert call_args.attempt == 1
+    assert call_args.max_retries == DEFAULT_MAX_RETRIES
+    assert call_args.response == mock_response
+    assert call_args.total_time >= 0
     mock_asleep.assert_not_called()
 
 
@@ -221,7 +220,7 @@ async def test_on_success_callback_after_retries_async(
     assert response == mock_response
     on_success_callback.assert_called_once()
     call_args = on_success_callback.call_args[0][0]
-    assert call_args["attempt"] == 3  # Succeeded on third attempt
+    assert call_args.attempt == 3  # Succeeded on third attempt
     assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
@@ -276,12 +275,12 @@ async def test_on_failure_callback_called_on_retryable_status_failure_async(
 
     on_failure_callback.assert_called_once()
     call_args = on_failure_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "GET"
-    assert call_args["attempt"] == 3  # max_retries + 1
-    assert call_args["max_retries"] == 2
-    assert isinstance(call_args["error"], HttpRequestError)
-    assert call_args["status_code"] == 503
+    assert call_args.url == TEST_URL
+    assert call_args.method == "GET"
+    assert call_args.attempt == 3  # max_retries + 1
+    assert call_args.max_retries == 2
+    assert isinstance(call_args.error, HttpRequestError)
+    assert call_args.status_code == 503
     assert "total_time" in call_args
     assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
@@ -406,10 +405,10 @@ async def test_callbacks_with_custom_max_retries_async(
 
     # Check that max_retries is correctly passed
     request_call_args = on_request_callback.call_args_list[0][0][0]
-    assert request_call_args["max_retries"] == 5
+    assert request_call_args.max_retries == 5
 
     retry_call_args = on_retry_callback.call_args[0][0]
-    assert retry_call_args["max_retries"] == 5
+    assert retry_call_args.max_retries == 5
     mock_asleep.assert_called_once_with(0.3)
 
 
@@ -436,5 +435,5 @@ async def test_callbacks_with_custom_backoff_factor_async(
     assert response == mock_response
 
     retry_call_args = on_retry_callback.call_args[0][0]
-    assert retry_call_args["wait_time"] == 2.0  # 2.0 * (2 ** 0)
+    assert retry_call_args.wait_time == 2.0  # 2.0 * (2 ** 0)
     mock_asleep.assert_called_once_with(2.0)
