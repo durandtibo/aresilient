@@ -324,7 +324,9 @@ from aresilient import get_with_automatic_retry
 
 
 def log_request(info):
-    print(f"Attempting {info.method} {info.url} (attempt {info.attempt}/{info.max_retries + 1})")
+    print(
+        f"Attempting {info.method} {info.url} (attempt {info.attempt}/{info.max_retries + 1})"
+    )
 
 
 def log_retry(info):
@@ -401,7 +403,9 @@ for url in urls:
 print(f"Total retries: {metrics.retry_count}")
 print(f"Successes: {metrics.success_count}")
 print(f"Failures: {metrics.failure_count}")
-print(f"Average time: {metrics.total_time / (metrics.success_count + metrics.failure_count):.2f}s")
+print(
+    f"Average time: {metrics.total_time / (metrics.success_count + metrics.failure_count):.2f}s"
+)
 ```
 
 #### Callback Information

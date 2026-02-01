@@ -6,6 +6,14 @@ test files to reduce duplication and improve maintainability.
 
 from __future__ import annotations
 
+__all__ = [
+    "HTTPBIN_URL",
+    "HTTP_METHODS",
+    "HTTP_METHODS_ASYNC",
+    "AsyncHttpMethodTestCase",
+    "HttpMethodTestCase",
+]
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -29,7 +37,7 @@ from aresilient import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable
 
     import httpx
 
@@ -52,6 +60,27 @@ class HttpMethodTestCase:
 
     method_name: str
     method_func: Callable[..., httpx.Response]
+    client_method: str
+    status_code: int
+    test_url: str | None = None
+    supports_body: bool | None = None
+
+
+@dataclass
+class AsyncHttpMethodTestCase:
+    """Test case definition for async HTTP method testing.
+
+    Attributes:
+        method_name: The HTTP method name (e.g., "GET", "POST").
+        method_func: The async function to test (e.g., get_with_automatic_retry_async).
+        client_method: The httpx.AsyncClient method name (e.g., "get", "post").
+        status_code: Expected success status code.
+        test_url: The full test URL (e.g., "https://httpbin.org/get"). Optional.
+        supports_body: Whether the HTTP method supports request bodies. Optional.
+    """
+
+    method_name: str
+    method_func: Callable[..., Awaitable[httpx.Response]]
     client_method: str
     status_code: int
     test_url: str | None = None
@@ -143,7 +172,7 @@ HTTP_METHODS = [
 # Define test parameters for all async HTTP methods
 HTTP_METHODS_ASYNC = [
     pytest.param(
-        HttpMethodTestCase(
+        AsyncHttpMethodTestCase(
             method_name="GET",
             method_func=get_with_automatic_retry_async,
             client_method="get",
@@ -154,7 +183,7 @@ HTTP_METHODS_ASYNC = [
         id="GET",
     ),
     pytest.param(
-        HttpMethodTestCase(
+        AsyncHttpMethodTestCase(
             method_name="POST",
             method_func=post_with_automatic_retry_async,
             client_method="post",
@@ -165,7 +194,7 @@ HTTP_METHODS_ASYNC = [
         id="POST",
     ),
     pytest.param(
-        HttpMethodTestCase(
+        AsyncHttpMethodTestCase(
             method_name="PUT",
             method_func=put_with_automatic_retry_async,
             client_method="put",
@@ -176,7 +205,7 @@ HTTP_METHODS_ASYNC = [
         id="PUT",
     ),
     pytest.param(
-        HttpMethodTestCase(
+        AsyncHttpMethodTestCase(
             method_name="DELETE",
             method_func=delete_with_automatic_retry_async,
             client_method="delete",
@@ -187,7 +216,7 @@ HTTP_METHODS_ASYNC = [
         id="DELETE",
     ),
     pytest.param(
-        HttpMethodTestCase(
+        AsyncHttpMethodTestCase(
             method_name="PATCH",
             method_func=patch_with_automatic_retry_async,
             client_method="patch",
@@ -198,7 +227,7 @@ HTTP_METHODS_ASYNC = [
         id="PATCH",
     ),
     pytest.param(
-        HttpMethodTestCase(
+        AsyncHttpMethodTestCase(
             method_name="HEAD",
             method_func=head_with_automatic_retry_async,
             client_method="head",
@@ -209,7 +238,7 @@ HTTP_METHODS_ASYNC = [
         id="HEAD",
     ),
     pytest.param(
-        HttpMethodTestCase(
+        AsyncHttpMethodTestCase(
             method_name="OPTIONS",
             method_func=options_with_automatic_retry_async,
             client_method="options",
