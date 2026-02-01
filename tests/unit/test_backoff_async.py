@@ -56,7 +56,7 @@ async def test_with_jitter_factor(
     client_method = AsyncMock(side_effect=[mock_response_fail, mock_response])
     setattr(mock_client, test_case.client_method, client_method)
 
-    with patch("aresilient.utils.random.uniform", return_value=0.05):
+    with patch("aresilient.utils.backoff.random.uniform", return_value=0.05):
         response = await test_case.method_func(
             TEST_URL, client=mock_client, backoff_factor=1.0, jitter_factor=0.1
         )
