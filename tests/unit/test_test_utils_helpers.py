@@ -1,4 +1,4 @@
-r"""Unit tests for test utility functions in test_utils_helpers.py.
+r"""Unit tests for test utility functions in utils_helpers.py.
 
 This module tests the helper functions that are used to reduce boilerplate
 in other test files.
@@ -12,7 +12,7 @@ import httpx
 import pytest
 
 from aresilient import get_with_automatic_retry, get_with_automatic_retry_async
-from tests.test_utils_helpers import (
+from tests.utils_helpers import (
     assert_successful_request,
     assert_successful_request_async,
     setup_mock_async_client_for_method,
@@ -22,9 +22,9 @@ from tests.test_utils_helpers import (
 TEST_URL = "https://api.example.com/data"
 
 
-###############################################################
-#     Tests for setup_mock_client_for_method                 #
-###############################################################
+##################################################
+#     Tests for setup_mock_client_for_method     #
+##################################################
 
 
 def test_setup_mock_client_for_method_default_status() -> None:
@@ -73,9 +73,9 @@ def test_setup_mock_client_for_method_different_methods() -> None:
         assert client_method() == response
 
 
-###############################################################
-#     Tests for setup_mock_async_client_for_method           #
-###############################################################
+##########################################################
+#     Tests for setup_mock_async_client_for_method     #
+##########################################################
 
 
 def test_setup_mock_async_client_for_method_default_status() -> None:
@@ -120,9 +120,9 @@ def test_setup_mock_async_client_for_method_different_methods() -> None:
         assert hasattr(client, "aclose")
 
 
-###############################################################
-#     Tests for assert_successful_request                    #
-###############################################################
+##################################################
+#     Tests for assert_successful_request     #
+##################################################
 
 
 def test_assert_successful_request_default_status(mock_sleep: Mock) -> None:
@@ -178,9 +178,9 @@ def test_assert_successful_request_returns_response(mock_sleep: Mock) -> None:
     assert response is mock_response
 
 
-###############################################################
-#     Tests for assert_successful_request_async              #
-###############################################################
+########################################################
+#     Tests for assert_successful_request_async     #
+########################################################
 
 
 @pytest.mark.asyncio
