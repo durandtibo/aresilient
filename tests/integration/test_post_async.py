@@ -13,7 +13,7 @@ HTTPBIN_URL = "https://httpbin.org"
 #     Tests for post_with_automatic_retry_async     #
 #####################################################
 # Note: Common async tests (successful request, non-retryable status, headers)
-# are now in test_http_methods_common_async.py to avoid duplication across HTTP methods.
+# are now in test_core_async.py to avoid duplication across HTTP methods.
 # This file contains POST-specific async tests only.
 
 

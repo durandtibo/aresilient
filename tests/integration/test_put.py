@@ -12,7 +12,7 @@ HTTPBIN_URL = "https://httpbin.org"
 #     Tests for put_with_automatic_retry     #
 ##############################################
 # Note: Common tests (successful request, non-retryable status, headers)
-# are now in test_http_methods_common.py to avoid duplication across HTTP methods.
+# are now in test_core.py to avoid duplication across HTTP methods.
 # This file contains PUT-specific tests only.
 
 

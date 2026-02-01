@@ -12,7 +12,7 @@ HTTPBIN_URL = "https://httpbin.org"
 #     Tests for get_with_automatic_retry     #
 ##############################################
 # Note: Common tests (successful request, non-retryable status, headers, query params)
-# are now in test_http_methods_common.py to avoid duplication across HTTP methods.
+# are now in test_core.py to avoid duplication across HTTP methods.
 # This file contains GET-specific tests only.
 
 
