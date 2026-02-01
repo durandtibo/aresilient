@@ -448,9 +448,9 @@ Each callback receives a dataclass with relevant information:
 ```python
 @dataclass
 class RequestInfo:
-    url: str          # The URL being requested
-    method: str       # HTTP method (e.g., "GET", "POST")
-    attempt: int      # Current attempt number (1-indexed, first attempt is 1)
+    url: str  # The URL being requested
+    method: str  # HTTP method (e.g., "GET", "POST")
+    attempt: int  # Current attempt number (1-indexed, first attempt is 1)
     max_retries: int  # Maximum number of retry attempts configured
 ```
 
@@ -459,13 +459,13 @@ class RequestInfo:
 ```python
 @dataclass
 class RetryInfo:
-    url: str               # The URL being requested
-    method: str            # HTTP method
-    attempt: int           # Current attempt number (1-indexed, first retry is attempt 2)
-    max_retries: int       # Maximum retry attempts configured
-    wait_time: float       # Sleep time in seconds before this retry
-    error: Exception | None      # Exception that triggered the retry (if any)
-    status_code: int | None      # HTTP status code that triggered retry (if any)
+    url: str  # The URL being requested
+    method: str  # HTTP method
+    attempt: int  # Current attempt number (1-indexed, first retry is attempt 2)
+    max_retries: int  # Maximum retry attempts configured
+    wait_time: float  # Sleep time in seconds before this retry
+    error: Exception | None  # Exception that triggered the retry (if any)
+    status_code: int | None  # HTTP status code that triggered retry (if any)
 ```
 
 #### ResponseInfo (for `on_success`)
@@ -473,12 +473,12 @@ class RetryInfo:
 ```python
 @dataclass
 class ResponseInfo:
-    url: str                   # The URL that was requested
-    method: str                # HTTP method
-    attempt: int               # Attempt number that succeeded (1-indexed)
-    max_retries: int           # Maximum retry attempts configured
-    response: httpx.Response   # The successful HTTP response object
-    total_time: float          # Total time spent on all attempts including backoff (seconds)
+    url: str  # The URL that was requested
+    method: str  # HTTP method
+    attempt: int  # Attempt number that succeeded (1-indexed)
+    max_retries: int  # Maximum retry attempts configured
+    response: httpx.Response  # The successful HTTP response object
+    total_time: float  # Total time spent on all attempts including backoff (seconds)
 ```
 
 #### FailureInfo (for `on_failure`)
@@ -486,13 +486,13 @@ class ResponseInfo:
 ```python
 @dataclass
 class FailureInfo:
-    url: str             # The URL that was requested
-    method: str          # HTTP method
-    attempt: int         # Final attempt number (1-indexed)
-    max_retries: int     # Maximum retry attempts configured
-    error: Exception     # The final exception that caused failure
+    url: str  # The URL that was requested
+    method: str  # HTTP method
+    attempt: int  # Final attempt number (1-indexed)
+    max_retries: int  # Maximum retry attempts configured
+    error: Exception  # The final exception that caused failure
     status_code: int | None  # Final HTTP status code (if any)
-    total_time: float    # Total time spent on all attempts including backoff (seconds)
+    total_time: float  # Total time spent on all attempts including backoff (seconds)
 ```
 
 ### Basic Logging Example
@@ -504,11 +504,17 @@ from aresilient import get_with_automatic_retry
 
 
 def log_request(info):
-    print(f"[REQUEST] {info.method} {info.url} - Attempt {info.attempt}/{info.max_retries + 1}")
+    print(
+        f"[REQUEST] {info.method} {info.url} - Attempt {info.attempt}/{info.max_retries + 1}"
+    )
 
 
 def log_retry(info):
-    reason = f"status={info.status_code}" if info.status_code else f"error={type(info.error).__name__}"
+    reason = (
+        f"status={info.status_code}"
+        if info.status_code
+        else f"error={type(info.error).__name__}"
+    )
     print(
         f"[RETRY] {info.method} {info.url} - "
         f"Attempt {info.attempt}/{info.max_retries + 1}, "
@@ -525,7 +531,11 @@ def log_success(info):
 
 
 def log_failure(info):
-    reason = f"status={info.status_code}" if info.status_code else f"error={type(info.error).__name__}"
+    reason = (
+        f"status={info.status_code}"
+        if info.status_code
+        else f"error={type(info.error).__name__}"
+    )
     print(
         f"[FAILURE] {info.method} {info.url} - "
         f"Failed after {info.attempt} attempts "
@@ -596,7 +606,9 @@ class RequestMetrics:
     def summary(self):
         """Print a summary of collected metrics."""
         total_completed = self.successes + self.failures
-        success_rate = (self.successes / total_completed * 100) if total_completed > 0 else 0
+        success_rate = (
+            (self.successes / total_completed * 100) if total_completed > 0 else 0
+        )
         avg_time = (self.total_time / total_completed) if total_completed > 0 else 0
 
         print(f"=== Request Metrics Summary ===")
@@ -723,7 +735,9 @@ def track_retry(info):
         "http.retries",
         tags={
             "method": info.method,
-            "status_code": str(info.status_code) if info.status_code else "network_error",
+            "status_code": (
+                str(info.status_code) if info.status_code else "network_error"
+            ),
         },
     )
 
@@ -731,7 +745,9 @@ def track_retry(info):
 def track_success(info):
     """Track successful requests."""
     monitoring.increment_counter("http.success", tags={"method": info.method})
-    monitoring.record_histogram("http.duration", info.total_time, tags={"method": info.method})
+    monitoring.record_histogram(
+        "http.duration", info.total_time, tags={"method": info.method}
+    )
 
 
 def track_failure(info):
@@ -740,7 +756,9 @@ def track_failure(info):
         "http.failure",
         tags={
             "method": info.method,
-            "status_code": str(info.status_code) if info.status_code else "network_error",
+            "status_code": (
+                str(info.status_code) if info.status_code else "network_error"
+            ),
         },
     )
 

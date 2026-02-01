@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
-from tests.unit.helpers import HTTPBIN_URL, HTTP_METHODS_ASYNC
+from tests.helpers import HTTP_METHODS_ASYNC, HTTPBIN_URL
 
 if TYPE_CHECKING:
     from _pytest.mark.structures import ParameterSet
@@ -27,7 +27,9 @@ async def test_http_method_async_successful_request_with_client(test_case: Param
         else:
             response = await tc.method_func(url=tc.test_url, client=client)
 
-    assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
+    assert response.status_code == 200 or (
+        tc.method_name == "OPTIONS" and response.status_code == 405
+    )
 
     # Verify response data (except for HEAD and OPTIONS which have no body)
     if tc.method_name not in ("HEAD", "OPTIONS"):
@@ -50,7 +52,9 @@ async def test_http_method_async_successful_request_without_client(test_case: Pa
     else:
         response = await tc.method_func(url=tc.test_url)
 
-    assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
+    assert response.status_code == 200 or (
+        tc.method_name == "OPTIONS" and response.status_code == 405
+    )
 
     # Verify response data (except for HEAD and OPTIONS which have no body)
     if tc.method_name not in ("HEAD", "OPTIONS"):
@@ -64,11 +68,16 @@ async def test_http_method_async_successful_request_without_client(test_case: Pa
     "test_case",
     [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].method_name != "OPTIONS"],
 )
-async def test_http_method_async_non_retryable_status_fails_immediately(test_case: ParameterSet) -> None:
-    """Test that 404 (non-retryable) fails immediately without retries."""
+async def test_http_method_async_non_retryable_status_fails_immediately(
+    test_case: ParameterSet,
+) -> None:
+    """Test that 404 (non-retryable) fails immediately without
+    retries."""
     tc = test_case.values[0]
     async with httpx.AsyncClient() as client:
-        with pytest.raises(HttpRequestError, match=rf"{tc.method_name} request to .* failed with status 404"):
+        with pytest.raises(
+            HttpRequestError, match=rf"{tc.method_name} request to .* failed with status 404"
+        ):
             await tc.method_func(url=f"{HTTPBIN_URL}/status/404", client=client)
 
 
@@ -94,7 +103,9 @@ async def test_http_method_async_with_custom_headers(test_case: ParameterSet) ->
                 headers={"X-Custom-Header": "test-value"},
             )
 
-    assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
+    assert response.status_code == 200 or (
+        tc.method_name == "OPTIONS" and response.status_code == 405
+    )
 
     # Verify headers in response (except for HEAD which has no body)
     if tc.method_name == "HEAD":

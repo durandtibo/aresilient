@@ -11,7 +11,7 @@ from unittest.mock import Mock, call, patch
 import httpx
 import pytest
 
-from .helpers import HTTP_METHODS, HttpMethodTestCase
+from tests.helpers import HTTP_METHODS, HttpMethodTestCase
 
 TEST_URL = "https://api.example.com/data"
 

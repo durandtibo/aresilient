@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
-from tests.unit.helpers import HTTPBIN_URL, HTTP_METHODS
+from tests.helpers import HTTP_METHODS, HTTPBIN_URL
 
 if TYPE_CHECKING:
     from _pytest.mark.structures import ParameterSet
@@ -26,7 +26,9 @@ def test_http_method_successful_request_with_client(test_case: ParameterSet) -> 
         else:
             response = tc.method_func(url=tc.test_url, client=client)
 
-    assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
+    assert response.status_code == 200 or (
+        tc.method_name == "OPTIONS" and response.status_code == 405
+    )
 
     # Verify response data (except for HEAD and OPTIONS which have no body)
     if tc.method_name not in ("HEAD", "OPTIONS"):
@@ -48,7 +50,9 @@ def test_http_method_successful_request_without_client(test_case: ParameterSet) 
     else:
         response = tc.method_func(url=tc.test_url)
 
-    assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
+    assert response.status_code == 200 or (
+        tc.method_name == "OPTIONS" and response.status_code == 405
+    )
 
     # Verify response data (except for HEAD and OPTIONS which have no body)
     if tc.method_name not in ("HEAD", "OPTIONS"):
@@ -62,11 +66,14 @@ def test_http_method_successful_request_without_client(test_case: ParameterSet) 
     [tc for tc in HTTP_METHODS if tc.values[0].method_name != "OPTIONS"],
 )
 def test_http_method_non_retryable_status_fails_immediately(test_case: ParameterSet) -> None:
-    """Test that 404 (non-retryable) fails immediately without retries."""
+    """Test that 404 (non-retryable) fails immediately without
+    retries."""
     tc = test_case.values[0]
     with (
         httpx.Client() as client,
-        pytest.raises(HttpRequestError, match=rf"{tc.method_name} request to .* failed with status 404"),
+        pytest.raises(
+            HttpRequestError, match=rf"{tc.method_name} request to .* failed with status 404"
+        ),
     ):
         tc.method_func(url=f"{HTTPBIN_URL}/status/404", client=client)
 
@@ -92,7 +99,9 @@ def test_http_method_with_custom_headers(test_case: ParameterSet) -> None:
                 headers={"X-Custom-Header": "test-value"},
             )
 
-    assert response.status_code == 200 or (tc.method_name == "OPTIONS" and response.status_code == 405)
+    assert response.status_code == 200 or (
+        tc.method_name == "OPTIONS" and response.status_code == 405
+    )
 
     # Verify headers in response (except for HEAD which has no body)
     if tc.method_name == "HEAD":

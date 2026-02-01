@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, Mock, call, patch
 import httpx
 import pytest
 
-from .helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
+from tests.helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
 
 TEST_URL = "https://api.example.com/data"
 

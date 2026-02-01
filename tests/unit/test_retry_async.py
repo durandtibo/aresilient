@@ -14,8 +14,7 @@ import httpx
 import pytest
 
 from aresilient import RETRY_STATUS_CODES, HttpRequestError
-
-from .helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
+from tests.helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
 
 TEST_URL = "https://api.example.com/data"
 
