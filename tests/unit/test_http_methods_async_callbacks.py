@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, call
 
 import httpx
 import pytest
@@ -27,7 +27,7 @@ from aresilient import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable
 
 TEST_URL = "https://api.example.com/data"
 
@@ -44,7 +44,7 @@ class AsyncHttpMethodTestCase:
     """
 
     method_name: str
-    method_func: Callable[..., httpx.Response]
+    method_func: Callable[..., Awaitable[httpx.Response]]
     client_method: str
     success_code: int | None = None
 
@@ -146,6 +146,7 @@ async def test_http_method_async_on_request_callback(
     assert call_args["url"] == TEST_URL
     assert call_args["method"] == test_case.method_name
     assert call_args["attempt"] == 1
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -171,6 +172,7 @@ async def test_http_method_async_on_success_callback(
     assert call_args["url"] == TEST_URL
     assert call_args["method"] == test_case.method_name
     assert call_args["response"].status_code == test_case.success_code
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -201,6 +203,7 @@ async def test_http_method_async_on_retry_callback(
     assert call_args["url"] == TEST_URL
     assert call_args["method"] == test_case.method_name
     assert call_args["status_code"] == 503
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -229,6 +232,7 @@ async def test_http_method_async_on_failure_callback(
     assert call_args["url"] == TEST_URL
     assert call_args["method"] == test_case.method_name
     assert call_args["status_code"] == 503
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 @pytest.mark.asyncio
@@ -266,6 +270,7 @@ async def test_http_method_async_all_callbacks_together(
     on_retry_callback.assert_called_once()  # One retry
     on_success_callback.assert_called_once()  # One success
     on_failure_callback.assert_not_called()  # No failure
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -302,3 +307,4 @@ async def test_http_method_async_callbacks_with_timeout_error(
     # Check that retry callback received error info
     retry_call_args = on_retry_callback.call_args[0][0]
     assert isinstance(retry_call_args["error"], httpx.TimeoutException)
+    mock_asleep.assert_called_once_with(0.3)
