@@ -117,7 +117,7 @@ async def request_with_automatic_retry_async(
         >>> import httpx
         >>> from aresilient import request_with_automatic_retry_async
         >>> def log_retry(info):
-        ...     print(f"Retry {info['attempt']}/{info['max_retries']}")
+        ...     print(f"Retry {info.attempt}/{info.max_retries + 1}")
         ...
         >>> async def example():
         ...     async with httpx.AsyncClient() as client:

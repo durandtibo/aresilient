@@ -14,7 +14,7 @@ Example:
     ```pycon
     >>> from aresilient import get_with_automatic_retry
     >>> def log_retry(retry_info):
-    ...     print(f"Retry {retry_info['attempt']}/{retry_info['max_retries']}")
+    ...     print(f"Retry {retry_info.attempt}/{retry_info.max_retries + 1}")
     ...
     >>> response = get_with_automatic_retry(
     ...     "https://api.example.com/data", on_retry=log_retry
