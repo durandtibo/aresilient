@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from aresilient import HttpRequestError, patch_with_automatic_retry_async
+from aresilient import patch_with_automatic_retry_async
 
 # Use httpbin.org for real HTTP testing
 HTTPBIN_URL = "https://httpbin.org"
@@ -12,39 +12,9 @@ HTTPBIN_URL = "https://httpbin.org"
 ######################################################
 #     Tests for patch_with_automatic_retry_async     #
 ######################################################
-
-
-@pytest.mark.asyncio
-async def test_patch_with_automatic_retry_async_successful_request() -> None:
-    """Test successful PATCH request without retries."""
-    async with httpx.AsyncClient() as client:
-        response = await patch_with_automatic_retry_async(
-            url=f"{HTTPBIN_URL}/patch", json={"test": "data", "number": 42}, client=client
-        )
-    assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["url"] == "https://httpbin.org/patch"
-    assert response_data["json"] == {"test": "data", "number": 42}
-
-
-@pytest.mark.asyncio
-async def test_patch_with_automatic_retry_async_successful_request_without_client() -> None:
-    """Test successful PATCH request without retries."""
-    response = await patch_with_automatic_retry_async(
-        url=f"{HTTPBIN_URL}/patch", json={"test": "data", "number": 42}
-    )
-    assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["json"] == {"test": "data", "number": 42}
-
-
-@pytest.mark.asyncio
-async def test_patch_with_non_retryable_status_fails_immediately_async() -> None:
-    """Test that 404 (non-retryable) fails immediately without
-    retries."""
-    async with httpx.AsyncClient() as client:
-        with pytest.raises(HttpRequestError, match=r"PATCH request to .* failed with status 404"):
-            await patch_with_automatic_retry_async(url=f"{HTTPBIN_URL}/status/404", client=client)
+# Note: Common async tests (successful request, non-retryable status, headers)
+# are now in test_http_methods_common_async.py to avoid duplication across HTTP methods.
+# This file contains PATCH-specific async tests only.
 
 
 @pytest.mark.asyncio
@@ -74,20 +44,3 @@ async def test_patch_with_automatic_retry_async_form_data() -> None:
     assert response.status_code == 200
     response_data = response.json()
     assert response_data["form"] == {"field1": "value1", "field2": "value2"}
-
-
-@pytest.mark.asyncio
-async def test_patch_with_automatic_retry_async_with_headers() -> None:
-    """Test PATCH request with custom headers."""
-    async with httpx.AsyncClient() as client:
-        response = await patch_with_automatic_retry_async(
-            url=f"{HTTPBIN_URL}/patch",
-            client=client,
-            json={"test": "data"},
-            headers={"X-Custom-Header": "test-value"},
-        )
-
-    assert response.status_code == 200
-    response_data = response.json()
-    assert "X-Custom-Header" in response_data["headers"]
-    assert response_data["headers"]["X-Custom-Header"] == "test-value"

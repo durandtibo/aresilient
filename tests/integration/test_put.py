@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import httpx
-import pytest
 
-from aresilient import HttpRequestError, put_with_automatic_retry
+from aresilient import put_with_automatic_retry
 
 # Use httpbin.org for real HTTP testing
 HTTPBIN_URL = "https://httpbin.org"
@@ -12,38 +11,9 @@ HTTPBIN_URL = "https://httpbin.org"
 ##############################################
 #     Tests for put_with_automatic_retry     #
 ##############################################
-
-
-def test_put_with_automatic_retry_successful_request() -> None:
-    """Test successful PUT request without retries."""
-    with httpx.Client() as client:
-        response = put_with_automatic_retry(
-            url=f"{HTTPBIN_URL}/put", json={"test": "data", "number": 42}, client=client
-        )
-    assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["url"] == "https://httpbin.org/put"
-    assert response_data["json"] == {"test": "data", "number": 42}
-
-
-def test_put_with_automatic_retry_successful_request_without_client() -> None:
-    """Test successful PUT request without retries."""
-    response = put_with_automatic_retry(
-        url=f"{HTTPBIN_URL}/put", json={"test": "data", "number": 42}
-    )
-    assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["json"] == {"test": "data", "number": 42}
-
-
-def test_put_with_non_retryable_status_fails_immediately() -> None:
-    """Test that 404 (non-retryable) fails immediately without
-    retries."""
-    with (
-        httpx.Client() as client,
-        pytest.raises(HttpRequestError, match=r"PUT request to .* failed with status 404"),
-    ):
-        put_with_automatic_retry(url=f"{HTTPBIN_URL}/status/404", client=client)
+# Note: Common tests (successful request, non-retryable status, headers)
+# are now in test_http_methods_common.py to avoid duplication across HTTP methods.
+# This file contains PUT-specific tests only.
 
 
 def test_put_with_automatic_retry_large_request_body() -> None:
@@ -71,19 +41,3 @@ def test_put_with_automatic_retry_form_data() -> None:
     assert response.status_code == 200
     response_data = response.json()
     assert response_data["form"] == {"field1": "value1", "field2": "value2"}
-
-
-def test_put_with_automatic_retry_with_headers() -> None:
-    """Test PUT request with custom headers."""
-    with httpx.Client() as client:
-        response = put_with_automatic_retry(
-            url=f"{HTTPBIN_URL}/put",
-            client=client,
-            json={"test": "data"},
-            headers={"X-Custom-Header": "test-value"},
-        )
-
-    assert response.status_code == 200
-    response_data = response.json()
-    assert "X-Custom-Header" in response_data["headers"]
-    assert response_data["headers"]["X-Custom-Header"] == "test-value"
