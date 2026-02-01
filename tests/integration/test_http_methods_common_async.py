@@ -9,14 +9,14 @@ from aresilient import HttpRequestError
 from tests.helpers import HTTP_METHODS_ASYNC, HTTPBIN_URL
 
 if TYPE_CHECKING:
-    from _pytest.mark.structures import ParameterSet
+    from tests.helpers import AsyncHttpMethodTestCase
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
-async def test_http_method_async_successful_request_with_client(test_case: ParameterSet) -> None:
+async def test_http_method_async_successful_request_with_client(test_case: AsyncHttpMethodTestCase) -> None:
     """Test successful async HTTP request with explicit client."""
-    tc = test_case.values[0]
+    tc = test_case
     async with httpx.AsyncClient() as client:
         if tc.supports_body:
             response = await tc.method_func(
@@ -41,9 +41,9 @@ async def test_http_method_async_successful_request_with_client(test_case: Param
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
-async def test_http_method_async_successful_request_without_client(test_case: ParameterSet) -> None:
+async def test_http_method_async_successful_request_without_client(test_case: AsyncHttpMethodTestCase) -> None:
     """Test successful async HTTP request without explicit client."""
-    tc = test_case.values[0]
+    tc = test_case
     if tc.supports_body:
         response = await tc.method_func(
             url=tc.test_url,
@@ -69,11 +69,11 @@ async def test_http_method_async_successful_request_without_client(test_case: Pa
     [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].method_name != "OPTIONS"],
 )
 async def test_http_method_async_non_retryable_status_fails_immediately(
-    test_case: ParameterSet,
+    test_case: AsyncHttpMethodTestCase,
 ) -> None:
     """Test that 404 (non-retryable) fails immediately without
     retries."""
-    tc = test_case.values[0]
+    tc = test_case
     async with httpx.AsyncClient() as client:
         with pytest.raises(
             HttpRequestError, match=rf"{tc.method_name} request to .* failed with status 404"
@@ -83,9 +83,9 @@ async def test_http_method_async_non_retryable_status_fails_immediately(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
-async def test_http_method_async_with_custom_headers(test_case: ParameterSet) -> None:
+async def test_http_method_async_with_custom_headers(test_case: AsyncHttpMethodTestCase) -> None:
     """Test async HTTP request with custom headers."""
-    tc = test_case.values[0]
+    tc = test_case
     async with httpx.AsyncClient() as client:
         if tc.supports_body:
             response = await tc.method_func(
@@ -95,8 +95,11 @@ async def test_http_method_async_with_custom_headers(test_case: ParameterSet) ->
                 headers={"X-Custom-Header": "test-value"},
             )
         else:
-            # Use /headers endpoint for methods that don't support body
-            test_endpoint = f"{HTTPBIN_URL}/headers" if tc.method_name != "OPTIONS" else tc.test_url
+            # Use /headers endpoint for GET and HEAD to verify headers, otherwise use method's test_url
+            if tc.method_name in ("GET", "HEAD"):
+                test_endpoint = f"{HTTPBIN_URL}/headers"
+            else:
+                test_endpoint = tc.test_url
             response = await tc.method_func(
                 url=test_endpoint,
                 client=client,
@@ -124,9 +127,9 @@ async def test_http_method_async_with_custom_headers(test_case: ParameterSet) ->
     "test_case",
     [tc for tc in HTTP_METHODS_ASYNC if tc.values[0].method_name in ("GET", "DELETE")],
 )
-async def test_http_method_async_with_query_params(test_case: ParameterSet) -> None:
+async def test_http_method_async_with_query_params(test_case: AsyncHttpMethodTestCase) -> None:
     """Test async HTTP request with query parameters."""
-    tc = test_case.values[0]
+    tc = test_case
     async with httpx.AsyncClient() as client:
         response = await tc.method_func(
             url=tc.test_url,
