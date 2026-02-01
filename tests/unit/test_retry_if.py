@@ -12,11 +12,8 @@ from unittest.mock import Mock, call
 import httpx
 import pytest
 
-from aresilient import (
-    HttpRequestError,
-)
+from aresilient import HttpRequestError
 from tests.helpers import HTTP_METHODS, HttpMethodTestCase
-
 
 TEST_URL = "https://api.example.com/data"
 
