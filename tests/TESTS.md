@@ -231,7 +231,8 @@ All async tests use the `@pytest.mark.asyncio` decorator:
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_async_function(test_case: AsyncHttpMethodTestCase) -> None:
     """Async test example."""
-    response = await test_case.method_func(TEST_URL)
+    test_url = "https://api.example.com/data"
+    response = await test_case.method_func(test_url)
 ```
 
 ### Docstring Standards
@@ -304,9 +305,9 @@ To get current test statistics, run:
 pytest tests/ --collect-only
 
 # Count test files by category
-find tests/unit -type f -name "*.py" ! -name "__init__.py" | wc -l      # Unit test files
-find tests/integration -type f -name "*.py" ! -name "__init__.py" | wc -l  # Integration test files
-find tests -type f -name "*_async.py" | wc -l                            # Async test files
+find tests/unit -type f -name "*.py" ! -name "__init__.py" | wc -l         # Unit tests
+find tests/integration -type f -name "*.py" ! -name "__init__.py" | wc -l  # Integration tests
+find tests -type f -name "*_async.py" | wc -l                              # Async tests
 ```
 
 ## Adding New Tests
