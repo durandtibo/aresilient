@@ -1,13 +1,28 @@
 # Unit Test Structure Improvement Options
 
-**Document Date:** 2026-02-01
+**Last Updated:** 2026-02-01
 **Current Test Structure:** See `tests/TESTS.md` for the current design
 
 ## Executive Summary
 
-This document proposes options to improve the maintainability of the `aresilient` test suite. The current structure effectively separates unit and integration tests, and uses parametrization to reduce duplication. However, there are opportunities to further improve maintainability, reduce code duplication, and make the test suite easier to extend.
+This document analyzes the current state of the `aresilient` test suite and proposes options for further improvement. The test suite has evolved significantly and now includes many best practices such as:
+- Clear separation between unit tests (mocked) and integration tests (real HTTP)
+- Extensive use of parametrization to reduce duplication across HTTP methods
+- Shared test utilities and fixtures to minimize boilerplate
+- Modular organization with a `utils/` subdirectory for utility-focused tests
+
+While the current structure is well-organized and maintainable, there remain opportunities for further optimization.
 
 ## Current State Analysis
+
+### Test Suite Statistics
+
+- **Total test files:** 60 (43 unit tests, 17 integration tests)
+- **Total lines of test code:** ~8,900 lines (unit tests: ~7,600 lines, integration tests: ~1,300 lines)
+- **Test organization:**
+  - Unit tests in `tests/unit/` with `utils/` subdirectory for utility-focused tests
+  - Integration tests in `tests/integration/`
+  - Shared infrastructure in `conftest.py` (55 lines) and `helpers.py` (417 lines)
 
 ### Strengths
 
@@ -15,173 +30,122 @@ This document proposes options to improve the maintainability of the `aresilient
    - Unit tests (mocked) vs. integration tests (real HTTP)
    - Synchronous vs. asynchronous tests clearly separated
    - Feature-specific test organization
+   - Utility tests organized in `tests/unit/utils/` subdirectory (7 files, 867 lines)
 
 2. **Effective use of parametrization:**
-   - `test_core.py` and `test_core_async.py` use parametrization to test all HTTP methods
+   - `test_core.py` (322 lines) and `test_core_async.py` (341 lines) use parametrization to test all 7 HTTP methods
    - Shared test helpers in `helpers.py` with `HTTP_METHODS` and `HTTP_METHODS_ASYNC`
-   - Reduces duplication for common functionality
+   - Significantly reduces duplication for common functionality
 
-3. **Good documentation:**
-   - Comprehensive `TESTS.md` documentation
+3. **Comprehensive test utilities (Option 4 already implemented):**
+   - `setup_mock_client_for_method()` and `setup_mock_async_client_for_method()` - Simplify mock client creation
+   - `assert_successful_request()` and `assert_successful_request_async()` - Combine execution and assertion
+   - Helper functions extensively used in method-specific tests (e.g., `test_get.py`, `test_post.py`)
+   - Dedicated tests for these utilities in `test_test_utils_helpers.py` (257 lines)
+
+4. **Centralized fixtures (Option 6 partially implemented):**
+   - Shared fixtures in `conftest.py`: `mock_sleep`, `mock_asleep`, `mock_client`, `mock_async_client`
+   - Response and function mocks available as fixtures
+   - Minimal fixture duplication across test files
+
+5. **Modular organization for utility tests:**
+   - Utility-focused tests in `tests/unit/utils/`:
+     - `test_backoff.py` (98 lines) - Backoff calculations
+     - `test_callbacks.py` (223 lines) - Callback utilities
+     - `test_exceptions.py` (382 lines) - Exception classes and utilities
+     - `test_retry_after.py` (47 lines) - Retry-After parsing
+     - `test_response.py` (49 lines) - Response utilities
+     - `test_validation.py` (67 lines) - Validation functions
+
+6. **Good documentation:**
+   - Comprehensive `TESTS.md` documentation (459 lines)
    - Module-level docstrings explaining test strategy
    - Clear naming conventions
+   - Examples of test utility usage
 
-### Challenges and Pain Points
+### Remaining Opportunities
 
-1. **Significant duplication in HTTP method-specific tests:**
-   - Files like `test_post.py` and `test_put.py` are nearly identical (only differ in method name)
-   - Same pattern repeated for `test_post_async.py` vs `test_put_async.py`
-   - Integration test files show similar duplication
-   - Each HTTP method has 2-4 test files (unit sync, unit async, integration sync, integration async)
-
-2. **Parallel sync/async test maintenance:**
-   - Every test written for sync functions needs an async equivalent
+1. **Some sync/async test duplication:**
+   - Every sync test still has an async equivalent (e.g., `test_retry.py` vs `test_retry_async.py`)
    - Test logic is duplicated between `test_*.py` and `test_*_async.py`
    - Risk of divergence when updating one but not the other
-   - Total of 54 test files (60 including helpers), many are duplicates
+   - 43 unit test files (includes both sync and async versions)
 
-3. **Fixture duplication:**
-   - `mock_client` fixture defined in multiple test files
-   - Could be centralized in `conftest.py`
+2. **Large test files still exist:**
+   - `test_request.py` (1,077 lines) - Very large, could benefit from splitting
+   - `test_request_async.py` (679 lines) - Large async counterpart
+   - These are generic request tests with extensive scenarios
 
-4. **Large test files:**
-   - `test_request.py` (1087 lines) and `test_request_async.py` (690 lines) are very large
-   - `test_utils.py` (836 lines) is large
-   - Difficult to navigate and maintain
-
-5. **Limited reuse of test logic:**
-   - Similar test scenarios (e.g., "with custom headers", "large request body") written separately for each HTTP method
-   - Integration tests have some duplication despite common tests in `test_core.py`
+3. **Method-specific tests remain minimal:**
+   - Files like `test_get.py`, `test_post.py` are now very concise (using test utilities)
+   - Only contain truly method-specific tests (e.g., GET with `params`, POST with `data`)
+   - This is actually a strength, showing good separation of concerns
 
 ## Improvement Options
 
-### Option 1: Enhanced Parametrization (Recommended - Low Risk)
+### Option 1: Enhanced Parametrization (Potential Next Step - Low Risk)
 
-**Description:** Extend parametrization to cover more test scenarios, reducing method-specific test files.
+**Description:** Further extend parametrization to cover additional test scenarios, potentially reducing more method-specific test files.
 
-**Implementation:**
+**Current State:** 
+- Already extensively implemented in `test_core.py` and `test_core_async.py`
+- Method-specific tests are already minimal and focused
+- Most common functionality already parametrized
 
-1. **Move more tests to parametrized core files:**
-   - Expand `test_core.py` to include tests currently in method-specific files
-   - Example: Tests for "with data/form submission" can be parametrized with a condition on `supports_body`
-   - Example: Tests for headers, large payloads can apply to all methods
+**Additional Opportunities:**
 
-2. **Reduce or eliminate HTTP method-specific test files:**
-   - Keep only truly method-specific tests (e.g., GET with query params, HEAD response body handling)
-   - Many method files could be eliminated entirely
+1. **Evaluate method-specific tests for parametrization potential:**
+   - Review remaining method-specific tests to identify common patterns
+   - Consider if tests like "GET with params" and "POST with data" could be parametrized with a `supports_feature` flag
+   - However, these tests are already very concise due to test utilities
 
-3. **Consolidate integration tests similarly:**
-   - Move common integration tests to `test_core.py` (already started)
-   - Keep only method-specific integration tests in separate files
-
-**Example Code:**
-
-```python
-# In test_core.py
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-def test_request_with_custom_headers(
-    test_case: HttpMethodTestCase,
-    mock_sleep: Mock,
-) -> None:
-    """Test request with custom headers (works for all methods)."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
-
-    headers = {"X-Custom": "value"}
-    response = test_case.method_func(TEST_URL, client=mock_client, headers=headers)
-
-    assert response.status_code == test_case.status_code
-    client_method = getattr(mock_client, test_case.client_method)
-    client_method.assert_called_once_with(url=TEST_URL, headers=headers)
-
-
-@pytest.mark.parametrize("test_case", [tc for tc in HTTP_METHODS if tc.supports_body])
-def test_request_with_body_data(
-    test_case: HttpMethodTestCase,
-    mock_sleep: Mock,
-) -> None:
-    """Test request with body data (only for methods that support bodies)."""
-    # Test logic here - only runs for POST, PUT, PATCH
-```
+2. **Integration test parametrization:**
+   - Integration tests could potentially benefit more from parametrization
+   - Review `tests/integration/test_*.py` files for common patterns
 
 **Benefits:**
-- Reduces number of test files significantly (could eliminate ~20-30 files)
-- Single source of truth for common test logic
+- Could reduce file count slightly (possibly 5-10 files)
+- Single source of truth for any newly identified common test logic
 - Easier to ensure all methods are tested consistently
-- New HTTP methods automatically tested with existing scenarios
 
 **Drawbacks:**
-- Requires refactoring existing tests
-- May make some tests slightly less readable (need to understand parametrization)
-- Risk of breaking existing tests during refactoring
+- Diminishing returns - most duplication already eliminated
+- May make some tests less readable
+- Risk of over-parametrizing and creating confusion
 
-**Effort:** Medium (2-3 days)
+**Effort:** Low-Medium (1-2 days)
 **Risk:** Low
-**Impact:** High
+**Impact:** Low-Medium (incremental improvement over current state)
 
 ---
 
-### Option 2: Shared Test Base Classes (Alternative - Medium Risk)
+### Option 2: Shared Test Base Classes (Alternative - Not Recommended)
 
 **Description:** Create base test classes that can be inherited to test each HTTP method with common logic.
 
-**Implementation:**
-
-1. **Create abstract base test classes:**
-   ```python
-   # tests/base_tests.py
-   class HttpMethodTestBase:
-       """Base class for HTTP method tests."""
-
-       @property
-       @abstractmethod
-       def method_func(self):
-           """The function to test."""
-           pass
-
-       @property
-       @abstractmethod
-       def client_method(self):
-           """The client method name."""
-           pass
-
-       def test_successful_request(self, mock_sleep):
-           """Test successful request."""
-           # Shared test logic
-           response = self.method_func(TEST_URL, client=self.mock_client)
-           assert response.status_code == self.expected_status
-   ```
-
-2. **Implement for each method:**
-   ```python
-   # tests/unit/test_get.py
-   class TestGet(HttpMethodTestBase):
-       method_func = get_with_automatic_retry
-       client_method = "get"
-       expected_status = 200
-   ```
-
-**Benefits:**
-- Familiar OOP pattern
-- Clear inheritance structure
-- Can override specific tests for special cases
+**Analysis:**
+- This approach is **not recommended** for this codebase
+- pytest's parametrization approach (already used extensively) is more idiomatic and flexible
+- The current parametrization strategy achieves the same goals more elegantly
 
 **Drawbacks:**
 - pytest doesn't naturally work with test classes (less idiomatic)
-- More boilerplate code
+- More boilerplate code than parametrization
 - Harder to understand test execution flow
 - May conflict with pytest fixtures and markers
+- Less flexible than parametrization for conditional testing (e.g., `supports_body`)
 
-**Effort:** Medium (2-3 days)
-**Risk:** Medium
-**Impact:** Medium
+**Status:** Not recommended - current parametrization approach is superior.
 
 ---
 
 ### Option 3: Unified Sync/Async Test Framework (Advanced - High Risk)
 
 **Description:** Create a framework to define tests once and run them for both sync and async variants automatically.
+
+**Current State:**
+- All tests are duplicated between sync and async versions
+- 43 unit test files include many sync/async pairs
 
 **Implementation:**
 
@@ -190,13 +154,13 @@ def test_request_with_body_data(
    # tests/test_framework.py
    def for_sync_and_async(test_func):
        """Decorator to run test in both sync and async modes."""
-
+       
        def sync_test(*args, **kwargs):
            return test_func(*args, **kwargs, is_async=False)
-
+       
        async def async_test(*args, **kwargs):
            return await test_func(*args, **kwargs, is_async=True)
-
+       
        return pytest.mark.parametrize("mode", ["sync", "async"])(
            lambda mode: async_test if mode == "async" else sync_test
        )
@@ -214,7 +178,7 @@ def test_request_with_body_data(
    ```
 
 **Benefits:**
-- Eliminates ~50% of test files (no separate async files)
+- Could eliminate ~50% of test files (no separate async files)
 - Single source of truth for test logic
 - Impossible for sync and async tests to diverge
 
@@ -224,219 +188,235 @@ def test_request_with_body_data(
 - Harder to debug when tests fail
 - May not integrate well with pytest's asyncio plugin
 - High risk of introducing bugs in test framework itself
+- Current separate files make it clear which tests are sync vs async
 
 **Effort:** High (5-7 days)
 **Risk:** High
-**Impact:** High
+**Impact:** High (but with significant maintenance risk)
+
+**Recommendation:** Consider only if sync/async divergence becomes a significant problem in practice.
 
 ---
 
-###
-(Complementary - Low Risk)
+### Option 4: Test Utilities (✓ Already Implemented)
 
 **Description:** Extract common test patterns into reusable utility functions that can be called from multiple tests.
 
-**Implementation:**
+**Current State:** ✓ **Fully Implemented**
 
-1. **Create test utilities:**
+The test suite already includes comprehensive test utilities in `helpers.py` (417 lines):
+
+1. **Mock setup utilities:**
    ```python
-   # tests/test_utils.py
-   def assert_successful_request(method_func, url, client, expected_status=200, **kwargs):
-       """Reusable assertion for successful requests."""
-       response = method_func(url, client=client, **kwargs)
-       assert response.status_code == expected_status
-       return response
-
-
-   def setup_mock_client_for_method(
-       client_method: str, status_code: int = 200
-   ) -> tuple[Mock, Mock]:
-       """Create mock client with specified method."""
-       mock_response = Mock(spec=httpx.Response, status_code=status_code)
-       mock_client = Mock(spec=httpx.Client)
-       setattr(mock_client, client_method, Mock(return_value=mock_response))
-       return mock_client, mock_response
+   setup_mock_client_for_method(client_method, status_code=200, response_kwargs=None)
+   setup_mock_async_client_for_method(client_method, status_code=200, response_kwargs=None)
    ```
 
-2. **Use in tests:**
+2. **Assertion utilities:**
    ```python
-   def test_get_with_headers(mock_sleep):
-       client, _ = setup_mock_client_for_method("get")
-       assert_successful_request(
-           get_with_automatic_retry, TEST_URL, client, headers={"X-Custom": "value"}
-       )
+   assert_successful_request(method_func, url, client, expected_status=200, **kwargs)
+   assert_successful_request_async(method_func, url, client, expected_status=200, **kwargs)
    ```
 
-**Benefits:**
-- Easy to implement incrementally
-- Reduces boilerplate in tests
-- Improves test readability
+3. **Parametrization data:**
+   - `HTTP_METHODS` - Pre-configured pytest parameters for all 7 sync HTTP methods
+   - `HTTP_METHODS_ASYNC` - Pre-configured pytest parameters for all 7 async HTTP methods
+   - `HttpMethodTestCase` and `AsyncHttpMethodTestCase` dataclasses
+
+**Benefits Already Realized:**
+- Significantly reduced boilerplate in tests
+- Improved test readability (see `test_get.py`, `test_post.py`)
+- Consistent mock setup patterns
 - Can be combined with other options
+- Has dedicated tests in `test_test_utils_helpers.py` (257 lines)
 
-**Drawbacks:**
-- Doesn't eliminate file duplication
-- Test logic is less explicit
-- May hide important test details
+**Example Usage:**
+```python
+def test_get_with_params(mock_sleep: Mock) -> None:
+    client, _ = setup_mock_client_for_method("get", 200)
+    assert_successful_request(
+        get_with_automatic_retry,
+        TEST_URL,
+        client,
+        params={"page": 1, "limit": 10},
+    )
+    client.get.assert_called_once_with(url=TEST_URL, params={"page": 1, "limit": 10})
+```
 
-**Effort:** Low (1-2 days)
-**Risk:** Low
-**Impact:** Low-Medium
+**Status:** ✓ Complete - No further action needed.
 
 ---
 
-### Option 5: Reorganize by Feature (Alternative Structure - High Risk)
+### Option 5: Consolidate Fixtures (✓ Mostly Implemented)
+
+**Description:** Move all shared fixtures to `conftest.py` to avoid duplication.
+
+**Current State:** ✓ **Mostly Implemented**
+
+Shared fixtures already centralized in `conftest.py` (55 lines):
+- `mock_sleep` - Patches `time.sleep` for fast test execution
+- `mock_asleep` - Patches `asyncio.sleep` for fast async test execution
+- `mock_client` - Mock `httpx.Client` fixture
+- `mock_async_client` - Mock `httpx.AsyncClient` fixture
+- `mock_response`, `mock_request_func`, `mock_async_request_func` - Additional mock fixtures
+
+**Benefits Already Realized:**
+- Single source of truth for common fixtures
+- Easier to update fixture behavior globally
+- Reduced boilerplate in test files
+- All fixtures available to all tests automatically
+
+**Potential Enhancement:**
+- Could add more response fixtures for common status codes (200, 204, 404, 500) if beneficial
+- However, current approach with `setup_mock_client_for_method()` is more flexible
+
+**Status:** ✓ Largely complete - May add specific fixtures if clear need arises.
+
+---
+
+### Option 6: Reorganize by Feature (Alternative - Not Recommended)
 
 **Description:** Reorganize tests by feature rather than by HTTP method and sync/async.
+
+**Description:** Reorganize tests by feature/functionality rather than by HTTP method and sync/async.
 
 **Current Structure:**
 ```
 tests/
   unit/
-    test_get.py
-    test_get_async.py
-    test_post.py
-    test_post_async.py
-    test_retry.py
-    test_retry_async.py
+    test_get.py, test_get_async.py
+    test_post.py, test_post_async.py
+    test_core.py, test_core_async.py
+    test_retry.py, test_retry_async.py
+    utils/  # ← Already partially organized by feature!
+      test_backoff.py
+      test_callbacks.py
+      test_exceptions.py
 ```
 
-**Proposed Structure:**
-```
-tests/
-  unit/
-    http_methods/
-      test_all_methods.py        # Parametrized for all methods
-      test_get_specific.py       # Only GET-specific tests
-      test_post_specific.py      # Only POST-specific tests
-    retry/
-      test_retry_logic.py        # Both sync and async
-      test_retry_if.py
-      test_retry_after.py
-    callbacks/
-      test_callback_system.py
-      test_http_callbacks.py
-```
+**Analysis:**
+- **Already partially implemented:** The `utils/` subdirectory (7 files, 867 lines) demonstrates feature-based organization
+- Current hybrid structure works well: HTTP methods at top level, utilities organized by feature
+- Major restructuring would have high risk with limited benefit
 
-**Benefits:**
-- More logical grouping by functionality
-- Easier to find related tests
-- Clearer separation of common vs specific tests
+**Benefits of Current Hybrid Approach:**
+- Easy to find HTTP method-specific tests
+- Utilities logically grouped in subdirectory
+- Clear separation between method tests and utility tests
 
-**Drawbacks:**
-- Major restructuring effort
-- Risk of breaking existing test discovery
-- May confuse contributors familiar with current structure
-- Doesn't directly reduce duplication
+**Why Not Recommended:**
+- Major restructuring effort with high risk
+- Current structure is already well-organized
+- May confuse contributors familiar with current layout
+- Doesn't directly address remaining duplication (sync/async)
 
-**Effort:** High (4-5 days)
-**Risk:** High
-**Impact:** Medium
+**Status:** Current hybrid structure is satisfactory - no major reorganization recommended.
 
 ---
 
-### Option 6: Consolidate Fixtures (Complementary - Low Risk)
+### Option 7: Split Large Test Files (Potential Enhancement - Low Risk)
 
-**Description:** Move all shared fixtures to `conftest.py` to avoid duplication.
+**Description:** Break down very large test files into smaller, more focused modules.
 
-**Implementation:**
+**Current State:**
+- `test_request.py` (1,077 lines) - Very large generic request tests
+- `test_request_async.py` (679 lines) - Large async counterpart
+- Most other test files are reasonably sized (<500 lines)
+- Utility tests already organized in `tests/unit/utils/` subdirectory (7 files)
 
-1. **Move common fixtures to conftest.py:**
-   ```python
-   # tests/conftest.py
-   @pytest.fixture
-   def mock_client() -> httpx.Client:
-       """Create a mock httpx.Client for testing."""
-       return Mock(spec=httpx.Client)
-
-
-   @pytest.fixture
-   def mock_async_client() -> httpx.AsyncClient:
-       """Create a mock httpx.AsyncClient for testing."""
-       return Mock(spec=httpx.AsyncClient, aclose=AsyncMock())
-
-
-   @pytest.fixture
-   def mock_response_200() -> httpx.Response:
-       """Create a mock 200 response."""
-       return Mock(spec=httpx.Response, status_code=200)
-   ```
-
-2. **Remove fixture definitions from individual test files**
+**Potential Splitting for `test_request.py`:**
+```
+test_request/
+  __init__.py
+  test_basic_functionality.py
+  test_retry_logic.py
+  test_error_handling.py
+  test_callbacks.py
+  test_configuration.py
+```
 
 **Benefits:**
-- Single source of truth for fixtures
-- Easier to update fixture behavior globally
-- Reduces boilerplate in test files
-
-**Drawbacks:**
-- All fixtures in one place may become cluttered
-- Less obvious what fixtures are available for a specific test file
-
-**Effort:** Low (half day)
-**Risk:** Very Low
-**Impact:** Low
-
----
-
-### Option 7: Split Large Test Files (Complementary - Low Risk)
-
-**Description:** Break down large test files into smaller, focused modules.
-
-**Implementation:**
-
-1. **Split `test_request.py` by feature:**
-   ```
-   test_request/
-     __init__.py
-     test_basic_functionality.py
-     test_retry_logic.py
-     test_error_handling.py
-     test_callbacks.py
-     test_configuration.py
-   ```
-
-2. **Split `test_utils.py` by utility category:**
-   ```
-   test_utils/
-     __init__.py
-     test_retry_predicates.py
-     test_backoff_calculation.py
-     test_helper_functions.py
-   ```
-
-**Benefits:**
-- Easier to navigate and understand
-- Faster test file loading and editing
+- Easier to navigate and find specific tests
+- Faster file loading and editing in IDEs
 - Better organization of related tests
 - Easier to run specific test subsets
 
 **Drawbacks:**
-- More files to manage
-- Need to decide on split criteria
-- May complicate test discovery slightly
+- Creates more files to manage (though better organized)
+- Need to carefully decide split criteria
+- Minor complexity in test discovery setup
 
-**Effort:** Low (1 day)
+**Effort:** Low-Medium (1-2 days)
 **Risk:** Very Low
-**Impact:** Low-Medium
+**Impact:** Medium (for `test_request.py` maintainability)
+
+**Recommendation:** Consider if `test_request.py` becomes difficult to navigate. Current size is manageable but approaching threshold where splitting would help.
 
 ---
 
 ## Recommendations
 
-### Recommended Approach: Hybrid Strategy
+### Current Status: Well-Maintained Test Suite ✓
 
-Combine multiple low-risk, high-impact options for best results:
+The test suite has already implemented many best practices:
+- ✓ **Test utilities implemented** (Option 4) - `helpers.py` with comprehensive utilities
+- ✓ **Fixtures consolidated** (Option 5) - Shared fixtures in `conftest.py`
+- ✓ **Extensive parametrization** - `test_core.py` and `test_core_async.py` cover all HTTP methods
+- ✓ **Modular organization** - Utility tests in `tests/unit/utils/` subdirectory
+- ✓ **Good documentation** - Comprehensive `TESTS.md` with 459 lines
 
-**Phase 1: Quick Wins (Week 1)**
-1. **Consolidate Fixtures (Option 6)** - Move all shared fixtures to `conftest.py`
-2. **Add Test Utilities (Option 4)** - Create helper functions for common patterns
-3. **Split Large Files (Option 7)** - Break down `test_request.py` and `test_utils.py`
+### Recommended Next Steps (Low Priority)
 
-**Phase 2: Major Improvements (Weeks 2-3)**
-4. **Enhanced Parametrization (Option 1)** - Expand parametrized tests in core files
-   - Move common tests from method-specific files to `test_core.py`/`test_core_async.py`
-   - Eliminate unnecessary method-specific files
-   - Target: Reduce test file count by 30-40%
+Since major improvements have already been made, remaining optimizations are **optional and low priority**:
+
+**Option A: Split Large Test Files (If Needed)**
+- **When:** If `test_request.py` (1,077 lines) becomes difficult to navigate
+- **How:** Split into subdirectory: `test_request/test_basic_functionality.py`, `test_retry_logic.py`, etc.
+- **Effort:** 1-2 days
+- **Risk:** Very Low
+- **Impact:** Medium (improves maintainability of large files)
+
+**Option B: Further Parametrization (Incremental)**
+- **When:** If new common patterns emerge across HTTP method tests
+- **How:** Add to existing `test_core.py` and `test_core_async.py` parametrized tests
+- **Effort:** Incremental (hours per new test)
+- **Risk:** Low
+- **Impact:** Low (incremental improvement)
+
+**Option C: Unified Sync/Async Framework (Advanced)**
+- **When:** Only if sync/async test divergence becomes a demonstrated problem
+- **How:** Create custom framework to define tests once for both sync and async
+- **Effort:** 5-7 days
+- **Risk:** High
+- **Impact:** High (but with significant maintenance risk)
+- **Recommendation:** **Not recommended** unless divergence becomes a major issue
+
+### Alternatives Not Recommended
+
+- **Shared Test Base Classes (Option 2):** Parametrization approach already used is superior
+- **Major Reorganization (Option 6):** Current structure is well-organized; high risk, limited benefit
+
+### Metrics for Success (If Further Changes Made)
+
+Track these metrics before and after any improvements:
+
+- **Test file count:** Currently 60 files (43 unit, 17 integration)
+- **Lines of test code:** Currently ~8,900 lines
+- **Test execution time:** Monitor for any performance impact
+- **Code coverage:** Maintain current coverage level
+- **Time to add new tests:** Should remain constant or improve
+
+---
+
+## Detailed Options for Further Improvements (Optional)
+
+### Option A: Split `test_request.py` (If/When Needed)
+
+**Current State:**
+- `test_request.py`: 1,077 lines
+- `test_request_async.py`: 679 lines
+
+**Proposed Split:**
 
 **Phase 3: Ongoing (As needed)**
 5. **Continue refactoring** based on lessons learned
@@ -463,145 +443,106 @@ Track these metrics before and after improvements:
 
 ---
 
-## Detailed Implementation Plan for Recommended Approach
+```
+tests/unit/
+  test_request/
+    __init__.py
+    test_basic_functionality.py    # Core request functionality
+    test_retry_logic.py             # Retry mechanisms
+    test_error_handling.py          # Exception and error cases
+    test_callbacks.py               # Callback interactions
+    test_configuration.py           # Config and parameters
+```
 
-### Phase 1: Quick Wins
+**Implementation Steps:**
+1. Create `test_request/` subdirectory
+2. Split `test_request.py` into 4-5 focused files by feature
+3. Update imports and ensure all tests still pass
+4. Repeat for `test_request_async.py`
+5. Update documentation to reflect new structure
 
-#### Step 1.1: Consolidate Fixtures (1-2 hours)
-- [ ] Move `mock_client` fixture from test files to `conftest.py`
-- [ ] Move `mock_async_client` fixture to `conftest.py`
-- [ ] Add common response fixtures (200, 204, 404, 500, etc.)
-- [ ] Update test files to remove local fixture definitions
-- [ ] Run full test suite to verify
+**Benefits:**
+- Much easier to navigate and find specific tests
+- Each file focuses on a single aspect of request functionality
+- Faster file loading in IDEs
+- Can run specific test subsets more easily
 
-#### Step 1.2: Create Test Utilities (4-6 hours)
-- [ ] Create `tests/test_helpers.py` with utility functions
-- [ ] Add `setup_mock_client_for_method()` helper
-- [ ] Add `assert_successful_request()` helper
-- [ ] Add `assert_retry_behavior()` helper
-- [ ] Document usage in docstrings
-- [ ] Refactor 2-3 test files to use utilities as proof of concept
-
-#### Step 1.3: Split Large Files (4-6 hours)
-- [ ] Create `tests/unit/test_request/` directory
-- [ ] Split `test_request.py` into 4-5 focused modules
-- [ ] Update imports and references
-- [ ] Create `tests/unit/test_utils/` directory
-- [ ] Split `test_utils.py` into 3-4 focused modules
-- [ ] Run full test suite to verify
-- [ ] Update `TESTS.md` to reflect new structure
-
-### Phase 2: Enhanced Parametrization
-
-#### Step 2.1: Audit Current Tests (2-3 hours)
-- [ ] Review all method-specific test files
-- [ ] Identify tests that could be parametrized
-- [ ] Create matrix of tests vs HTTP methods
-- [ ] Prioritize by impact (tests that appear in most files)
-
-#### Step 2.2: Expand Core Test Files (8-12 hours)
-- [ ] Add 10-15 new parametrized tests to `test_core.py`
-  - Custom headers test
-  - Large payload test (with `supports_body` filter)
-  - Multiple retry scenarios
-  - Error handling scenarios
-- [ ] Add corresponding tests to `test_core_async.py`
-- [ ] Run tests frequently to ensure no regression
-
-#### Step 2.3: Remove Redundant Tests (4-6 hours)
-- [ ] Delete redundant tests from method-specific files
-- [ ] For HTTP methods with only 1-2 specific tests, move them to core file with special handling
-- [ ] Delete empty or near-empty test files
-- [ ] Update imports and references
-
-#### Step 2.4: Apply to Integration Tests (4-6 hours)
-- [ ] Expand `tests/integration/test_core.py` with more scenarios
-- [ ] Remove redundant integration tests from method-specific files
-- [ ] Keep only truly method-specific integration tests
-
-### Phase 3: Documentation and Validation
-
-#### Step 3.1: Update Documentation (2-3 hours)
-- [ ] Update `tests/TESTS.md` with new structure
-- [ ] Document new testing utilities and patterns
-- [ ] Add examples of how to add tests for new features
-- [ ] Update contribution guidelines if needed
-
-#### Step 3.2: Validate Improvements (2-3 hours)
-- [ ] Measure test file count reduction
-- [ ] Measure lines of code reduction
-- [ ] Verify 100% code coverage maintained
-- [ ] Run full test suite on multiple Python versions
-- [ ] Performance benchmark (should be same or faster)
-
-#### Step 3.3: Knowledge Transfer (1-2 hours)
-- [ ] Create PR with detailed description of changes
-- [ ] Add comments explaining new patterns
-- [ ] Consider creating a migration guide for contributors
+**Timeline:** 1-2 days
 
 ---
 
-## Alternative Considerations
+### Option B: Incremental Parametrization Enhancements
 
-### If the Team Prefers More Radical Change
+**When to Apply:**
+- New common test patterns are identified across HTTP methods
+- New HTTP methods are added to the library
+- Integration tests show duplication
 
-Consider **Option 3 (Unified Sync/Async Framework)** if:
-- Team has strong Python and pytest expertise
-- Willing to invest in custom test infrastructure
-- Long-term maintenance is a priority
-- Similar pattern would be used in other projects
+**Approach:**
+1. Identify common test pattern in method-specific tests
+2. Add parametrized version to `test_core.py` or `test_core_async.py`
+3. Remove redundant method-specific tests
+4. Verify all tests still pass
 
-This would require:
-- Dedicated time to build and test the framework
-- Comprehensive documentation
-- Training for contributors
-- Fallback plan if framework proves problematic
+**Example:**
+```python
+# If a pattern appears in test_get.py, test_post.py, test_put.py:
+# Add to test_core.py:
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
+def test_new_common_scenario(test_case: HttpMethodTestCase, mock_sleep: Mock) -> None:
+    """Test common scenario for all HTTP methods."""
+    # Test implementation
+```
 
-### If the Team Prefers Minimal Change
-
-Focus only on **Phase 1** (Quick Wins):
-- Provides immediate benefits
-- Very low risk
-- Can be done in parallel with other work
-- Serves as proof of concept for larger changes
+**Timeline:** Incremental (30 minutes - 2 hours per new common test)
 
 ---
 
-## Risk Mitigation
+## Risk Considerations
 
-### For All Changes
+### For Any Future Changes
 
-1. **Maintain 100% test coverage** throughout refactoring
-2. **Run full test suite** after each change
-3. **Use feature branches** for each phase
-4. **Review changes carefully** before merging
-5. **Keep git history clean** for easy rollback if needed
+1. **Maintain test coverage** - Ensure all changes preserve 100% code coverage
+2. **Run full test suite** - Verify no regressions after each change
+3. **Keep documentation updated** - Update `TESTS.md` to reflect any structural changes
+4. **Use feature branches** - Test changes thoroughly before merging
+5. **Review carefully** - Get team review for structural changes
 
-### For Parametrization Changes
+### Specific Risks
 
-1. **Start with least critical tests** (e.g., integration tests)
-2. **Verify test names** are still descriptive with parametrization
-3. **Ensure failure messages** clearly indicate which parameter failed
-4. **Keep some redundancy** initially, remove gradually
+**For Large File Splitting:**
+- **Risk:** Breaking test discovery or imports
+- **Mitigation:** Test thoroughly, update imports carefully, verify pytest discovery
 
-### For Structural Changes
-
-1. **Update CI/CD** to work with new structure
-2. **Update IDE test discovery** configurations
-3. **Communicate changes** to all contributors
-4. **Provide migration examples** for common patterns
+**For Sync/Async Framework (If Considered):**
+- **Risk:** High complexity, maintenance burden, debugging difficulty
+- **Mitigation:** Extensive testing, comprehensive documentation, team training
+- **Recommendation:** Only pursue if sync/async divergence becomes a demonstrated problem
 
 ---
 
 ## Conclusion
 
-The current test structure is well-organized but has opportunities for significant improvement. The **recommended hybrid approach** balances risk, effort, and impact to deliver meaningful improvements in maintainability while preserving the strengths of the current design.
+The `aresilient` test suite is **well-maintained and effectively structured**. Major improvements have already been implemented:
 
-Key benefits of the recommended approach:
-- **30-40% reduction in test files** (from ~54 to ~35-40 files)
-- **20-30% reduction in test code** through better reuse
-- **Easier maintenance** with single source of truth for common tests
-- **Better extensibility** when adding new HTTP methods or features
-- **Lower risk** through incremental, proven changes
+**Already Implemented (✓):**
+- Comprehensive test utilities in `helpers.py` (Option 4)
+- Centralized fixtures in `conftest.py` (Option 5)
+- Extensive parametrization in `test_core.py` and `test_core_async.py`
+- Modular organization with `utils/` subdirectory for utility tests
+- Excellent documentation in `TESTS.md` (459 lines)
 
-The test suite will become more maintainable, more consistent, and easier for contributors to understand and extend, while maintaining 100% code coverage and test reliability.
+**Remaining Opportunities (Low Priority):**
+1. **Split large files** - Only `test_request.py` (1,077 lines) might benefit from splitting
+2. **Incremental parametrization** - Add new common tests to core files as patterns emerge
+3. **Sync/async framework** - Advanced option, only if divergence becomes a problem
+
+**Key Takeaway:**
+The test suite follows pytest best practices and is well-organized. Further improvements are **optional** and should only be pursued if specific pain points emerge (e.g., difficulty navigating `test_request.py`, or discovering new common test patterns).
+
+**Test Suite Strengths:**
+- **60 test files** (43 unit, 17 integration) - reasonable size
+- **~8,900 lines** of test code - comprehensive coverage
+- **Well-documented** - `TESTS.md` provides clear guidance
+- **Maintainable** - Clear structure, good separation of concerns
+- **Extensible** - Easy to add new HTTP methods or features via parametrization
