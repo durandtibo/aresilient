@@ -298,7 +298,7 @@ class TestHandleExceptionWithRetryIf:
                 start_time=time.time(),
             )
 
-        assert "failed after 1 attempts" in str(exc_info.value)
+        assert "failed after 1 attempt" in str(exc_info.value)
 
         # ReadTimeout
         exc2 = httpx.ReadTimeout("Read timed out")

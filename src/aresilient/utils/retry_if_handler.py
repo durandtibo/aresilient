@@ -15,16 +15,15 @@ __all__ = [
 
 import logging
 import time
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING
 
+import httpx
+
+from aresilient.callbacks import FailureInfo
 from aresilient.exceptions import HttpRequestError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-
-    import httpx
-
-    from aresilient.callbacks import FailureInfo
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -137,8 +136,6 @@ def handle_exception_with_retry_if(
     # If retry_if says no or we're out of attempts, handle final error
     if not should_retry or attempt == max_retries:
         # Create appropriate error based on exception type
-        import httpx
-
         if isinstance(exc, httpx.TimeoutException):
             logger.debug(
                 f"{method} request to {url} timed out, "
@@ -168,8 +165,6 @@ def handle_exception_with_retry_if(
 
         # Invoke on_failure callback if provided
         if on_failure is not None:
-            from aresilient.callbacks import FailureInfo
-
             failure_info = FailureInfo(
                 url=url,
                 method=method,
