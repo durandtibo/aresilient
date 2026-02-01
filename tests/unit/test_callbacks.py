@@ -288,14 +288,13 @@ def test_on_failure_callback_called_on_retryable_status_failure(
 
     on_failure_callback.assert_called_once()
     call_args = on_failure_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "GET"
-    assert call_args["attempt"] == 3  # max_retries + 1
-    assert call_args["max_retries"] == 2
-    assert isinstance(call_args["error"], HttpRequestError)
-    assert call_args["status_code"] == 503
-    assert "total_time" in call_args
-    assert call_args["total_time"] >= 0
+    assert call_args.url == TEST_URL
+    assert call_args.method == "GET"
+    assert call_args.attempt == 3  # max_retries + 1
+    assert call_args.max_retries == 2
+    assert isinstance(call_args.error, HttpRequestError)
+    assert call_args.status_code == 503
+    assert call_args.total_time >= 0
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 

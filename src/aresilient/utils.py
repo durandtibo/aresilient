@@ -29,14 +29,13 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, NoReturn
 
+from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 from aresilient.exceptions import HttpRequestError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     import httpx
-
-    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 logger: logging.Logger = logging.getLogger(__name__)
 
