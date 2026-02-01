@@ -276,8 +276,6 @@ Shared fixtures already centralized in `conftest.py` (55 lines):
 
 ### Option 6: Reorganize by Feature (Alternative - Not Recommended)
 
-**Description:** Reorganize tests by feature rather than by HTTP method and sync/async.
-
 **Description:** Reorganize tests by feature/functionality rather than by HTTP method and sync/async.
 
 **Current Structure:**
