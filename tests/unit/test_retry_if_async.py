@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, call
 
 import httpx
 import pytest
@@ -166,8 +166,7 @@ async def test_retry_if_returns_true_for_successful_response(
             TEST_URL, client=mock_async_client, retry_if=retry_predicate, max_retries=3
         )
 
-    # Should have slept 3 times between attempts
-    assert mock_asleep.call_count == 3
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
 @pytest.mark.asyncio
@@ -197,7 +196,7 @@ async def test_retry_if_checks_response_content(
     )
 
     assert response == mock_response_ok
-    mock_asleep.assert_called_once()
+    mock_asleep.assert_called_once_with(0.3)
 
 
 #####################################################
@@ -250,7 +249,7 @@ async def test_retry_if_returns_true_for_error_response(
     )
 
     assert response == mock_response_ok
-    mock_asleep.assert_called_once()
+    mock_asleep.assert_called_once_with(0.3)
 
 
 ###################################################

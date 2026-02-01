@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import httpx
 import pytest
@@ -159,8 +159,7 @@ def test_retry_if_returns_true_for_successful_response(
     ):
         test_case.method_func(TEST_URL, client=mock_client, retry_if=retry_predicate, max_retries=3)
 
-    # Should have slept 3 times between attempts
-    assert mock_sleep.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -187,7 +186,7 @@ def test_retry_if_checks_response_content(test_case: HttpMethodTestCase, mock_sl
     )
 
     assert response == mock_response_ok
-    mock_sleep.assert_called_once()
+    mock_sleep.assert_called_once_with(0.3)
 
 
 #####################################################
@@ -238,7 +237,7 @@ def test_retry_if_returns_true_for_error_response(
     )
 
     assert response == mock_response_ok
-    mock_sleep.assert_called_once()
+    mock_sleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -262,6 +261,7 @@ def test_retry_if_with_status_code_logic(test_case: HttpMethodTestCase, mock_sle
     )
 
     assert response == mock_response_ok
+    mock_sleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -332,7 +332,7 @@ def test_retry_if_returns_true_for_exception(
     )
 
     assert response == mock_response_ok
-    mock_sleep.assert_called_once()
+    mock_sleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -355,6 +355,7 @@ def test_retry_if_with_connection_error(test_case: HttpMethodTestCase, mock_slee
     )
 
     assert response == mock_response_ok
+    mock_sleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -374,8 +375,7 @@ def test_retry_if_exhausts_retries_with_exception(
     with pytest.raises(HttpRequestError, match="timed out"):
         test_case.method_func(TEST_URL, client=mock_client, retry_if=retry_predicate, max_retries=2)
 
-    # Should have slept 2 times between 3 attempts
-    assert mock_sleep.call_count == 2
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
 #########################################################
@@ -413,7 +413,7 @@ def test_retry_if_complex_logic(test_case: HttpMethodTestCase, mock_sleep: Mock)
     )
 
     assert response == mock_response_ok
-    assert mock_sleep.call_count == 2
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -437,7 +437,7 @@ def test_retry_if_none_uses_default_behavior(
     )
 
     assert response == mock_response_ok
-    mock_sleep.assert_called_once()
+    mock_sleep.assert_called_once_with(0.3)
 
 
 ############################################
@@ -472,6 +472,7 @@ def test_retry_if_with_on_retry_callback(test_case: HttpMethodTestCase, mock_sle
 
     assert response == mock_response_ok
     retry_callback.assert_called_once()
+    mock_sleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -497,3 +498,4 @@ def test_retry_if_with_on_failure_callback(test_case: HttpMethodTestCase, mock_s
         )
 
     failure_callback.assert_called_once()
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
