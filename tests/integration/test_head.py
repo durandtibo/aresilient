@@ -28,3 +28,17 @@ def test_head_with_automatic_retry_check_content_length() -> None:
     assert response.headers["Content-Length"] == "1024"
     # But no actual content
     assert len(response.content) == 0
+
+
+def test_head_with_automatic_retry_with_custom_headers() -> None:
+    """Test HEAD request with custom headers."""
+    with httpx.Client() as client:
+        response = head_with_automatic_retry(
+            url=f"{HTTPBIN_URL}/headers",
+            client=client,
+            headers={"X-Custom-Header": "test-value"},
+        )
+
+    assert response.status_code == 200
+    # HEAD request should succeed but have no body
+    assert len(response.content) == 0

@@ -53,3 +53,18 @@ async def test_head_with_automatic_retry_async_concurrent_requests() -> None:
     assert all(r.status_code == 200 for r in responses)
     # All should have no content (HEAD requests)
     assert all(len(r.content) == 0 for r in responses)
+
+
+@pytest.mark.asyncio
+async def test_head_with_automatic_retry_async_with_custom_headers() -> None:
+    """Test async HEAD request with custom headers."""
+    async with httpx.AsyncClient() as client:
+        response = await head_with_automatic_retry_async(
+            url=f"{HTTPBIN_URL}/headers",
+            client=client,
+            headers={"X-Custom-Header": "test-value"},
+        )
+
+    assert response.status_code == 200
+    # HEAD request should succeed but have no body
+    assert len(response.content) == 0
