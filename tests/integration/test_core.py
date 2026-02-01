@@ -16,8 +16,11 @@ if TYPE_CHECKING:
     "test_case",
     [tc for tc in HTTP_METHODS if tc.values[0].supports_body],
 )
-def test_http_method_successful_request_with_client_with_body(test_case: HttpMethodTestCase) -> None:
-    """Test successful HTTP request with explicit client for methods that support body."""
+def test_http_method_successful_request_with_client_with_body(
+    test_case: HttpMethodTestCase,
+) -> None:
+    """Test successful HTTP request with explicit client for methods
+    that support body."""
     tc = test_case
     with httpx.Client() as client:
         response = tc.method_func(
@@ -36,10 +39,17 @@ def test_http_method_successful_request_with_client_with_body(test_case: HttpMet
 
 @pytest.mark.parametrize(
     "test_case",
-    [tc for tc in HTTP_METHODS if not tc.values[0].supports_body and tc.values[0].method_name not in ("HEAD", "OPTIONS")],
+    [
+        tc
+        for tc in HTTP_METHODS
+        if not tc.values[0].supports_body and tc.values[0].method_name not in ("HEAD", "OPTIONS")
+    ],
 )
-def test_http_method_successful_request_with_client_without_body(test_case: HttpMethodTestCase) -> None:
-    """Test successful HTTP request with explicit client for methods without body support."""
+def test_http_method_successful_request_with_client_without_body(
+    test_case: HttpMethodTestCase,
+) -> None:
+    """Test successful HTTP request with explicit client for methods
+    without body support."""
     tc = test_case
     with httpx.Client() as client:
         response = tc.method_func(url=tc.test_url, client=client)
@@ -51,7 +61,6 @@ def test_http_method_successful_request_with_client_without_body(test_case: Http
     assert tc.test_url in response_data["url"]
 
 
-
 @pytest.mark.parametrize(
     "test_case",
     [tc for tc in HTTP_METHODS if tc.values[0].supports_body],
@@ -59,7 +68,8 @@ def test_http_method_successful_request_with_client_without_body(test_case: Http
 def test_http_method_successful_request_without_client_with_body(
     test_case: HttpMethodTestCase,
 ) -> None:
-    """Test successful HTTP request without explicit client for methods that support body."""
+    """Test successful HTTP request without explicit client for methods
+    that support body."""
     tc = test_case
     response = tc.method_func(
         url=tc.test_url,
@@ -75,12 +85,17 @@ def test_http_method_successful_request_without_client_with_body(
 
 @pytest.mark.parametrize(
     "test_case",
-    [tc for tc in HTTP_METHODS if not tc.values[0].supports_body and tc.values[0].method_name not in ("HEAD", "OPTIONS")],
+    [
+        tc
+        for tc in HTTP_METHODS
+        if not tc.values[0].supports_body and tc.values[0].method_name not in ("HEAD", "OPTIONS")
+    ],
 )
 def test_http_method_successful_request_without_client_without_body(
     test_case: HttpMethodTestCase,
 ) -> None:
-    """Test successful HTTP request without explicit client for methods without body support."""
+    """Test successful HTTP request without explicit client for methods
+    without body support."""
     tc = test_case
     response = tc.method_func(url=tc.test_url)
 
@@ -113,7 +128,8 @@ def test_http_method_non_retryable_status_fails_immediately(test_case: HttpMetho
     [tc for tc in HTTP_METHODS if tc.values[0].supports_body],
 )
 def test_http_method_with_custom_headers_with_body(test_case: HttpMethodTestCase) -> None:
-    """Test HTTP request with custom headers for methods that support body."""
+    """Test HTTP request with custom headers for methods that support
+    body."""
     tc = test_case
     with httpx.Client() as client:
         response = tc.method_func(
@@ -134,10 +150,16 @@ def test_http_method_with_custom_headers_with_body(test_case: HttpMethodTestCase
 
 @pytest.mark.parametrize(
     "test_case",
-    [tc for tc in HTTP_METHODS if not tc.values[0].supports_body and tc.values[0].method_name not in ("GET", "HEAD", "OPTIONS")],
+    [
+        tc
+        for tc in HTTP_METHODS
+        if not tc.values[0].supports_body
+        and tc.values[0].method_name not in ("GET", "HEAD", "OPTIONS")
+    ],
 )
 def test_http_method_with_custom_headers_without_body(test_case: HttpMethodTestCase) -> None:
-    """Test HTTP request with custom headers for methods without body support (except GET, HEAD, OPTIONS)."""
+    """Test HTTP request with custom headers for methods without body
+    support (except GET, HEAD, OPTIONS)."""
     tc = test_case
     with httpx.Client() as client:
         response = tc.method_func(

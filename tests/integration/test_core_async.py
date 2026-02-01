@@ -20,7 +20,8 @@ if TYPE_CHECKING:
 async def test_http_method_async_successful_request_with_client_with_body(
     test_case: AsyncHttpMethodTestCase,
 ) -> None:
-    """Test successful async HTTP request with explicit client for methods that support body."""
+    """Test successful async HTTP request with explicit client for
+    methods that support body."""
     tc = test_case
     async with httpx.AsyncClient() as client:
         response = await tc.method_func(
@@ -40,12 +41,17 @@ async def test_http_method_async_successful_request_with_client_with_body(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_case",
-    [tc for tc in HTTP_METHODS_ASYNC if not tc.values[0].supports_body and tc.values[0].method_name not in ("HEAD", "OPTIONS")],
+    [
+        tc
+        for tc in HTTP_METHODS_ASYNC
+        if not tc.values[0].supports_body and tc.values[0].method_name not in ("HEAD", "OPTIONS")
+    ],
 )
 async def test_http_method_async_successful_request_with_client_without_body(
     test_case: AsyncHttpMethodTestCase,
 ) -> None:
-    """Test successful async HTTP request with explicit client for methods without body support."""
+    """Test successful async HTTP request with explicit client for
+    methods without body support."""
     tc = test_case
     async with httpx.AsyncClient() as client:
         response = await tc.method_func(url=tc.test_url, client=client)
@@ -65,7 +71,8 @@ async def test_http_method_async_successful_request_with_client_without_body(
 async def test_http_method_async_successful_request_without_client_with_body(
     test_case: AsyncHttpMethodTestCase,
 ) -> None:
-    """Test successful async HTTP request without explicit client for methods that support body."""
+    """Test successful async HTTP request without explicit client for
+    methods that support body."""
     tc = test_case
     response = await tc.method_func(
         url=tc.test_url,
@@ -82,12 +89,17 @@ async def test_http_method_async_successful_request_without_client_with_body(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_case",
-    [tc for tc in HTTP_METHODS_ASYNC if not tc.values[0].supports_body and tc.values[0].method_name not in ("HEAD", "OPTIONS")],
+    [
+        tc
+        for tc in HTTP_METHODS_ASYNC
+        if not tc.values[0].supports_body and tc.values[0].method_name not in ("HEAD", "OPTIONS")
+    ],
 )
 async def test_http_method_async_successful_request_without_client_without_body(
     test_case: AsyncHttpMethodTestCase,
 ) -> None:
-    """Test successful async HTTP request without explicit client for methods without body support."""
+    """Test successful async HTTP request without explicit client for
+    methods without body support."""
     tc = test_case
     response = await tc.method_func(url=tc.test_url)
 
@@ -124,7 +136,8 @@ async def test_http_method_async_non_retryable_status_fails_immediately(
 async def test_http_method_async_with_custom_headers_with_body(
     test_case: AsyncHttpMethodTestCase,
 ) -> None:
-    """Test async HTTP request with custom headers for methods that support body."""
+    """Test async HTTP request with custom headers for methods that
+    support body."""
     tc = test_case
     async with httpx.AsyncClient() as client:
         response = await tc.method_func(
@@ -146,12 +159,18 @@ async def test_http_method_async_with_custom_headers_with_body(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_case",
-    [tc for tc in HTTP_METHODS_ASYNC if not tc.values[0].supports_body and tc.values[0].method_name not in ("GET", "HEAD", "OPTIONS")],
+    [
+        tc
+        for tc in HTTP_METHODS_ASYNC
+        if not tc.values[0].supports_body
+        and tc.values[0].method_name not in ("GET", "HEAD", "OPTIONS")
+    ],
 )
 async def test_http_method_async_with_custom_headers_without_body(
     test_case: AsyncHttpMethodTestCase,
 ) -> None:
-    """Test async HTTP request with custom headers for methods without body support (except GET, HEAD, OPTIONS)."""
+    """Test async HTTP request with custom headers for methods without
+    body support (except GET, HEAD, OPTIONS)."""
     tc = test_case
     async with httpx.AsyncClient() as client:
         response = await tc.method_func(

@@ -196,7 +196,7 @@ def test_successful_request_with_custom_client(
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
-    
+
     # Test logic that works for all HTTP methods
     response = test_case.method_func(test_url, client=mock_client)
     assert response.status_code == test_case.status_code

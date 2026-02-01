@@ -25,6 +25,7 @@ __all__ = [
 import logging
 import random
 import time
+from contextlib import suppress
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, NoReturn
@@ -128,10 +129,8 @@ def parse_retry_after(retry_after_header: str | None) -> float | None:
         return None
 
     # Try parsing as an integer (seconds)
-    try:
+    with suppress(ValueError):
         return float(retry_after_header)
-    except ValueError:
-        pass
 
     # Try parsing as HTTP-date (RFC 5322 format)
     try:
