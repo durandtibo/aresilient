@@ -95,8 +95,11 @@ async def test_http_method_async_with_custom_headers(test_case: AsyncHttpMethodT
                 headers={"X-Custom-Header": "test-value"},
             )
         else:
-            # Use /headers endpoint for methods that don't support body
-            test_endpoint = f"{HTTPBIN_URL}/headers" if tc.method_name != "OPTIONS" else tc.test_url
+            # Use /headers endpoint for GET and HEAD to verify headers, otherwise use method's test_url
+            if tc.method_name in ("GET", "HEAD"):
+                test_endpoint = f"{HTTPBIN_URL}/headers"
+            else:
+                test_endpoint = tc.test_url
             response = await tc.method_func(
                 url=test_endpoint,
                 client=client,
