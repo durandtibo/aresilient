@@ -1,7 +1,7 @@
 r"""HTTP response handling utilities.
 
-This module provides functions for handling HTTP responses and determining
-whether they should be retried based on status codes.
+This module provides functions for handling HTTP responses and
+determining whether they should be retried based on status codes.
 """
 
 from __future__ import annotations

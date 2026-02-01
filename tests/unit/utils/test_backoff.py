@@ -7,7 +7,6 @@ import pytest
 
 from aresilient.utils import calculate_sleep_time
 
-
 ##########################################
 #     Tests for calculate_sleep_time     #
 ##########################################

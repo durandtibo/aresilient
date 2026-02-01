@@ -185,6 +185,7 @@ Provides reusable test utilities and parametrization data:
 ```python
 from tests.helpers import HTTP_METHODS, HttpMethodTestCase
 
+
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_successful_request_with_custom_client(
     test_case: HttpMethodTestCase,
@@ -257,6 +258,7 @@ Method-specific tests remain in their respective test files:
 - test_get.py: GET-specific tests (e.g., params support)
 - test_post.py: POST-specific tests (e.g., data/form submission)
 ...
+"""
 ```
 
 ## Running Tests

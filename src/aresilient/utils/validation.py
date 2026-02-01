@@ -1,7 +1,8 @@
 r"""Parameter validation utilities for HTTP request retry logic.
 
 This module provides validation functions for retry parameters to ensure
-they meet the required constraints before being used in HTTP request retry logic.
+they meet the required constraints before being used in HTTP request
+retry logic.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 # Unit Test Structure Improvement Options
 
-**Document Date:** 2026-02-01  
+**Document Date:** 2026-02-01
 **Current Test Structure:** See `tests/TESTS.md` for the current design
 
 ## Executive Summary
@@ -87,10 +87,10 @@ def test_request_with_custom_headers(
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
-    
+
     headers = {"X-Custom": "value"}
     response = test_case.method_func(TEST_URL, client=mock_client, headers=headers)
-    
+
     assert response.status_code == test_case.status_code
     client_method = getattr(mock_client, test_case.client_method)
     client_method.assert_called_once_with(url=TEST_URL, headers=headers)
@@ -133,19 +133,19 @@ def test_request_with_body_data(
    # tests/base_tests.py
    class HttpMethodTestBase:
        """Base class for HTTP method tests."""
-       
+
        @property
        @abstractmethod
        def method_func(self):
            """The function to test."""
            pass
-       
+
        @property
        @abstractmethod
        def client_method(self):
            """The client method name."""
            pass
-       
+
        def test_successful_request(self, mock_sleep):
            """Test successful request."""
            # Shared test logic
@@ -190,13 +190,13 @@ def test_request_with_body_data(
    # tests/test_framework.py
    def for_sync_and_async(test_func):
        """Decorator to run test in both sync and async modes."""
-       
+
        def sync_test(*args, **kwargs):
            return test_func(*args, **kwargs, is_async=False)
-       
+
        async def async_test(*args, **kwargs):
            return await test_func(*args, **kwargs, is_async=True)
-       
+
        return pytest.mark.parametrize("mode", ["sync", "async"])(
            lambda mode: async_test if mode == "async" else sync_test
        )
@@ -240,21 +240,15 @@ def test_request_with_body_data(
 1. **Create test utilities:**
    ```python
    # tests/test_utils.py
-   def assert_successful_request(
-       method_func,
-       url,
-       client,
-       expected_status=200,
-       **kwargs
-   ):
+   def assert_successful_request(method_func, url, client, expected_status=200, **kwargs):
        """Reusable assertion for successful requests."""
        response = method_func(url, client=client, **kwargs)
        assert response.status_code == expected_status
        return response
-   
+
+
    def setup_mock_client_for_method(
-       client_method: str,
-       status_code: int = 200
+       client_method: str, status_code: int = 200
    ) -> tuple[Mock, Mock]:
        """Create mock client with specified method."""
        mock_response = Mock(spec=httpx.Response, status_code=status_code)
@@ -268,10 +262,7 @@ def test_request_with_body_data(
    def test_get_with_headers(mock_sleep):
        client, _ = setup_mock_client_for_method("get")
        assert_successful_request(
-           get_with_automatic_retry,
-           TEST_URL,
-           client,
-           headers={"X-Custom": "value"}
+           get_with_automatic_retry, TEST_URL, client, headers={"X-Custom": "value"}
        )
    ```
 
@@ -355,12 +346,14 @@ tests/
    def mock_client() -> httpx.Client:
        """Create a mock httpx.Client for testing."""
        return Mock(spec=httpx.Client)
-   
+
+
    @pytest.fixture
    def mock_async_client() -> httpx.AsyncClient:
        """Create a mock httpx.AsyncClient for testing."""
        return Mock(spec=httpx.AsyncClient, aclose=AsyncMock())
-   
+
+
    @pytest.fixture
    def mock_response_200() -> httpx.Response:
        """Create a mock 200 response."""
@@ -492,7 +485,7 @@ Track these metrics before and after improvements:
 - [ ] Create `tests/unit/test_request/` directory
 - [ ] Split `test_request.py` into 4-5 focused modules
 - [ ] Update imports and references
-- [ ] Create `tests/unit/test_utils/` directory  
+- [ ] Create `tests/unit/test_utils/` directory
 - [ ] Split `test_utils.py` into 3-4 focused modules
 - [ ] Run full test suite to verify
 - [ ] Update `TESTS.md` to reflect new structure
