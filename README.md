@@ -233,6 +233,76 @@ async def fetch_multiple():
 results = asyncio.run(fetch_multiple())
 ```
 
+### Custom Retry Predicates
+
+You can define custom logic to determine whether to retry a request based on the response or exception using the `retry_if` parameter. This is useful when you need to retry based on response content, headers, or business logic beyond just status codes.
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+def should_retry(response, exception):
+    """Custom predicate to decide if request should be retried.
+
+    Args:
+        response: The HTTP response object (or None if an exception occurred)
+        exception: The exception that occurred (or None if response received)
+
+    Returns:
+        True to retry, False to not retry
+    """
+    # Retry if response contains specific error message
+    if response and "rate limit" in response.text.lower():
+        return True
+
+    # Retry on connection errors
+    if isinstance(exception, ConnectionError):
+        return True
+
+    # Retry on server errors (5xx status codes)
+    if response and response.status_code >= 500:
+        return True
+
+    return False
+
+
+# Use the custom retry predicate
+response = get_with_automatic_retry(
+    "https://api.example.com/data", retry_if=should_retry, max_retries=5
+)
+```
+
+**Note**: When `retry_if` is provided, it takes precedence over `status_forcelist` for determining retry behavior. The predicate is called with:
+- `response` and `exception` parameters (at least one will be non-None)
+- Should return `True` to retry, `False` to not retry
+
+Common use cases for custom retry predicates:
+- Retry on specific error messages in response body
+- Retry on empty responses with 200 status
+- Retry based on custom headers
+- Retry on business logic conditions (e.g., "insufficient funds" that will be replenished)
+
+```python
+# Example: Retry on empty response
+def retry_on_empty_response(response, exception):
+    if response and response.status_code == 200 and not response.text.strip():
+        return True  # Retry empty successful responses
+    return False
+
+
+# Example: Complex business logic
+def retry_on_business_error(response, exception):
+    if response and response.status_code == 400:
+        try:
+            data = response.json()
+            # Retry if error is temporary
+            if data.get("error") in ["insufficient_funds", "try_again_later"]:
+                return True
+        except:
+            pass
+    return False
+```
+
 ## Configuration
 
 ### Default Settings
@@ -292,6 +362,8 @@ Performs an HTTP GET request with automatic retry logic.
 - `max_retries` (int): Maximum number of retry attempts
 - `backoff_factor` (float): Exponential backoff factor
 - `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
+- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
+- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate function to determine whether to retry. If provided, takes precedence over `status_forcelist`. Called with `(response, exception)` and should return `True` to retry, `False` otherwise.
 - `**kwargs`: Additional arguments passed to `httpx.Client.get()`
 
 **Returns:** `httpx.Response`
