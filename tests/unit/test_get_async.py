@@ -6,9 +6,8 @@ Common tests across all async HTTP methods are in test_core_async.py.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 
 from aresilient import get_with_automatic_retry_async
@@ -16,6 +15,9 @@ from tests.helpers import (
     assert_successful_request_async,
     setup_mock_async_client_for_method,
 )
+
+if TYPE_CHECKING:
+    from unittest.mock import Mock
 
 TEST_URL = "https://api.example.com/data"
 
@@ -37,7 +39,7 @@ async def test_get_with_automatic_retry_async_with_params(mock_asleep: Mock) -> 
     client, _ = setup_mock_async_client_for_method("get", 200)
 
     # Use utility function to assert successful request
-    response = await assert_successful_request_async(
+    await assert_successful_request_async(
         get_with_automatic_retry_async,
         TEST_URL,
         client,

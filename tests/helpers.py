@@ -14,8 +14,8 @@ __all__ = [
     "HttpMethodTestCase",
     "assert_successful_request",
     "assert_successful_request_async",
-    "setup_mock_client_for_method",
     "setup_mock_async_client_for_method",
+    "setup_mock_client_for_method",
 ]
 
 from dataclasses import dataclass
@@ -298,7 +298,8 @@ def setup_mock_async_client_for_method(
     status_code: int = 200,
     response_kwargs: dict | None = None,
 ) -> tuple[Mock, Mock]:
-    """Create a mock httpx.AsyncClient with a specified method configured.
+    """Create a mock httpx.AsyncClient with a specified method
+    configured.
 
     This utility creates a properly configured mock async client for testing,
     reducing boilerplate code in async test setup.
@@ -338,7 +339,8 @@ def assert_successful_request(
     expected_status: int = 200,
     **kwargs,
 ) -> httpx.Response:
-    """Assert that a request function succeeds and returns expected status.
+    """Assert that a request function succeeds and returns expected
+    status.
 
     This utility combines the common pattern of calling a request function
     and asserting its status code, reducing test boilerplate.
@@ -379,7 +381,8 @@ async def assert_successful_request_async(
     expected_status: int = 200,
     **kwargs,
 ) -> httpx.Response:
-    """Assert that an async request function succeeds and returns expected status.
+    """Assert that an async request function succeeds and returns
+    expected status.
 
     This utility combines the common pattern of calling an async request function
     and asserting its status code, reducing test boilerplate.

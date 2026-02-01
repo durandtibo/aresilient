@@ -1,14 +1,13 @@
 r"""Unit tests for test utility functions in helpers.py.
 
-This module tests the helper functions that are used to reduce boilerplate
-in other test files.
+This module tests the helper functions that are used to reduce
+boilerplate in other test files.
 """
 
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, Mock
 
-import httpx
 import pytest
 
 from aresilient import get_with_automatic_retry, get_with_automatic_retry_async
@@ -52,7 +51,8 @@ def test_setup_mock_client_for_method_custom_status() -> None:
 
 
 def test_setup_mock_client_for_method_with_response_kwargs() -> None:
-    """Test setup_mock_client_for_method with additional response kwargs."""
+    """Test setup_mock_client_for_method with additional response
+    kwargs."""
     client, response = setup_mock_client_for_method(
         "put", status_code=200, response_kwargs={"text": "Updated"}
     )
@@ -63,7 +63,8 @@ def test_setup_mock_client_for_method_with_response_kwargs() -> None:
 
 
 def test_setup_mock_client_for_method_different_methods() -> None:
-    """Test setup_mock_client_for_method works with different HTTP methods."""
+    """Test setup_mock_client_for_method works with different HTTP
+    methods."""
     methods = ["get", "post", "put", "delete", "patch", "head", "options"]
 
     for method in methods:
@@ -79,7 +80,8 @@ def test_setup_mock_client_for_method_different_methods() -> None:
 
 
 def test_setup_mock_async_client_for_method_default_status() -> None:
-    """Test setup_mock_async_client_for_method with default status code."""
+    """Test setup_mock_async_client_for_method with default status
+    code."""
     client, response = setup_mock_async_client_for_method("get")
 
     # Verify the client is properly configured
@@ -94,15 +96,17 @@ def test_setup_mock_async_client_for_method_default_status() -> None:
 
 
 def test_setup_mock_async_client_for_method_custom_status() -> None:
-    """Test setup_mock_async_client_for_method with custom status code."""
-    client, response = setup_mock_async_client_for_method("post", status_code=201)
+    """Test setup_mock_async_client_for_method with custom status
+    code."""
+    _client, response = setup_mock_async_client_for_method("post", status_code=201)
 
     assert response.status_code == 201
 
 
 def test_setup_mock_async_client_for_method_with_response_kwargs() -> None:
-    """Test setup_mock_async_client_for_method with additional response kwargs."""
-    client, response = setup_mock_async_client_for_method(
+    """Test setup_mock_async_client_for_method with additional response
+    kwargs."""
+    _client, response = setup_mock_async_client_for_method(
         "put", status_code=200, response_kwargs={"text": "Updated"}
     )
 
@@ -111,11 +115,12 @@ def test_setup_mock_async_client_for_method_with_response_kwargs() -> None:
 
 
 def test_setup_mock_async_client_for_method_different_methods() -> None:
-    """Test setup_mock_async_client_for_method works with different HTTP methods."""
+    """Test setup_mock_async_client_for_method works with different HTTP
+    methods."""
     methods = ["get", "post", "put", "delete", "patch", "head", "options"]
 
     for method in methods:
-        client, response = setup_mock_async_client_for_method(method, status_code=200)
+        client, _response = setup_mock_async_client_for_method(method, status_code=200)
         assert hasattr(client, method)
         assert hasattr(client, "aclose")
 
@@ -161,7 +166,8 @@ def test_assert_successful_request_with_kwargs(mock_sleep: Mock) -> None:
 
 
 def test_assert_successful_request_status_mismatch(mock_sleep: Mock) -> None:
-    """Test assert_successful_request fails when status doesn't match."""
+    """Test assert_successful_request fails when status doesn't
+    match."""
     # Use 200 for the mock, but expect 201 to test the assertion
     client, _ = setup_mock_client_for_method("get", 200)
 
@@ -185,7 +191,8 @@ def test_assert_successful_request_returns_response(mock_sleep: Mock) -> None:
 
 @pytest.mark.asyncio
 async def test_assert_successful_request_async_default_status(mock_asleep: Mock) -> None:
-    """Test assert_successful_request_async with default expected status."""
+    """Test assert_successful_request_async with default expected
+    status."""
     client, _ = setup_mock_async_client_for_method("get", 200)
 
     response = await assert_successful_request_async(
@@ -198,7 +205,8 @@ async def test_assert_successful_request_async_default_status(mock_asleep: Mock)
 
 @pytest.mark.asyncio
 async def test_assert_successful_request_async_custom_status(mock_asleep: Mock) -> None:
-    """Test assert_successful_request_async with custom expected status."""
+    """Test assert_successful_request_async with custom expected
+    status."""
     # Use 200 which is a success status, so it doesn't trigger errors
     client, _ = setup_mock_async_client_for_method("get", 200)
 
@@ -225,7 +233,8 @@ async def test_assert_successful_request_async_with_kwargs(mock_asleep: Mock) ->
 
 @pytest.mark.asyncio
 async def test_assert_successful_request_async_status_mismatch(mock_asleep: Mock) -> None:
-    """Test assert_successful_request_async fails when status doesn't match."""
+    """Test assert_successful_request_async fails when status doesn't
+    match."""
     # Use 200 for the mock, but expect 201 to test the assertion
     client, _ = setup_mock_async_client_for_method("get", 200)
 
@@ -237,7 +246,8 @@ async def test_assert_successful_request_async_status_mismatch(mock_asleep: Mock
 
 @pytest.mark.asyncio
 async def test_assert_successful_request_async_returns_response(mock_asleep: Mock) -> None:
-    """Test assert_successful_request_async returns the response object."""
+    """Test assert_successful_request_async returns the response
+    object."""
     client, mock_response = setup_mock_async_client_for_method("get", 200)
 
     response = await assert_successful_request_async(
