@@ -2,7 +2,7 @@ r"""Unit tests for async callback functionality."""
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, call
 
 import httpx
 import pytest
@@ -54,6 +54,7 @@ async def test_on_request_callback_called_on_first_attempt_async(
     assert call_args["method"] == "GET"
     assert call_args["attempt"] == 1
     assert call_args["max_retries"] == DEFAULT_MAX_RETRIES
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -78,6 +79,7 @@ async def test_on_request_callback_called_on_each_retry_async(
 
     assert response == mock_response
     assert on_request_callback.call_count == 3
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 ##################################################
@@ -113,6 +115,7 @@ async def test_on_retry_callback_called_before_retry_async(
     assert call_args["wait_time"] == DEFAULT_BACKOFF_FACTOR
     assert call_args["status_code"] == 503
     assert call_args["error"] is None
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -132,6 +135,7 @@ async def test_on_retry_callback_not_called_on_first_success_async(
 
     assert response == mock_response
     on_retry_callback.assert_not_called()
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -158,6 +162,7 @@ async def test_on_retry_callback_with_timeout_exception_async(
     call_args = on_retry_callback.call_args[0][0]
     assert isinstance(call_args["error"], httpx.TimeoutException)
     assert call_args["status_code"] is None
+    mock_asleep.assert_called_once_with(0.3)
 
 
 ##################################################
@@ -190,6 +195,7 @@ async def test_on_success_callback_called_on_success_async(
     assert call_args["response"] == mock_response
     assert "total_time" in call_args
     assert call_args["total_time"] >= 0
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -216,6 +222,7 @@ async def test_on_success_callback_after_retries_async(
     on_success_callback.assert_called_once()
     call_args = on_success_callback.call_args[0][0]
     assert call_args["attempt"] == 3  # Succeeded on third attempt
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 @pytest.mark.asyncio
@@ -239,6 +246,7 @@ async def test_on_success_callback_not_called_on_failure_async(
         )
 
     on_success_callback.assert_not_called()
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 ##################################################
@@ -275,6 +283,7 @@ async def test_on_failure_callback_called_on_retryable_status_failure_async(
     assert isinstance(call_args["error"], HttpRequestError)
     assert call_args["status_code"] == 503
     assert "total_time" in call_args
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 @pytest.mark.asyncio
@@ -294,6 +303,7 @@ async def test_on_failure_callback_not_called_on_success_async(
 
     assert response == mock_response
     on_failure_callback.assert_not_called()
+    mock_asleep.assert_not_called()
 
 
 ##################################################
@@ -331,6 +341,7 @@ async def test_all_callbacks_together_on_success_async(
     on_retry_callback.assert_called_once()  # One retry
     on_success_callback.assert_called_once()  # One success
     on_failure_callback.assert_not_called()  # No failure
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -362,6 +373,7 @@ async def test_all_callbacks_together_on_failure_async(mock_asleep: Mock) -> Non
     assert on_retry_callback.call_count == 2  # Two retries
     on_success_callback.assert_not_called()  # No success
     on_failure_callback.assert_called_once()  # One failure
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 ##################################################
@@ -398,6 +410,7 @@ async def test_callbacks_with_custom_max_retries_async(
 
     retry_call_args = on_retry_callback.call_args[0][0]
     assert retry_call_args["max_retries"] == 5
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -424,3 +437,4 @@ async def test_callbacks_with_custom_backoff_factor_async(
 
     retry_call_args = on_retry_callback.call_args[0][0]
     assert retry_call_args["wait_time"] == 2.0  # 2.0 * (2 ** 0)
+    mock_asleep.assert_called_once_with(2.0)
