@@ -33,13 +33,15 @@ __all__ = [
     "RetryInfo",
 ]
 
-from typing import TYPE_CHECKING, TypedDict
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import httpx
 
 
-class RequestInfo(TypedDict, total=False):
+@dataclass
+class RequestInfo:
     """Information passed to on_request callback.
 
     Attributes:
@@ -55,7 +57,8 @@ class RequestInfo(TypedDict, total=False):
     max_retries: int
 
 
-class RetryInfo(TypedDict, total=False):
+@dataclass
+class RetryInfo:
     """Information passed to on_retry callback.
 
     Attributes:
@@ -77,7 +80,8 @@ class RetryInfo(TypedDict, total=False):
     status_code: int | None
 
 
-class ResponseInfo(TypedDict, total=False):
+@dataclass
+class ResponseInfo:
     """Information passed to on_success callback.
 
     Attributes:
@@ -97,7 +101,8 @@ class ResponseInfo(TypedDict, total=False):
     total_time: float
 
 
-class FailureInfo(TypedDict, total=False):
+@dataclass
+class FailureInfo:
     """Information passed to on_failure callback.
 
     Attributes:
@@ -119,7 +124,8 @@ class FailureInfo(TypedDict, total=False):
     total_time: float
 
 
-class CallbackInfo(TypedDict, total=False):
+@dataclass
+class CallbackInfo:
     """Unified callback information structure (for internal use).
 
     This is a superset of all callback info types, used internally to

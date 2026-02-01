@@ -375,10 +375,10 @@ def test_invoke_on_request_calls_callback() -> None:
 
     mock_callback.assert_called_once()
     call_args = mock_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "POST"
-    assert call_args["attempt"] == 2  # 0-indexed to 1-indexed
-    assert call_args["max_retries"] == 5
+    assert call_args.url == TEST_URL
+    assert call_args.method == "POST"
+    assert call_args.attempt == 2  # 0-indexed to 1-indexed
+    assert call_args.max_retries == 5
 
 
 def test_invoke_on_request_converts_attempt_to_1_indexed() -> None:
@@ -394,7 +394,7 @@ def test_invoke_on_request_converts_attempt_to_1_indexed() -> None:
     )
 
     call_args = mock_callback.call_args[0][0]
-    assert call_args["attempt"] == 1
+    assert call_args.attempt == 1
 
 
 ################################################
@@ -437,12 +437,12 @@ def test_invoke_on_success_calls_callback() -> None:
 
     mock_callback.assert_called_once()
     call_args = mock_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "PUT"
-    assert call_args["attempt"] == 3  # 0-indexed to 1-indexed
-    assert call_args["max_retries"] == 5
-    assert call_args["response"] == mock_response
-    assert call_args["total_time"] == 5.5
+    assert call_args.url == TEST_URL
+    assert call_args.method == "PUT"
+    assert call_args.attempt == 3  # 0-indexed to 1-indexed
+    assert call_args.max_retries == 5
+    assert call_args.response == mock_response
+    assert call_args.total_time == 5.5
 
 
 def test_invoke_on_success_calculates_total_time() -> None:
@@ -463,7 +463,7 @@ def test_invoke_on_success_calculates_total_time() -> None:
         )
 
     call_args = mock_callback.call_args[0][0]
-    assert call_args["total_time"] == 10.0
+    assert call_args.total_time == 10.0
 
 
 ################################################
@@ -505,13 +505,13 @@ def test_invoke_on_retry_calls_callback_with_error() -> None:
 
     mock_callback.assert_called_once()
     call_args = mock_callback.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "DELETE"
-    assert call_args["attempt"] == 3  # Next attempt: 1 + 2
-    assert call_args["max_retries"] == 5
-    assert call_args["wait_time"] == 2.5
-    assert call_args["error"] == error
-    assert call_args["status_code"] is None
+    assert call_args.url == TEST_URL
+    assert call_args.method == "DELETE"
+    assert call_args.attempt == 3  # Next attempt: 1 + 2
+    assert call_args.max_retries == 5
+    assert call_args.wait_time == 2.5
+    assert call_args.error == error
+    assert call_args.status_code is None
 
 
 def test_invoke_on_retry_calls_callback_with_status_code() -> None:
@@ -531,9 +531,9 @@ def test_invoke_on_retry_calls_callback_with_status_code() -> None:
     )
 
     call_args = mock_callback.call_args[0][0]
-    assert call_args["status_code"] == 503
-    assert call_args["error"] is None
-    assert call_args["attempt"] == 2  # Next attempt: 0 + 2
+    assert call_args.status_code == 503
+    assert call_args.error is None
+    assert call_args.attempt == 2  # Next attempt: 0 + 2
 
 
 def test_invoke_on_retry_calculates_next_attempt() -> None:
@@ -553,7 +553,7 @@ def test_invoke_on_retry_calculates_next_attempt() -> None:
     )
 
     call_args = mock_callback.call_args[0][0]
-    assert call_args["attempt"] == 5  # Next attempt: 3 + 2
+    assert call_args.attempt == 5  # Next attempt: 3 + 2
 
 
 ########################################################
@@ -634,13 +634,13 @@ def test_handle_exception_with_callback_final_attempt_with_callback() -> None:
 
     mock_on_failure.assert_called_once()
     call_args = mock_on_failure.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "POST"
-    assert call_args["attempt"] == 6  # 0-indexed to 1-indexed
-    assert call_args["max_retries"] == 5
-    assert call_args["status_code"] is None
-    assert call_args["total_time"] == 5.0
-    assert isinstance(call_args["error"], HttpRequestError)
+    assert call_args.url == TEST_URL
+    assert call_args.method == "POST"
+    assert call_args.attempt == 6  # 0-indexed to 1-indexed
+    assert call_args.max_retries == 5
+    assert call_args.status_code is None
+    assert call_args.total_time == 5.0
+    assert isinstance(call_args.error, HttpRequestError)
 
 
 def test_handle_exception_with_callback_reraises_error() -> None:
@@ -737,13 +737,13 @@ def test_raise_final_error_calls_on_failure_with_response() -> None:
 
     mock_on_failure.assert_called_once()
     call_args = mock_on_failure.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "DELETE"
-    assert call_args["attempt"] == 3  # max_retries + 1
-    assert call_args["max_retries"] == 2
-    assert call_args["status_code"] == 500
-    assert call_args["total_time"] == 10.0
-    assert isinstance(call_args["error"], HttpRequestError)
+    assert call_args.url == TEST_URL
+    assert call_args.method == "DELETE"
+    assert call_args.attempt == 3  # max_retries + 1
+    assert call_args.max_retries == 2
+    assert call_args.status_code == 500
+    assert call_args.total_time == 10.0
+    assert isinstance(call_args.error, HttpRequestError)
 
 
 def test_raise_final_error_calls_on_failure_without_response() -> None:
@@ -766,13 +766,13 @@ def test_raise_final_error_calls_on_failure_without_response() -> None:
 
     mock_on_failure.assert_called_once()
     call_args = mock_on_failure.call_args[0][0]
-    assert call_args["url"] == TEST_URL
-    assert call_args["method"] == "PUT"
-    assert call_args["attempt"] == 5  # max_retries + 1
-    assert call_args["max_retries"] == 4
-    assert call_args["status_code"] is None
-    assert call_args["total_time"] == 15.0
-    assert isinstance(call_args["error"], HttpRequestError)
+    assert call_args.url == TEST_URL
+    assert call_args.method == "PUT"
+    assert call_args.attempt == 5  # max_retries + 1
+    assert call_args.max_retries == 4
+    assert call_args.status_code is None
+    assert call_args.total_time == 15.0
+    assert isinstance(call_args.error, HttpRequestError)
 
 
 def test_raise_final_error_calculates_total_time() -> None:
