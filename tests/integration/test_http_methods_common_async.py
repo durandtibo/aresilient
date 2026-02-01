@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import httpx
 import pytest
 
@@ -13,6 +15,9 @@ from aresilient import (
     post_with_automatic_retry_async,
     put_with_automatic_retry_async,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 # Use httpbin.org for real HTTP testing
 HTTPBIN_URL = "https://httpbin.org"
@@ -39,7 +44,10 @@ HTTP_METHODS = {
     ids=list(HTTP_METHODS.keys()),
 )
 async def test_http_method_async_successful_request_with_client(
-    method_name: str, func: callable, endpoint: str, supports_body: bool
+    method_name: str,
+    func: Callable[..., Awaitable[httpx.Response]],
+    endpoint: str,
+    supports_body: bool,
 ) -> None:
     """Test successful async HTTP request with explicit client."""
     async with httpx.AsyncClient() as client:
@@ -72,7 +80,10 @@ async def test_http_method_async_successful_request_with_client(
     ids=list(HTTP_METHODS.keys()),
 )
 async def test_http_method_async_successful_request_without_client(
-    method_name: str, func: callable, endpoint: str, supports_body: bool
+    method_name: str,
+    func: Callable[..., Awaitable[httpx.Response]],
+    endpoint: str,
+    supports_body: bool,
 ) -> None:
     """Test successful async HTTP request without explicit client."""
     if supports_body:
@@ -103,7 +114,7 @@ async def test_http_method_async_successful_request_without_client(
     ids=[method for method in HTTP_METHODS if method != "OPTIONS"],
 )
 async def test_http_method_async_non_retryable_status_fails_immediately(
-    method_name: str, func: callable
+    method_name: str, func: Callable[..., Awaitable[httpx.Response]]
 ) -> None:
     """Test that 404 (non-retryable) fails immediately without retries."""
     async with httpx.AsyncClient() as client:
@@ -123,7 +134,10 @@ async def test_http_method_async_non_retryable_status_fails_immediately(
     ids=list(HTTP_METHODS.keys()),
 )
 async def test_http_method_async_with_custom_headers(
-    method_name: str, func: callable, endpoint: str, supports_body: bool
+    method_name: str,
+    func: Callable[..., Awaitable[httpx.Response]],
+    endpoint: str,
+    supports_body: bool,
 ) -> None:
     """Test async HTTP request with custom headers."""
     async with httpx.AsyncClient() as client:
@@ -166,7 +180,9 @@ async def test_http_method_async_with_custom_headers(
     ],
     ids=["GET", "DELETE"],
 )
-async def test_http_method_async_with_query_params(method_name: str, func: callable) -> None:
+async def test_http_method_async_with_query_params(
+    method_name: str, func: Callable[..., Awaitable[httpx.Response]]
+) -> None:
     """Test async HTTP request with query parameters."""
     endpoint = f"/{method_name.lower()}"
     async with httpx.AsyncClient() as client:

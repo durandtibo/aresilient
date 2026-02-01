@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import httpx
 import pytest
 
@@ -13,6 +15,9 @@ from aresilient import (
     post_with_automatic_retry,
     put_with_automatic_retry,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 # Use httpbin.org for real HTTP testing
 HTTPBIN_URL = "https://httpbin.org"
@@ -38,7 +43,7 @@ HTTP_METHODS = {
     ids=list(HTTP_METHODS.keys()),
 )
 def test_http_method_successful_request_with_client(
-    method_name: str, func: callable, endpoint: str, supports_body: bool
+    method_name: str, func: Callable[..., httpx.Response], endpoint: str, supports_body: bool
 ) -> None:
     """Test successful HTTP request with explicit client."""
     with httpx.Client() as client:
@@ -70,7 +75,7 @@ def test_http_method_successful_request_with_client(
     ids=list(HTTP_METHODS.keys()),
 )
 def test_http_method_successful_request_without_client(
-    method_name: str, func: callable, endpoint: str, supports_body: bool
+    method_name: str, func: Callable[..., httpx.Response], endpoint: str, supports_body: bool
 ) -> None:
     """Test successful HTTP request without explicit client."""
     if supports_body:
@@ -100,7 +105,7 @@ def test_http_method_successful_request_without_client(
     ids=[method for method in HTTP_METHODS if method != "OPTIONS"],
 )
 def test_http_method_non_retryable_status_fails_immediately(
-    method_name: str, func: callable
+    method_name: str, func: Callable[..., httpx.Response]
 ) -> None:
     """Test that 404 (non-retryable) fails immediately without retries."""
     with (
@@ -121,7 +126,7 @@ def test_http_method_non_retryable_status_fails_immediately(
     ids=list(HTTP_METHODS.keys()),
 )
 def test_http_method_with_custom_headers(
-    method_name: str, func: callable, endpoint: str, supports_body: bool
+    method_name: str, func: Callable[..., httpx.Response], endpoint: str, supports_body: bool
 ) -> None:
     """Test HTTP request with custom headers."""
     with httpx.Client() as client:
@@ -163,7 +168,7 @@ def test_http_method_with_custom_headers(
     ],
     ids=["GET", "DELETE"],
 )
-def test_http_method_with_query_params(method_name: str, func: callable) -> None:
+def test_http_method_with_query_params(method_name: str, func: Callable[..., httpx.Response]) -> None:
     """Test HTTP request with query parameters."""
     endpoint = f"/{method_name.lower()}"
     with httpx.Client() as client:
