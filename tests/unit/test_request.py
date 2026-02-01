@@ -746,7 +746,8 @@ def test_request_with_automatic_retry_error_message_includes_url(mock_sleep: Moc
 def test_request_with_automatic_retry_retry_if_returns_false_for_success(
     mock_response: httpx.Response, mock_request_func: Mock, mock_sleep: Mock
 ) -> None:
-    """Test retry_if that returns False for successful response (no retry)."""
+    """Test retry_if that returns False for successful response (no
+    retry)."""
 
     def retry_predicate(response: httpx.Response | None, exception: Exception | None) -> bool:
         return False
@@ -766,7 +767,8 @@ def test_request_with_automatic_retry_retry_if_returns_false_for_success(
 def test_request_with_automatic_retry_retry_if_returns_true_for_success(
     mock_sleep: Mock,
 ) -> None:
-    """Test retry_if that returns True even for successful response (triggers retry)."""
+    """Test retry_if that returns True even for successful response
+    (triggers retry)."""
     mock_response_ok = Mock(spec=httpx.Response, status_code=200, text="success")
     mock_request_func = Mock(return_value=mock_response_ok)
 
@@ -789,7 +791,8 @@ def test_request_with_automatic_retry_retry_if_returns_true_for_success(
 def test_request_with_automatic_retry_retry_if_checks_response_content(
     mock_sleep: Mock,
 ) -> None:
-    """Test retry_if that checks response content and retries on specific text."""
+    """Test retry_if that checks response content and retries on
+    specific text."""
     mock_response_retry = Mock(spec=httpx.Response, status_code=200, text="please retry")
     mock_response_ok = Mock(spec=httpx.Response, status_code=200, text="success")
     mock_request_func = Mock(side_effect=[mock_response_retry, mock_response_ok])
@@ -813,7 +816,8 @@ def test_request_with_automatic_retry_retry_if_checks_response_content(
 def test_request_with_automatic_retry_retry_if_returns_false_for_error(
     mock_sleep: Mock,
 ) -> None:
-    """Test retry_if that returns False for error response (no retry, immediate fail)."""
+    """Test retry_if that returns False for error response (no retry,
+    immediate fail)."""
     mock_response_error = Mock(spec=httpx.Response, status_code=500)
     mock_request_func = Mock(return_value=mock_response_error)
 
@@ -835,7 +839,8 @@ def test_request_with_automatic_retry_retry_if_returns_false_for_error(
 def test_request_with_automatic_retry_retry_if_returns_true_for_error(
     mock_sleep: Mock,
 ) -> None:
-    """Test retry_if that returns True for error response (triggers retry)."""
+    """Test retry_if that returns True for error response (triggers
+    retry)."""
     mock_response_error = Mock(spec=httpx.Response, status_code=500)
     mock_response_ok = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[mock_response_error, mock_response_ok])
@@ -926,7 +931,8 @@ def test_request_with_automatic_retry_retry_if_returns_false_for_exception(
 def test_request_with_automatic_retry_retry_if_returns_true_for_exception(
     mock_sleep: Mock,
 ) -> None:
-    """Test retry_if that returns True for exceptions (triggers retry)."""
+    """Test retry_if that returns True for exceptions (triggers
+    retry)."""
     mock_response_ok = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[httpx.TimeoutException("timeout"), mock_response_ok])
 
@@ -994,7 +1000,8 @@ def test_request_with_automatic_retry_retry_if_exhausts_retries_with_exception(
 
 
 def test_request_with_automatic_retry_retry_if_complex_logic(mock_sleep: Mock) -> None:
-    """Test retry_if with complex custom logic combining response and exception checks."""
+    """Test retry_if with complex custom logic combining response and
+    exception checks."""
     mock_response_500 = Mock(spec=httpx.Response, status_code=500, text="server error")
     mock_response_200_retry = Mock(spec=httpx.Response, status_code=200, text="rate limit exceeded")
     mock_response_ok = Mock(spec=httpx.Response, status_code=200, text="success")
@@ -1028,7 +1035,8 @@ def test_request_with_automatic_retry_retry_if_complex_logic(mock_sleep: Mock) -
 def test_request_with_automatic_retry_retry_if_none_uses_default_behavior(
     mock_sleep: Mock,
 ) -> None:
-    """Test that when retry_if is None, default status_forcelist behavior is used."""
+    """Test that when retry_if is None, default status_forcelist
+    behavior is used."""
     mock_response_503 = Mock(spec=httpx.Response, status_code=503)
     mock_response_ok = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[mock_response_503, mock_response_ok])
