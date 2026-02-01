@@ -9,13 +9,13 @@ from aresilient import HttpRequestError
 from tests.helpers import HTTP_METHODS, HTTPBIN_URL
 
 if TYPE_CHECKING:
-    from _pytest.mark.structures import ParameterSet
+    from tests.helpers import HttpMethodTestCase
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
-def test_http_method_successful_request_with_client(test_case: ParameterSet) -> None:
+def test_http_method_successful_request_with_client(test_case: HttpMethodTestCase) -> None:
     """Test successful HTTP request with explicit client."""
-    tc = test_case.values[0]
+    tc = test_case
     with httpx.Client() as client:
         if tc.supports_body:
             response = tc.method_func(
@@ -39,9 +39,9 @@ def test_http_method_successful_request_with_client(test_case: ParameterSet) -> 
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
-def test_http_method_successful_request_without_client(test_case: ParameterSet) -> None:
+def test_http_method_successful_request_without_client(test_case: HttpMethodTestCase) -> None:
     """Test successful HTTP request without explicit client."""
-    tc = test_case.values[0]
+    tc = test_case
     if tc.supports_body:
         response = tc.method_func(
             url=tc.test_url,
@@ -65,10 +65,10 @@ def test_http_method_successful_request_without_client(test_case: ParameterSet) 
     "test_case",
     [tc for tc in HTTP_METHODS if tc.values[0].method_name != "OPTIONS"],
 )
-def test_http_method_non_retryable_status_fails_immediately(test_case: ParameterSet) -> None:
+def test_http_method_non_retryable_status_fails_immediately(test_case: HttpMethodTestCase) -> None:
     """Test that 404 (non-retryable) fails immediately without
     retries."""
-    tc = test_case.values[0]
+    tc = test_case
     with (
         httpx.Client() as client,
         pytest.raises(
@@ -79,9 +79,9 @@ def test_http_method_non_retryable_status_fails_immediately(test_case: Parameter
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
-def test_http_method_with_custom_headers(test_case: ParameterSet) -> None:
+def test_http_method_with_custom_headers(test_case: HttpMethodTestCase) -> None:
     """Test HTTP request with custom headers."""
-    tc = test_case.values[0]
+    tc = test_case
     with httpx.Client() as client:
         if tc.supports_body:
             response = tc.method_func(
@@ -119,9 +119,9 @@ def test_http_method_with_custom_headers(test_case: ParameterSet) -> None:
     "test_case",
     [tc for tc in HTTP_METHODS if tc.values[0].method_name in ("GET", "DELETE")],
 )
-def test_http_method_with_query_params(test_case: ParameterSet) -> None:
+def test_http_method_with_query_params(test_case: HttpMethodTestCase) -> None:
     """Test HTTP request with query parameters."""
-    tc = test_case.values[0]
+    tc = test_case
     with httpx.Client() as client:
         response = tc.method_func(
             url=tc.test_url,
