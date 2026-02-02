@@ -29,6 +29,7 @@ def calculate_sleep_time(
     jitter_factor: float,
     response: httpx.Response | None,
     backoff_strategy: BackoffStrategy | None = None,
+    max_wait_time: float | None = None,
 ) -> float:
     """Calculate sleep time for retry with backoff strategy and jitter.
 
@@ -41,7 +42,9 @@ def calculate_sleep_time(
     1. Determine base sleep time:
        - If Retry-After header is present: use that value
        - Otherwise: use backoff_strategy.calculate(attempt) (defaults to exponential)
-    2. Apply jitter (if jitter_factor > 0):
+    2. Apply max_wait_time cap (if max_wait_time is set):
+       - sleep_time = min(sleep_time, max_wait_time)
+    3. Apply jitter (if jitter_factor > 0):
        - jitter = random.uniform(0, jitter_factor) * base_sleep_time
        - total_sleep_time = base_sleep_time + jitter
 
@@ -59,6 +62,9 @@ def calculate_sleep_time(
             the Retry-After header if present.
         backoff_strategy: Optional custom backoff strategy. If not provided,
             defaults to ExponentialBackoff with base_delay=backoff_factor.
+        max_wait_time: Optional maximum backoff delay cap in seconds.
+            If provided, individual backoff delays will not exceed this value,
+            even with exponential backoff growth or Retry-After headers.
 
     Returns:
         The calculated sleep time in seconds, including any jitter applied.
@@ -75,6 +81,9 @@ def calculate_sleep_time(
         >>> # Third retry
         >>> calculate_sleep_time(attempt=2, backoff_factor=0.3, jitter_factor=0.0, response=None)
         1.2
+        >>> # Third retry with max_wait_time cap
+        >>> calculate_sleep_time(attempt=2, backoff_factor=0.3, jitter_factor=0.0, response=None, max_wait_time=1.0)
+        1.0
 
         ```
     """
@@ -93,6 +102,13 @@ def calculate_sleep_time(
         if backoff_strategy is None:
             backoff_strategy = ExponentialBackoff(base_delay=backoff_factor)
         sleep_time = backoff_strategy.calculate(attempt)
+
+    # Apply max_wait_time cap if configured
+    if max_wait_time is not None and sleep_time > max_wait_time:
+        logger.debug(
+            f"Capping sleep time from {sleep_time:.2f}s to {max_wait_time:.2f}s (max_wait_time={max_wait_time:.2f}s)"
+        )
+        sleep_time = max_wait_time
 
     # Add jitter if jitter_factor is configured
     if jitter_factor > 0:

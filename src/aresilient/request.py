@@ -48,6 +48,8 @@ def request_with_automatic_retry(
     jitter_factor: float = 0.0,
     retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
     backoff_strategy: BackoffStrategy | None = None,
+    max_total_time: float | None = None,
+    max_wait_time: float | None = None,
     on_request: Callable[[RequestInfo], None] | None = None,
     on_retry: Callable[[RetryInfo], None] | None = None,
     on_success: Callable[[ResponseInfo], None] | None = None,
@@ -100,6 +102,14 @@ def request_with_automatic_retry(
             If provided, this strategy's calculate() method will be used instead of
             the default exponential backoff. The backoff_factor parameter is ignored
             when a custom strategy is provided.
+        max_total_time: Optional maximum total time budget in seconds for all retry
+            attempts. If the total elapsed time exceeds this value, the retry loop
+            will stop and raise an error even if max_retries has not been reached.
+            Must be > 0 if provided. Useful for enforcing strict SLA guarantees.
+        max_wait_time: Optional maximum backoff delay cap in seconds. Individual
+            backoff delays will not exceed this value, even with exponential backoff
+            growth or Retry-After headers. Must be > 0 if provided. Useful for
+            preventing very long waits in exponential backoff scenarios.
         on_request: Optional callback called before each request attempt.
             Receives RequestInfo with url, method, attempt, max_retries.
         on_retry: Optional callback called before each retry (after backoff).
@@ -118,7 +128,7 @@ def request_with_automatic_retry(
 
     Raises:
         HttpRequestError: If the request times out, encounters network errors,
-            or fails after exhausting all retries.
+            or fails after exhausting all retries, or if max_total_time is exceeded.
 
     Example:
         ```pycon
@@ -136,6 +146,8 @@ def request_with_automatic_retry(
         ...         max_retries=5,
         ...         backoff_strategy=LinearBackoff(base_delay=1.0),
         ...         jitter_factor=0.1,  # Add 10% jitter
+        ...         max_total_time=30.0,  # Stop after 30s total
+        ...         max_wait_time=5.0,  # Cap backoff at 5s max
         ...         on_retry=log_retry,
         ...     )  # doctest: +SKIP
         ...
@@ -256,8 +268,27 @@ def request_with_automatic_retry(
         # Exponential backoff with jitter before next retry
         # (skip on last attempt since we're about to fail)
         if attempt < max_retries:
+            # Check if max_total_time would be exceeded before sleeping
+            if max_total_time is not None:
+                elapsed_time = time.time() - start_time
+                if elapsed_time >= max_total_time:
+                    # Time budget exceeded - raise error without retrying
+                    logger.debug(
+                        f"{method} request to {url} exceeded max_total_time "
+                        f"({elapsed_time:.2f}s >= {max_total_time:.2f}s) "
+                        f"after {attempt + 1} attempts"
+                    )
+                    raise_final_error(
+                        url=url,
+                        method=method,
+                        max_retries=max_retries,
+                        response=response,
+                        on_failure=on_failure,
+                        start_time=start_time,
+                    )
+
             sleep_time = calculate_sleep_time(
-                attempt, backoff_factor, jitter_factor, response, backoff_strategy
+                attempt, backoff_factor, jitter_factor, response, backoff_strategy, max_wait_time
             )
 
             # Call on_retry callback before sleeping
