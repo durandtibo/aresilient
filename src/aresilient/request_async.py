@@ -10,6 +10,9 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any
 
+import httpx
+
+from aresilient.backoff import calculate_sleep_time
 from aresilient.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
@@ -29,13 +32,10 @@ from aresilient.utils import (
 )
 
 if TYPE_CHECKING:
-    from aresilient.backoff import BackoffStrategy
-    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
     from collections.abc import Awaitable, Callable
 
-import httpx
-
-from aresilient.backoff import calculate_sleep_time
+    from aresilient.backoff import BackoffStrategy
+    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 logger: logging.Logger = logging.getLogger(__name__)
 
