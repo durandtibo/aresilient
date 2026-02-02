@@ -9,6 +9,13 @@ handling for various HTTP failure scenarios.
 from __future__ import annotations
 
 __all__ = [
+    "AsyncRetryExecutor",
+    "CallbackConfig",
+    "CallbackManager",
+    "RetryConfig",
+    "RetryDecider",
+    "RetryExecutor",
+    "RetryStrategy",
     "calculate_sleep_time",
     "handle_exception_with_callback",
     "handle_exception_with_retry_if",
@@ -38,6 +45,15 @@ from aresilient.utils.exceptions import (
 )
 from aresilient.utils.response import handle_response
 from aresilient.utils.retry_after import parse_retry_after
+from aresilient.utils.retry_executor import (
+    AsyncRetryExecutor,
+    CallbackConfig,
+    CallbackManager,
+    RetryConfig,
+    RetryDecider,
+    RetryExecutor,
+    RetryStrategy,
+)
 from aresilient.utils.retry_if_handler import (
     handle_exception_with_retry_if,
     handle_response_with_retry_if,
