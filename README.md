@@ -64,14 +64,16 @@ HTTP communications, making your applications more robust and fault-tolerant.
 
 - **Automatic Retry Logic**: Automatically retries failed requests for configurable HTTP status
   codes (429, 500, 502, 503, 504 by default)
-- **Exponential Backoff with Optional Jitter**: Implements exponential backoff strategy with
-  optional randomized jitter to prevent thundering herd problems and avoid overwhelming servers
+- **Multiple Backoff Strategies**: Choose from Exponential (default), Linear, Fibonacci, Constant,
+  or implement your own custom backoff strategy for fine-tuned retry behavior
+- **Optional Jitter**: Add randomized jitter to backoff delays to prevent thundering herd problems
+  and avoid overwhelming servers
 - **Retry-After Header Support**: Respects server-specified retry delays from `Retry-After` headers
   (supports both integer seconds and HTTP-date formats)
 - **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
 - **Async Support**: Fully supports asynchronous requests for high-performance applications
 - **Built on httpx**: Leverages the modern, async-capable httpx library
-- **Configurable**: Customize timeout, retry attempts, backoff factors, jitter, and retryable status codes
+- **Configurable**: Customize timeout, retry attempts, backoff strategies, jitter, and retryable status codes
 - **Enhanced Error Handling**: Comprehensive error handling with detailed exception information
   including HTTP status codes and response objects
 - **Callbacks for Observability**: Built-in callback system for logging, metrics, and alerting
@@ -129,6 +131,23 @@ response = get_with_automatic_retry(
     jitter_factor=0.1,  # Add 10% jitter to prevent thundering herd
     timeout=30.0,  # 30 second timeout
     status_forcelist=(429, 503),  # Only retry on these status codes
+)
+```
+
+### Backoff Strategies
+
+`aresilient` supports multiple backoff strategies including exponential (default), linear, Fibonacci,
+and constant backoff. You can also implement custom strategies. See the
+[Backoff Strategies](https://durandtibo.github.io/aresilient/backoff_strategies/) documentation
+for detailed examples and guidance.
+
+```python
+from aresilient import get_with_automatic_retry, LinearBackoff
+
+# Use linear backoff instead of exponential
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    backoff_strategy=LinearBackoff(base_delay=1.0),  # 1s, 2s, 3s, 4s...
 )
 ```
 
@@ -456,9 +475,21 @@ All callbacks work with both synchronous and async functions.
 - **Retryable Status Codes**: 429 (Too Many Requests), 500 (Internal Server Error), 502 (Bad
   Gateway), 503 (Service Unavailable), 504 (Gateway Timeout)
 
-### Exponential Backoff Formula
+### Backoff Strategies
 
-The wait time between retries is calculated as:
+By default, the library uses **exponential backoff**, where the wait time between retries doubles
+with each attempt. You can choose from several built-in strategies or implement your own:
+
+- **ExponentialBackoff** (default): `base_delay * (2 ** attempt)` - Doubles delay each retry
+- **LinearBackoff**: `base_delay * (attempt + 1)` - Increases delay linearly
+- **FibonacciBackoff**: `base_delay * fib(attempt + 1)` - Fibonacci sequence delays
+- **ConstantBackoff**: Fixed delay for all retries
+
+All strategies support an optional `max_delay` parameter to cap the maximum wait time.
+
+#### Default Exponential Backoff Formula
+
+When not using a custom backoff strategy, the wait time is calculated as:
 
 ```
 base_wait_time = backoff_factor * (2 ** retry_number)

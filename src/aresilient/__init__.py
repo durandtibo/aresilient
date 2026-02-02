@@ -1,13 +1,14 @@
 r"""aresilient - Resilient HTTP request library with automatic retry logic.
 
 This package provides resilient HTTP request functionality with automatic
-retry logic and exponential backoff. Built on top of the modern httpx library,
+retry logic and backoff strategies. Built on top of the modern httpx library,
 it simplifies handling transient failures in HTTP communications, making your
 applications more robust and fault-tolerant.
 
 Key Features:
     - Automatic retry logic for transient HTTP errors (429, 500, 502, 503, 504)
-    - Exponential backoff with optional jitter to prevent thundering herd problems
+    - Multiple backoff strategies: Exponential, Linear, Fibonacci, Constant, and custom
+    - Optional jitter to prevent thundering herd problems
     - Retry-After header support (both integer seconds and HTTP-date formats)
     - Complete HTTP method support (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
     - Full async support for high-performance applications
@@ -17,8 +18,14 @@ Key Features:
 
 Example:
     ```pycon
-    >>> from aresilient import get_with_automatic_retry
+    >>> from aresilient import get_with_automatic_retry, LinearBackoff
+    >>> # Use default exponential backoff
     >>> response = get_with_automatic_retry("https://api.example.com/data")  # doctest: +SKIP
+    >>> # Use linear backoff strategy
+    >>> response = get_with_automatic_retry(
+    ...     "https://api.example.com/data",
+    ...     backoff_strategy=LinearBackoff(base_delay=1.0)
+    ... )  # doctest: +SKIP
 
     ```
 """
@@ -30,8 +37,13 @@ __all__ = [
     "DEFAULT_MAX_RETRIES",
     "DEFAULT_TIMEOUT",
     "RETRY_STATUS_CODES",
+    "BackoffStrategy",
+    "ConstantBackoff",
+    "ExponentialBackoff",
     "FailureInfo",
+    "FibonacciBackoff",
     "HttpRequestError",
+    "LinearBackoff",
     "RequestInfo",
     "ResponseInfo",
     "RetryInfo",
@@ -80,6 +92,13 @@ from aresilient.put import put_with_automatic_retry
 from aresilient.put_async import put_with_automatic_retry_async
 from aresilient.request import request_with_automatic_retry
 from aresilient.request_async import request_with_automatic_retry_async
+from aresilient.backoff import (
+    BackoffStrategy,
+    ConstantBackoff,
+    ExponentialBackoff,
+    FibonacciBackoff,
+    LinearBackoff,
+)
 
 try:
     __version__ = version(__name__)
