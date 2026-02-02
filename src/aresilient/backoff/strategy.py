@@ -53,7 +53,7 @@ class ExponentialBackoff(BackoffStrategy):
 
     Example:
         ```pycon
-        >>> from aresilient.utils.backoff_strategy import ExponentialBackoff
+        >>> from aresilient.backoff import ExponentialBackoff
         >>> backoff = ExponentialBackoff(base_delay=0.3)
         >>> backoff.calculate(0)  # First retry
         0.3
@@ -120,7 +120,7 @@ class LinearBackoff(BackoffStrategy):
 
     Example:
         ```pycon
-        >>> from aresilient.utils.backoff_strategy import LinearBackoff
+        >>> from aresilient.backoff import LinearBackoff
         >>> backoff = LinearBackoff(base_delay=1.0)
         >>> backoff.calculate(0)  # First retry: 1.0 * 1
         1.0
@@ -188,7 +188,7 @@ class FibonacciBackoff(BackoffStrategy):
 
     Example:
         ```pycon
-        >>> from aresilient.utils.backoff_strategy import FibonacciBackoff
+        >>> from aresilient.backoff import FibonacciBackoff
         >>> backoff = FibonacciBackoff(base_delay=1.0)
         >>> backoff.calculate(0)  # First retry: 1.0 * fib(1) = 1.0
         1.0
@@ -278,7 +278,7 @@ class ConstantBackoff(BackoffStrategy):
 
     Example:
         ```pycon
-        >>> from aresilient.utils.backoff_strategy import ConstantBackoff
+        >>> from aresilient.backoff import ConstantBackoff
         >>> backoff = ConstantBackoff(delay=2.5)
         >>> backoff.calculate(0)  # First retry
         2.5
