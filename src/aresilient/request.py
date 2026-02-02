@@ -5,29 +5,19 @@ from __future__ import annotations
 
 __all__ = ["request_with_automatic_retry"]
 
-import logging
-import time
 from typing import TYPE_CHECKING, Any
 
 import httpx
 
-from aresilient.backoff import calculate_sleep_time
 from aresilient.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
     RETRY_STATUS_CODES,
 )
-from aresilient.utils import (
-    handle_exception_with_callback,
-    handle_exception_with_retry_if,
-    handle_request_error,
-    handle_response,
-    handle_response_with_retry_if,
-    handle_timeout_exception,
-    invoke_on_request,
-    invoke_on_retry,
-    invoke_on_success,
-    raise_final_error,
+from aresilient.retry_executor import (
+    CallbackConfig,
+    RetryConfig,
+    RetryExecutor,
 )
 
 if TYPE_CHECKING:
@@ -36,8 +26,6 @@ if TYPE_CHECKING:
     from aresilient.backoff import BackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
     from aresilient.circuit_breaker import CircuitBreaker
-
-logger: logging.Logger = logging.getLogger(__name__)
 
 
 def request_with_automatic_retry(
@@ -164,205 +152,27 @@ def request_with_automatic_retry(
 
         ```
     """
-    response: httpx.Response | None = None
-    start_time = time.time()
-    last_error: Exception | None = None
-    last_status_code: int | None = None
-
-    # Retry loop: attempt 0 is initial try, 1..max_retries are retries
-    for attempt in range(max_retries + 1):
-        try:
-            # Check circuit breaker before making request
-            if circuit_breaker is not None:
-                circuit_breaker.check()
-
-            # Call on_request callback before each attempt
-            invoke_on_request(
-                on_request,
-                url=url,
-                method=method,
-                attempt=attempt,
-                max_retries=max_retries,
-            )
-
-            response = request_func(url=url, **kwargs)
-
-            # Success case: HTTP status code 2xx or 3xx
-            if response.status_code < 400:
-                # Check custom retry predicate even for successful responses
-                should_retry_success = False
-                if retry_if is not None:
-                    should_retry_success = handle_response_with_retry_if(
-                        response,
-                        retry_if=retry_if,
-                        url=url,
-                        method=method,
-                    )
-
-                if not should_retry_success:
-                    # True success - no retry needed
-                    if attempt > 0:
-                        logger.debug(
-                            f"{method} request to {url} succeeded on attempt {attempt + 1}"
-                        )
-
-                    # Record success in circuit breaker
-                    if circuit_breaker is not None:
-                        circuit_breaker.record_success()
-
-                    # Call on_success callback
-                    invoke_on_success(
-                        on_success,
-                        url=url,
-                        method=method,
-                        attempt=attempt,
-                        max_retries=max_retries,
-                        response=response,
-                        start_time=start_time,
-                    )
-
-                    return response
-
-                # retry_if returned True for success - mark for retry
-                logger.debug(
-                    f"{method} request to {url} has status {response.status_code} but "
-                    f"retry_if predicate returned True "
-                    f"(attempt {attempt + 1}/{max_retries + 1})"
-                )
-                last_status_code = response.status_code
-                # This is a retry case, record as failure in circuit breaker
-                if circuit_breaker is not None:
-                    from aresilient.exceptions import HttpRequestError
-
-                    circuit_breaker.record_failure(
-                        HttpRequestError(
-                            method=method,
-                            url=url,
-                            message=f"Retry predicate returned True for status {response.status_code}",
-                            status_code=response.status_code,
-                            response=response,
-                        )
-                    )
-
-            # Client/Server error: check if it's retryable
-            # Use custom retry predicate if provided, otherwise use status_forcelist
-            if retry_if is not None:
-                handle_response_with_retry_if(
-                    response,
-                    retry_if=retry_if,
-                    url=url,
-                    method=method,
-                )
-                # If we get here, retry_if returned True for error response
-            else:
-                handle_response(response, url, method, status_forcelist)
-
-            # Retryable HTTP status - log and continue to retry
-            logger.debug(
-                f"{method} request to {url} failed with status {response.status_code} "
-                f"(attempt {attempt + 1}/{max_retries + 1})"
-            )
-            last_status_code = response.status_code
-            # Record failure in circuit breaker for retryable status codes
-            if circuit_breaker is not None:
-                from aresilient.exceptions import HttpRequestError
-
-                circuit_breaker.record_failure(
-                    HttpRequestError(
-                        method=method,
-                        url=url,
-                        message=f"Request failed with retryable status {response.status_code}",
-                        status_code=response.status_code,
-                        response=response,
-                    )
-                )
-
-        except (httpx.TimeoutException, httpx.RequestError) as exc:
-            last_error = exc
-            # Check custom retry predicate if provided
-            if retry_if is not None:
-                handle_exception_with_retry_if(
-                    exc,
-                    retry_if=retry_if,
-                    url=url,
-                    method=method,
-                    attempt=attempt,
-                    max_retries=max_retries,
-                    on_failure=on_failure,
-                    start_time=start_time,
-                )
-            else:
-                # Determine which handler to use based on exception type
-                handler_func = (
-                    handle_timeout_exception
-                    if isinstance(exc, httpx.TimeoutException)
-                    else handle_request_error
-                )
-                handle_exception_with_callback(
-                    exc,
-                    url=url,
-                    method=method,
-                    attempt=attempt,
-                    max_retries=max_retries,
-                    handler_func=handler_func,
-                    on_failure=on_failure,
-                    start_time=start_time,
-                )
-
-        # Exponential backoff with jitter before next retry
-        # (skip on last attempt since we're about to fail)
-        if attempt < max_retries:
-            # Check if max_total_time would be exceeded before sleeping
-            if max_total_time is not None:
-                elapsed_time = time.time() - start_time
-                if elapsed_time >= max_total_time:
-                    # Time budget exceeded - raise error without retrying
-                    logger.debug(
-                        f"{method} request to {url} exceeded max_total_time "
-                        f"({elapsed_time:.2f}s >= {max_total_time:.2f}s) "
-                        f"after {attempt + 1} attempts"
-                    )
-                    raise_final_error(
-                        url=url,
-                        method=method,
-                        max_retries=max_retries,
-                        response=response,
-                        on_failure=on_failure,
-                        start_time=start_time,
-                    )
-
-            sleep_time = calculate_sleep_time(
-                attempt=attempt,
-                backoff_factor=backoff_factor,
-                jitter_factor=jitter_factor,
-                response=response,
-                backoff_strategy=backoff_strategy,
-                max_wait_time=max_wait_time,
-            )
-
-            # Call on_retry callback before sleeping
-            invoke_on_retry(
-                on_retry,
-                url=url,
-                method=method,
-                attempt=attempt,
-                max_retries=max_retries,
-                sleep_time=sleep_time,
-                last_error=last_error,
-                last_status_code=last_status_code,
-            )
-
-            time.sleep(sleep_time)
-
-    # All retries exhausted with retryable status code - raise final error
-    # Note: response cannot be None here because if all attempts raised exceptions,
-    # they would have been caught by the exception handlers above and raised before
-    # reaching this point.
-    raise_final_error(
-        url=url,
-        method=method,
+    # Create retry configuration
+    retry_config = RetryConfig(
         max_retries=max_retries,
-        response=response,
-        on_failure=on_failure,
-        start_time=start_time,
+        backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist,
+        jitter_factor=jitter_factor,
+        retry_if=retry_if,
+        backoff_strategy=backoff_strategy,
+        max_total_time=max_total_time,
+        max_wait_time=max_wait_time,
+        circuit_breaker=circuit_breaker,
     )
+
+    # Create callback configuration
+    callback_config = CallbackConfig(
+        on_request=on_request,
+        on_retry=on_retry,
+        on_success=on_success,
+        on_failure=on_failure,
+    )
+
+    # Create executor and execute request
+    executor = RetryExecutor(retry_config, callback_config)
+    return executor.execute(url, method, request_func, **kwargs)
