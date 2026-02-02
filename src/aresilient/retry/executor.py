@@ -62,13 +62,14 @@ class RetryExecutor:
         ... )
         >>> callback_config = CallbackConfig()
         >>> executor = RetryExecutor(retry_config, callback_config)
-        >>> 
+        >>>
         >>> with httpx.Client() as client:
         ...     response = executor.execute(
         ...         url="https://api.example.com/data",
         ...         method="GET",
         ...         request_func=client.get,
         ...     )  # doctest: +SKIP
+        ...
 
         ```
     """
@@ -165,7 +166,7 @@ class RetryExecutor:
             ...     jitter_factor=0.0,
             ... )
             >>> executor = RetryExecutor(retry_config, CallbackConfig())
-            >>> 
+            >>>
             >>> with httpx.Client() as client:
             ...     response = executor.execute(
             ...         url="https://api.example.com/data",
@@ -173,6 +174,7 @@ class RetryExecutor:
             ...         request_func=client.get,
             ...         timeout=10.0,
             ...     )  # doctest: +SKIP
+            ...
 
             ```
         """

@@ -57,7 +57,7 @@ class AsyncRetryExecutor:
         >>> import asyncio
         >>> import httpx
         >>> from aresilient.retry import AsyncRetryExecutor, RetryConfig, CallbackConfig
-        >>> 
+        >>>
         >>> async def main():
         ...     retry_config = RetryConfig(
         ...         max_retries=3,
@@ -67,7 +67,6 @@ class AsyncRetryExecutor:
         ...     )
         ...     callback_config = CallbackConfig()
         ...     executor = AsyncRetryExecutor(retry_config, callback_config)
-        ...     
         ...     async with httpx.AsyncClient() as client:
         ...         response = await executor.execute(
         ...             url="https://api.example.com/data",
@@ -75,7 +74,8 @@ class AsyncRetryExecutor:
         ...             request_func=client.get,
         ...         )
         ...     return response
-        >>> 
+        ...
+        >>>
         >>> asyncio.run(main())  # doctest: +SKIP
 
         ```
@@ -172,7 +172,7 @@ class AsyncRetryExecutor:
             >>> import asyncio
             >>> import httpx
             >>> from aresilient.retry import AsyncRetryExecutor, RetryConfig, CallbackConfig
-            >>> 
+            >>>
             >>> async def main():
             ...     retry_config = RetryConfig(
             ...         max_retries=2,
@@ -181,7 +181,6 @@ class AsyncRetryExecutor:
             ...         jitter_factor=0.0,
             ...     )
             ...     executor = AsyncRetryExecutor(retry_config, CallbackConfig())
-            ...     
             ...     async with httpx.AsyncClient() as client:
             ...         response = await executor.execute(
             ...             url="https://api.example.com/data",
@@ -190,7 +189,8 @@ class AsyncRetryExecutor:
             ...             timeout=10.0,
             ...         )
             ...     return response
-            >>> 
+            ...
+            >>>
             >>> asyncio.run(main())  # doctest: +SKIP
 
             ```

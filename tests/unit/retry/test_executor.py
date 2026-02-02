@@ -250,7 +250,7 @@ def test_retry_executor_max_total_time_exceeded_with_response() -> None:
     # Mock time to simulate exceeding max_total_time
     call_count = {"count": 0}
 
-    def time_side_effect():
+    def time_side_effect() -> float:
         call_count["count"] += 1
         return 0.0 if call_count["count"] == 1 else 2.0
 
@@ -286,7 +286,7 @@ def test_retry_executor_max_total_time_exceeded_with_exception_only() -> None:
     # Mock time to simulate exceeding max_total_time
     call_count = {"count": 0}
 
-    def time_side_effect():
+    def time_side_effect() -> float:
         call_count["count"] += 1
         return 0.0 if call_count["count"] == 1 else 2.0
 
@@ -315,9 +315,7 @@ def test_retry_executor_handles_request_error() -> None:
     executor = RetryExecutor(retry_config, callback_config)
 
     mock_response = Mock(spec=httpx.Response, status_code=200)
-    mock_request_func = Mock(
-        side_effect=[httpx.RequestError("Connection failed"), mock_response]
-    )
+    mock_request_func = Mock(side_effect=[httpx.RequestError("Connection failed"), mock_response])
 
     response = executor.execute(
         url="https://example.com",
@@ -377,4 +375,3 @@ def test_retry_executor_timeout_exhausts_retries() -> None:
     # Should be called max_retries + 1 times
     assert mock_request_func.call_count == 3
     assert "timed out" in str(exc_info.value)
-
