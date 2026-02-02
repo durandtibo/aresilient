@@ -206,7 +206,7 @@ def request_with_automatic_retry(
                             f"{method} request to {url} succeeded on attempt {attempt + 1}"
                         )
 
-                    # Record success in circuit breaker (if not already recorded by call())
+                    # Record success in circuit breaker
                     if circuit_breaker is not None:
                         circuit_breaker.record_success()
 
