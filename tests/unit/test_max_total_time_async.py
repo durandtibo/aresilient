@@ -39,7 +39,7 @@ async def test_max_total_time_exceeded_async(
         call_count["count"] += 1
         return 0.0 if call_count["count"] == 1 else 2.0
 
-    with patch("aresilient.request_async.time.time", side_effect=time_side_effect):
+    with patch("aresilient.retry.executor_async.time.time", side_effect=time_side_effect):
         with pytest.raises(HttpRequestError) as exc_info:
             await test_case.method_func(
                 TEST_URL,
@@ -78,7 +78,7 @@ async def test_max_total_time_not_exceeded_async(
         call_count["count"] += 1
         return 0.5 * call_count["count"]  # 0.5, 1.0, 1.5, etc
 
-    with patch("aresilient.request_async.time.time", side_effect=time_side_effect):
+    with patch("aresilient.retry.executor_async.time.time", side_effect=time_side_effect):
         response = await test_case.method_func(
             TEST_URL,
             client=mock_client,
