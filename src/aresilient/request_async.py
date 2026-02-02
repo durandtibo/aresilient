@@ -16,7 +16,6 @@ from aresilient.config import (
     RETRY_STATUS_CODES,
 )
 from aresilient.utils import (
-    calculate_sleep_time,
     handle_exception_with_callback,
     handle_exception_with_retry_if,
     handle_request_error,
@@ -35,6 +34,8 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
 import httpx
+
+from aresilient.backoff import calculate_sleep_time
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -137,7 +138,7 @@ async def request_with_automatic_retry_async(
         >>> import asyncio
         >>> import httpx
         >>> from aresilient import request_with_automatic_retry_async
-        >>> from aresilient.utils import LinearBackoff
+        >>> from aresilient import LinearBackoff
         >>> def log_retry(info):
         ...     print(f"Retry {info.attempt}/{info.max_retries + 1}")
         ...

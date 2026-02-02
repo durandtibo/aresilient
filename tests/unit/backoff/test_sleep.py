@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
-from aresilient.utils import calculate_sleep_time
+from aresilient.backoff import calculate_sleep_time
 
 ##########################################
 #     Tests for calculate_sleep_time     #
