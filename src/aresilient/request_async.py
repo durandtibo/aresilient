@@ -1,6 +1,3 @@
-r"""Contains utility functions for asynchronous HTTP requests with
-automatic retry logic."""
-
 from __future__ import annotations
 
 __all__ = ["request_with_automatic_retry_async"]
@@ -31,6 +28,7 @@ from aresilient.utils import (
 
 if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
+    from aresilient.utils.backoff_strategy import BackoffStrategy
     from collections.abc import Awaitable, Callable
 
 import httpx
@@ -48,6 +46,7 @@ async def request_with_automatic_retry_async(
     status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
     jitter_factor: float = 0.0,
     retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
+    backoff_strategy: BackoffStrategy | None = None,
     on_request: Callable[[RequestInfo], None] | None = None,
     on_retry: Callable[[RetryInfo], None] | None = None,
     on_success: Callable[[ResponseInfo], None] | None = None,
@@ -66,10 +65,12 @@ async def request_with_automatic_retry_async(
     3. General network errors (httpx.RequestError)
 
     Backoff Strategy:
-    - Exponential backoff: backoff_factor * (2 ** attempt)
+    - Default: Exponential backoff: backoff_factor * (2 ** attempt)
+    - Custom: Use backoff_strategy parameter for alternative strategies
+      (Linear, Fibonacci, Constant, or custom implementations)
     - Jitter: Optional randomization added to prevent thundering herd
     - Retry-After header: If present in the response (429/503), the server's
-      suggested wait time is used instead of exponential backoff
+      suggested wait time is used instead of backoff calculation
 
     Args:
         url: The URL to send the request to.
@@ -80,7 +81,8 @@ async def request_with_automatic_retry_async(
             Must be >= 0.
         backoff_factor: Factor for exponential backoff between retries. The wait
             time is calculated as: backoff_factor * (2 ** attempt) seconds,
-            where attempt is 0-indexed (0, 1, 2, ...).
+            where attempt is 0-indexed (0, 1, 2, ...). Ignored if backoff_strategy
+            is provided.
         status_forcelist: Tuple of HTTP status codes that should trigger a retry.
         jitter_factor: Factor for adding random jitter to backoff delays. The jitter
             is calculated as: random.uniform(0, jitter_factor) * base_sleep_time,
@@ -92,6 +94,11 @@ async def request_with_automatic_retry_async(
             where at least one will be non-None. Should return True to retry, False
             to not retry. If provided, this takes precedence over status_forcelist
             for determining retry behavior.
+        backoff_strategy: Optional custom backoff strategy (e.g., LinearBackoff,
+            FibonacciBackoff, ConstantBackoff, or custom BackoffStrategy implementation).
+            If provided, this strategy's calculate() method will be used instead of
+            the default exponential backoff. The backoff_factor parameter is ignored
+            when a custom strategy is provided.
         on_request: Optional callback called before each request attempt.
             Receives RequestInfo with url, method, attempt, max_retries.
         on_retry: Optional callback called before each retry (after backoff).
@@ -117,6 +124,7 @@ async def request_with_automatic_retry_async(
         >>> import asyncio
         >>> import httpx
         >>> from aresilient import request_with_automatic_retry_async
+        >>> from aresilient.utils import LinearBackoff
         >>> def log_retry(info):
         ...     print(f"Retry {info.attempt}/{info.max_retries + 1}")
         ...
@@ -127,7 +135,7 @@ async def request_with_automatic_retry_async(
         ...             method="GET",
         ...             request_func=client.get,
         ...             max_retries=5,
-        ...             backoff_factor=1.0,
+        ...             backoff_strategy=LinearBackoff(base_delay=1.0),
         ...             jitter_factor=0.1,  # Add 10% jitter
         ...             on_retry=log_retry,
         ...         )
@@ -251,7 +259,9 @@ async def request_with_automatic_retry_async(
         # Exponential backoff with jitter before next retry
         # (skip on last attempt since we're about to fail)
         if attempt < max_retries:
-            sleep_time = calculate_sleep_time(attempt, backoff_factor, jitter_factor, response)
+            sleep_time = calculate_sleep_time(
+                attempt, backoff_factor, jitter_factor, response, backoff_strategy
+            )
 
             # Call on_retry callback before sleeping
             invoke_on_retry(

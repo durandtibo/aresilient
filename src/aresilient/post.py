@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
+    from aresilient.utils.backoff_strategy import BackoffStrategy
 
 
 def post_with_automatic_retry(
@@ -34,6 +35,7 @@ def post_with_automatic_retry(
     status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
     jitter_factor: float = 0.0,
     retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
+    backoff_strategy: BackoffStrategy | None = None,
     on_request: Callable[[RequestInfo], None] | None = None,
     on_retry: Callable[[RetryInfo], None] | None = None,
     on_success: Callable[[ResponseInfo], None] | None = None,
@@ -44,9 +46,9 @@ def post_with_automatic_retry(
     transient errors.
 
     This function performs an HTTP POST request with a configured retry policy
-    for transient server errors (429, 500, 502, 503, 504). It applies an
-    exponential backoff retry strategy. The function validates the HTTP
-    response and raises detailed errors for failures.
+    for transient server errors (429, 500, 502, 503, 504). It applies a
+    backoff retry strategy (exponential by default). The function validates 
+    the HTTP response and raises detailed errors for failures.
 
     Args:
         url: The URL to send the POST request to.
@@ -59,7 +61,7 @@ def post_with_automatic_retry(
         backoff_factor: Factor for exponential backoff between retries. The wait
             time is calculated as: backoff_factor * (2 ** attempt) seconds,
             where attempt is the 0-indexed retry number (0, 1, 2, ...).
-            Must be >= 0.
+            Must be >= 0. Ignored if backoff_strategy is provided.
         status_forcelist: Tuple of HTTP status codes that should trigger a retry.
         jitter_factor: Factor for adding random jitter to backoff delays. The jitter
             is calculated as: random.uniform(0, jitter_factor) * base_sleep_time,
@@ -71,6 +73,11 @@ def post_with_automatic_retry(
             where at least one will be non-None. Should return True to retry, False
             to not retry. If provided, this takes precedence over status_forcelist
             for determining retry behavior.
+        backoff_strategy: Optional custom backoff strategy (e.g., LinearBackoff,
+            FibonacciBackoff, ConstantBackoff, or custom BackoffStrategy implementation).
+            If provided, this strategy's calculate() method will be used instead of
+            the default exponential backoff. The backoff_factor parameter is ignored
+            when a custom strategy is provided.
         on_request: Optional callback called before each request attempt.
             Receives RequestInfo with url, method, attempt, max_retries.
         on_retry: Optional callback called before each retry (after backoff).
@@ -122,6 +129,7 @@ def post_with_automatic_retry(
             status_forcelist=status_forcelist,
             jitter_factor=jitter_factor,
             retry_if=retry_if,
+            backoff_strategy=backoff_strategy,
             on_request=on_request,
             on_retry=on_retry,
             on_success=on_success,

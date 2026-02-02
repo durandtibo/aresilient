@@ -9,6 +9,11 @@ handling for various HTTP failure scenarios.
 from __future__ import annotations
 
 __all__ = [
+    "BackoffStrategy",
+    "ConstantBackoff",
+    "ExponentialBackoff",
+    "FibonacciBackoff",
+    "LinearBackoff",
     "calculate_sleep_time",
     "handle_exception_with_callback",
     "handle_exception_with_retry_if",
@@ -25,6 +30,13 @@ __all__ = [
 ]
 
 from aresilient.utils.backoff import calculate_sleep_time
+from aresilient.utils.backoff_strategy import (
+    BackoffStrategy,
+    ConstantBackoff,
+    ExponentialBackoff,
+    FibonacciBackoff,
+    LinearBackoff,
+)
 from aresilient.utils.callbacks import (
     invoke_on_request,
     invoke_on_retry,
