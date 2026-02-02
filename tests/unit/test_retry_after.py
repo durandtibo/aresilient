@@ -119,7 +119,7 @@ def test_request_with_jitter_applied(mock_sleep: Mock) -> None:
 
     # Mock random.uniform to return a specific jitter value
     with patch(
-        "aresilient.utils.backoff.random.uniform", return_value=0.05
+        "aresilient.backoff.sleep.random.uniform", return_value=0.05
     ):  # returns 5% of jitter_factor
         response = request_with_automatic_retry(
             url=TEST_URL,
@@ -145,7 +145,7 @@ def test_request_jitter_with_retry_after(mock_sleep: Mock) -> None:
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_success_response])
 
     # Mock jitter to 0.1 (10% of jitter_factor)
-    with patch("aresilient.utils.backoff.random.uniform", return_value=0.1):
+    with patch("aresilient.backoff.sleep.random.uniform", return_value=0.1):
         response = request_with_automatic_retry(
             url=TEST_URL,
             method="GET",

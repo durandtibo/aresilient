@@ -28,8 +28,8 @@ from aresilient.utils import (
 )
 
 if TYPE_CHECKING:
+    from aresilient.backoff import BackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
-    from aresilient.utils.backoff_strategy import BackoffStrategy
     from collections.abc import Callable
 
 import httpx

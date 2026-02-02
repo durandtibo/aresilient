@@ -1,8 +1,7 @@
 r"""Utility functions for HTTP request handling and retry logic.
 
 This package provides helper functions for managing HTTP request
-retries, including parameter validation, sleep time calculation with
-exponential backoff and jitter, Retry-After header parsing, and error
+retries, including parameter validation, Retry-After header parsing, and error
 handling for various HTTP failure scenarios.
 """
 
@@ -29,13 +28,13 @@ __all__ = [
     "validate_retry_params",
 ]
 
-from aresilient.utils.backoff import calculate_sleep_time
-from aresilient.utils.backoff_strategy import (
+from aresilient.backoff import (
     BackoffStrategy,
     ConstantBackoff,
     ExponentialBackoff,
     FibonacciBackoff,
     LinearBackoff,
+    calculate_sleep_time,
 )
 from aresilient.utils.callbacks import (
     invoke_on_request,

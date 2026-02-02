@@ -92,7 +92,7 @@ from aresilient.put import put_with_automatic_retry
 from aresilient.put_async import put_with_automatic_retry_async
 from aresilient.request import request_with_automatic_retry
 from aresilient.request_async import request_with_automatic_retry_async
-from aresilient.utils import (
+from aresilient.backoff import (
     BackoffStrategy,
     ConstantBackoff,
     ExponentialBackoff,

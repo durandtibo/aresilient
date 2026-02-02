@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
-    from aresilient.utils.backoff_strategy import BackoffStrategy
+    from aresilient.backoff import BackoffStrategy
 
 
 def options_with_automatic_retry(

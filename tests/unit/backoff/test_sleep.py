@@ -23,7 +23,7 @@ def test_calculate_sleep_time_exponential_backoff(attempt: int, sleep_time: floa
 
 def test_calculate_sleep_time_with_jitter() -> None:
     """Test that jitter is correctly added to sleep time."""
-    with patch("aresilient.utils.backoff.random.uniform", return_value=0.05):
+    with patch("aresilient.backoff.sleep.random.uniform", return_value=0.05):
         # Base sleep: 1.0 * 2^0 = 1.0
         # Jitter: 0.05 * 1.0 = 0.05
         # Total: 1.05
@@ -58,7 +58,7 @@ def test_calculate_sleep_time_with_retry_after_and_jitter() -> None:
     """Test that jitter is applied to Retry-After value."""
     mock_response = Mock(spec=httpx.Response, headers={"Retry-After": "100"})
 
-    with patch("aresilient.utils.backoff.random.uniform", return_value=0.1):
+    with patch("aresilient.backoff.sleep.random.uniform", return_value=0.1):
         # Base sleep from Retry-After: 100
         # Jitter: 0.1 * 100 = 10
         # Total: 110
@@ -100,7 +100,7 @@ def test_calculate_sleep_time_invalid_retry_after() -> None:
 
 def test_calculate_sleep_time_with_backoff_strategy() -> None:
     """Test that backoff_strategy is used when provided."""
-    from aresilient.utils.backoff_strategy import LinearBackoff
+    from aresilient.backoff import LinearBackoff
 
     strategy = LinearBackoff(base_delay=2.0)
 
@@ -130,11 +130,11 @@ def test_calculate_sleep_time_with_backoff_strategy() -> None:
 
 def test_calculate_sleep_time_strategy_with_jitter() -> None:
     """Test that jitter is applied to backoff strategy."""
-    from aresilient.utils.backoff_strategy import ConstantBackoff
+    from aresilient.backoff import ConstantBackoff
 
     strategy = ConstantBackoff(delay=5.0)
 
-    with patch("aresilient.utils.backoff.random.uniform", return_value=0.2):
+    with patch("aresilient.backoff.sleep.random.uniform", return_value=0.2):
         # Base sleep from strategy: 5.0
         # Jitter: 0.2 * 5.0 = 1.0
         # Total: 6.0
@@ -152,7 +152,7 @@ def test_calculate_sleep_time_strategy_with_jitter() -> None:
 
 def test_calculate_sleep_time_retry_after_takes_precedence_over_strategy() -> None:
     """Test that Retry-After header takes precedence over backoff strategy."""
-    from aresilient.utils.backoff_strategy import LinearBackoff
+    from aresilient.backoff import LinearBackoff
 
     mock_response = Mock(spec=httpx.Response, headers={"Retry-After": "120"})
     strategy = LinearBackoff(base_delay=2.0)

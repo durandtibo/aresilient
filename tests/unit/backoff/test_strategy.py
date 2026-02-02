@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from aresilient.utils.backoff_strategy import (
+from aresilient.backoff import (
     BackoffStrategy,
     ConstantBackoff,
     ExponentialBackoff,

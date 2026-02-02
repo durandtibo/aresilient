@@ -134,82 +134,22 @@ response = get_with_automatic_retry(
 )
 ```
 
-### Advanced Backoff Strategies
+### Backoff Strategies
 
-Choose from multiple backoff strategies to fine-tune retry behavior for your use case:
-
-#### Linear Backoff
-
-Provides evenly spaced retry delays, useful for services with predictable recovery times.
+`aresilient` supports multiple backoff strategies including exponential (default), linear, Fibonacci,
+and constant backoff. You can also implement custom strategies. See the
+[Backoff Strategies](https://durandtibo.github.io/aresilient/backoff_strategies/) documentation
+for detailed examples and guidance.
 
 ```python
 from aresilient import get_with_automatic_retry, LinearBackoff
 
+# Use linear backoff instead of exponential
 response = get_with_automatic_retry(
     "https://api.example.com/data",
     backoff_strategy=LinearBackoff(base_delay=1.0),  # 1s, 2s, 3s, 4s...
 )
 ```
-
-#### Fibonacci Backoff
-
-A middle ground between linear and exponential backoff, providing gradual increase.
-
-```python
-from aresilient import get_with_automatic_retry, FibonacciBackoff
-
-response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    backoff_strategy=FibonacciBackoff(base_delay=1.0),  # 1s, 1s, 2s, 3s, 5s, 8s...
-)
-```
-
-#### Constant Backoff
-
-Fixed delay between retries, useful for testing or specific service requirements.
-
-```python
-from aresilient import get_with_automatic_retry, ConstantBackoff
-
-response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    backoff_strategy=ConstantBackoff(delay=2.5),  # Always 2.5s between retries
-)
-```
-
-#### Exponential Backoff with Max Delay Cap
-
-Default exponential backoff with a maximum delay cap to prevent extremely long waits.
-
-```python
-from aresilient import get_with_automatic_retry, ExponentialBackoff
-
-response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=10.0),
-    # Delays: 0.5s, 1s, 2s, 4s, 8s, 10s (capped), 10s (capped)...
-)
-```
-
-#### Custom Backoff Strategy
-
-Implement your own backoff strategy by subclassing `BackoffStrategy`:
-
-```python
-from aresilient import get_with_automatic_retry, BackoffStrategy
-
-class CustomBackoff(BackoffStrategy):
-    def calculate(self, attempt: int) -> float:
-        # Custom logic: square of attempt number
-        return (attempt + 1) ** 2
-
-response = get_with_automatic_retry(
-    "https://api.example.com/data",
-    backoff_strategy=CustomBackoff(),  # 1s, 4s, 9s, 16s...
-)
-```
-
-**Note:** When using `backoff_strategy`, the `backoff_factor` parameter is ignored. Jitter can still be applied by setting `jitter_factor`, and the `Retry-After` header always takes precedence over any backoff strategy.
 
 ### Using a Custom httpx Client
 
