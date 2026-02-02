@@ -33,17 +33,17 @@ Example:
 from __future__ import annotations
 
 __all__ = [
-    "BackoffStrategy",
-    "ConstantBackoff",
     "DEFAULT_BACKOFF_FACTOR",
     "DEFAULT_MAX_RETRIES",
     "DEFAULT_TIMEOUT",
+    "RETRY_STATUS_CODES",
+    "BackoffStrategy",
+    "ConstantBackoff",
     "ExponentialBackoff",
     "FailureInfo",
     "FibonacciBackoff",
     "HttpRequestError",
     "LinearBackoff",
-    "RETRY_STATUS_CODES",
     "RequestInfo",
     "ResponseInfo",
     "RetryInfo",

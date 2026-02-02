@@ -1,3 +1,5 @@
+r"""Contains synchronous HTTP GET request with automatic retry logic."""
+
 from __future__ import annotations
 
 __all__ = ["get_with_automatic_retry"]
@@ -44,7 +46,7 @@ def get_with_automatic_retry(
 
     This function performs an HTTP GET request with a configured retry policy
     for transient server errors (429, 500, 502, 503, 504). It applies a
-    backoff retry strategy (exponential by default). The function validates 
+    backoff retry strategy (exponential by default). The function validates
     the HTTP response and raises detailed errors for failures.
 
     Args:

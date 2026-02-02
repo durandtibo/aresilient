@@ -1,3 +1,5 @@
+r"""Contains utility functions for synchronous HTTP requests with automatic retry logic."""
+
 from __future__ import annotations
 
 __all__ = ["request_with_automatic_retry"]

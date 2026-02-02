@@ -46,7 +46,7 @@ def put_with_automatic_retry(
 
     This function performs an HTTP PUT request with a configured retry policy
     for transient server errors (429, 500, 502, 503, 504). It applies a
-    backoff retry strategy (exponential by default). The function validates 
+    backoff retry strategy (exponential by default). The function validates
     the HTTP response and raises detailed errors for failures.
 
     Args:
