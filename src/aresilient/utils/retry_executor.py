@@ -35,6 +35,55 @@ if TYPE_CHECKING:
 logger: logging.Logger = logging.getLogger(__name__)
 
 
+def _create_error_from_exception(
+    exc: Exception,
+    url: str,
+    method: str,
+    attempt: int,
+) -> HttpRequestError:
+    """Create appropriate error from exception."""
+    if isinstance(exc, httpx.TimeoutException):
+        return HttpRequestError(
+            method=method,
+            url=url,
+            message=f"{method} request to {url} timed out ({attempt + 1} attempts)",
+            cause=exc,
+        )
+    return HttpRequestError(
+        method=method,
+        url=url,
+        message=f"{method} request to {url} failed after {attempt + 1} attempts: {exc}",
+        cause=exc,
+    )
+
+
+def _create_final_error_from_response(
+    url: str,
+    method: str,
+    response: httpx.Response | None,
+    status_code: int | None,
+    max_retries: int,
+) -> HttpRequestError:
+    """Create final error after all retries exhausted."""
+    if response is not None:
+        return HttpRequestError(
+            method=method,
+            url=url,
+            message=(
+                f"{method} request to {url} failed with status "
+                f"{response.status_code} after {max_retries + 1} attempts"
+            ),
+            status_code=response.status_code,
+            response=response,
+        )
+    return HttpRequestError(
+        method=method,
+        url=url,
+        message=f"{method} request to {url} failed after {max_retries + 1} attempts",
+        status_code=status_code,
+    )
+
+
 @dataclass
 class RetryConfig:
     """Configuration for retry behavior."""
@@ -316,7 +365,7 @@ class RetryExecutor:
 
                 if not should_retry:
                     # Create and raise final error
-                    error = self._create_error(exc, url, method, attempt)
+                    error = _create_error_from_exception(exc, url, method, attempt)
                     self.callbacks.on_failure(
                         url,
                         method,
@@ -348,7 +397,9 @@ class RetryExecutor:
                 time.sleep(sleep_time)
 
         # All retries exhausted - create and raise final error
-        error = self._create_final_error(url, method, response, last_status_code)
+        error = _create_final_error_from_response(
+            url, method, response, last_status_code, self.config.max_retries
+        )
         self.callbacks.on_failure(
             url,
             method,
@@ -359,54 +410,6 @@ class RetryExecutor:
             start_time,
         )
         raise error
-
-    def _create_error(
-        self,
-        exc: Exception,
-        url: str,
-        method: str,
-        attempt: int,
-    ) -> HttpRequestError:
-        """Create appropriate error from exception."""
-        if isinstance(exc, httpx.TimeoutException):
-            return HttpRequestError(
-                method=method,
-                url=url,
-                message=f"{method} request to {url} timed out ({attempt + 1} attempts)",
-                cause=exc,
-            )
-        return HttpRequestError(
-            method=method,
-            url=url,
-            message=f"{method} request to {url} failed after {attempt + 1} attempts: {exc}",
-            cause=exc,
-        )
-
-    def _create_final_error(
-        self,
-        url: str,
-        method: str,
-        response: httpx.Response | None,
-        status_code: int | None,
-    ) -> HttpRequestError:
-        """Create final error after all retries exhausted."""
-        if response is not None:
-            return HttpRequestError(
-                method=method,
-                url=url,
-                message=(
-                    f"{method} request to {url} failed with status "
-                    f"{response.status_code} after {self.config.max_retries + 1} attempts"
-                ),
-                status_code=response.status_code,
-                response=response,
-            )
-        return HttpRequestError(
-            method=method,
-            url=url,
-            message=f"{method} request to {url} failed after {self.config.max_retries + 1} attempts",
-            status_code=status_code,
-        )
 
 
 class AsyncRetryExecutor:
@@ -511,7 +514,7 @@ class AsyncRetryExecutor:
 
                 if not should_retry:
                     # Create and raise final error
-                    error = self._create_error(exc, url, method, attempt)
+                    error = _create_error_from_exception(exc, url, method, attempt)
                     self.callbacks.on_failure(
                         url,
                         method,
@@ -543,7 +546,9 @@ class AsyncRetryExecutor:
                 await asyncio.sleep(sleep_time)
 
         # All retries exhausted - create and raise final error
-        error = self._create_final_error(url, method, response, last_status_code)
+        error = _create_final_error_from_response(
+            url, method, response, last_status_code, self.config.max_retries
+        )
         self.callbacks.on_failure(
             url,
             method,
@@ -554,51 +559,3 @@ class AsyncRetryExecutor:
             start_time,
         )
         raise error
-
-    def _create_error(
-        self,
-        exc: Exception,
-        url: str,
-        method: str,
-        attempt: int,
-    ) -> HttpRequestError:
-        """Create appropriate error from exception."""
-        if isinstance(exc, httpx.TimeoutException):
-            return HttpRequestError(
-                method=method,
-                url=url,
-                message=f"{method} request to {url} timed out ({attempt + 1} attempts)",
-                cause=exc,
-            )
-        return HttpRequestError(
-            method=method,
-            url=url,
-            message=f"{method} request to {url} failed after {attempt + 1} attempts: {exc}",
-            cause=exc,
-        )
-
-    def _create_final_error(
-        self,
-        url: str,
-        method: str,
-        response: httpx.Response | None,
-        status_code: int | None,
-    ) -> HttpRequestError:
-        """Create final error after all retries exhausted."""
-        if response is not None:
-            return HttpRequestError(
-                method=method,
-                url=url,
-                message=(
-                    f"{method} request to {url} failed with status "
-                    f"{response.status_code} after {self.config.max_retries + 1} attempts"
-                ),
-                status_code=response.status_code,
-                response=response,
-            )
-        return HttpRequestError(
-            method=method,
-            url=url,
-            message=f"{method} request to {url} failed after {self.config.max_retries + 1} attempts",
-            status_code=status_code,
-        )
