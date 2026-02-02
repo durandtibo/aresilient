@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 import httpx
 
 from aresilient.backoff import calculate_sleep_time
+from aresilient.circuit_breaker import CircuitBreaker
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ def request_with_automatic_retry(
     backoff_strategy: BackoffStrategy | None = None,
     max_total_time: float | None = None,
     max_wait_time: float | None = None,
+    circuit_breaker: CircuitBreaker | None = None,
     on_request: Callable[[RequestInfo], None] | None = None,
     on_retry: Callable[[RetryInfo], None] | None = None,
     on_success: Callable[[ResponseInfo], None] | None = None,
@@ -112,6 +114,12 @@ def request_with_automatic_retry(
             backoff delays will not exceed this value, even with exponential backoff
             growth or Retry-After headers. Must be > 0 if provided. Useful for
             preventing very long waits in exponential backoff scenarios.
+        circuit_breaker: Optional CircuitBreaker instance to use for preventing
+            cascading failures. When provided, the circuit breaker will track
+            failures and stop making requests if the failure threshold is reached,
+            transitioning to an OPEN state where requests fail fast. After a
+            recovery timeout, it will transition to HALF_OPEN to test if the
+            service has recovered.
         on_request: Optional callback called before each request attempt.
             Receives RequestInfo with url, method, attempt, max_retries.
         on_retry: Optional callback called before each retry (after backoff).
@@ -164,6 +172,10 @@ def request_with_automatic_retry(
     # Retry loop: attempt 0 is initial try, 1..max_retries are retries
     for attempt in range(max_retries + 1):
         try:
+            # Check circuit breaker before making request
+            if circuit_breaker is not None:
+                circuit_breaker.check()
+
             # Call on_request callback before each attempt
             invoke_on_request(
                 on_request,
@@ -194,6 +206,10 @@ def request_with_automatic_retry(
                             f"{method} request to {url} succeeded on attempt {attempt + 1}"
                         )
 
+                    # Record success in circuit breaker (if not already recorded by call())
+                    if circuit_breaker is not None:
+                        circuit_breaker.record_success()
+
                     # Call on_success callback
                     invoke_on_success(
                         on_success,
@@ -214,6 +230,19 @@ def request_with_automatic_retry(
                     f"(attempt {attempt + 1}/{max_retries + 1})"
                 )
                 last_status_code = response.status_code
+                # This is a retry case, record as failure in circuit breaker
+                if circuit_breaker is not None:
+                    from aresilient.exceptions import HttpRequestError
+
+                    circuit_breaker.record_failure(
+                        HttpRequestError(
+                            method=method,
+                            url=url,
+                            message=f"Retry predicate returned True for status {response.status_code}",
+                            status_code=response.status_code,
+                            response=response,
+                        )
+                    )
 
             # Client/Server error: check if it's retryable
             # Use custom retry predicate if provided, otherwise use status_forcelist
@@ -234,6 +263,19 @@ def request_with_automatic_retry(
                 f"(attempt {attempt + 1}/{max_retries + 1})"
             )
             last_status_code = response.status_code
+            # Record failure in circuit breaker for retryable status codes
+            if circuit_breaker is not None:
+                from aresilient.exceptions import HttpRequestError
+
+                circuit_breaker.record_failure(
+                    HttpRequestError(
+                        method=method,
+                        url=url,
+                        message=f"Request failed with retryable status {response.status_code}",
+                        status_code=response.status_code,
+                        response=response,
+                    )
+                )
 
         except (httpx.TimeoutException, httpx.RequestError) as exc:
             last_error = exc
