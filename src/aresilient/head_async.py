@@ -36,6 +36,8 @@ async def head_with_automatic_retry_async(
     jitter_factor: float = 0.0,
     retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
     backoff_strategy: BackoffStrategy | None = None,
+    max_total_time: float | None = None,
+    max_wait_time: float | None = None,
     on_request: Callable[[RequestInfo], None] | None = None,
     on_retry: Callable[[RetryInfo], None] | None = None,
     on_success: Callable[[ResponseInfo], None] | None = None,
@@ -82,6 +84,14 @@ async def head_with_automatic_retry_async(
             If provided, this strategy's calculate() method will be used instead of
             the default exponential backoff. The backoff_factor parameter is ignored
             when a custom strategy is provided.
+        max_total_time: Optional maximum total time budget in seconds for all retry
+            attempts. If the total elapsed time exceeds this value, the retry loop
+            will stop and raise an error even if max_retries has not been reached.
+            Must be > 0 if provided. Useful for enforcing strict SLA guarantees.
+        max_wait_time: Optional maximum backoff delay cap in seconds. Individual
+            backoff delays will not exceed this value, even with exponential backoff
+            growth or Retry-After headers. Must be > 0 if provided. Useful for
+            preventing very long waits in exponential backoff scenarios.
         on_request: Optional callback called before each request attempt.
             Receives RequestInfo with url, method, attempt, max_retries.
         on_retry: Optional callback called before each retry (after backoff).
@@ -101,9 +111,9 @@ async def head_with_automatic_retry_async(
 
     Raises:
         HttpRequestError: If the request times out, encounters network errors,
-            or fails after exhausting all retries.
+            or fails after exhausting all retries, or if max_total_time is exceeded.
         ValueError: If max_retries, backoff_factor, or jitter_factor are negative,
-            or if timeout is non-positive.
+            or if timeout, max_total_time, or max_wait_time are non-positive.
 
     Example:
         ```pycon
@@ -127,6 +137,8 @@ async def head_with_automatic_retry_async(
         backoff_factor=backoff_factor,
         jitter_factor=jitter_factor,
         timeout=timeout,
+        max_total_time=max_total_time,
+        max_wait_time=max_wait_time,
     )
 
     owns_client = client is None
@@ -142,6 +154,8 @@ async def head_with_automatic_retry_async(
             jitter_factor=jitter_factor,
             retry_if=retry_if,
             backoff_strategy=backoff_strategy,
+            max_total_time=max_total_time,
+            max_wait_time=max_wait_time,
             on_request=on_request,
             on_retry=on_retry,
             on_success=on_success,

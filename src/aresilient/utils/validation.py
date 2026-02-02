@@ -20,6 +20,8 @@ def validate_retry_params(
     backoff_factor: float,
     jitter_factor: float = 0.0,
     timeout: float | httpx.Timeout | None = None,
+    max_total_time: float | None = None,
+    max_wait_time: float | None = None,
 ) -> None:
     """Validate retry parameters.
 
@@ -32,10 +34,16 @@ def validate_retry_params(
             Must be >= 0. Recommended value is 0.1 for 10% jitter.
         timeout: Maximum seconds to wait for the server response.
             Must be > 0 if provided as a numeric value.
+        max_total_time: Maximum total time budget for all retry attempts.
+            Must be > 0 if provided. The retry loop will stop if the total
+            elapsed time exceeds this value.
+        max_wait_time: Maximum backoff delay cap in seconds.
+            Must be > 0 if provided. Individual backoff delays will not exceed
+            this value, even with exponential backoff growth.
 
     Raises:
         ValueError: If max_retries, backoff_factor, or jitter_factor are negative,
-            or if timeout is non-positive.
+            or if timeout, max_total_time, or max_wait_time are non-positive.
 
     Example:
         ```pycon
@@ -43,6 +51,8 @@ def validate_retry_params(
         >>> validate_retry_params(max_retries=3, backoff_factor=0.5)
         >>> validate_retry_params(max_retries=3, backoff_factor=0.5, jitter_factor=0.1)
         >>> validate_retry_params(max_retries=3, backoff_factor=0.5, timeout=10.0)
+        >>> validate_retry_params(max_retries=3, backoff_factor=0.5, max_total_time=30.0)
+        >>> validate_retry_params(max_retries=3, backoff_factor=0.5, max_wait_time=5.0)
         >>> validate_retry_params(max_retries=-1, backoff_factor=0.5)  # doctest: +SKIP
 
         ```
@@ -58,4 +68,10 @@ def validate_retry_params(
         raise ValueError(msg)
     if timeout is not None and isinstance(timeout, (int, float)) and timeout <= 0:
         msg = f"timeout must be > 0, got {timeout}"
+        raise ValueError(msg)
+    if max_total_time is not None and max_total_time <= 0:
+        msg = f"max_total_time must be > 0, got {max_total_time}"
+        raise ValueError(msg)
+    if max_wait_time is not None and max_wait_time <= 0:
+        msg = f"max_wait_time must be > 0, got {max_wait_time}"
         raise ValueError(msg)
