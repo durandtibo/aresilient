@@ -95,17 +95,17 @@ class RetryExecutor:
                 each request and record successes/failures.
         """
         self.config = retry_config
-        self.strategy = RetryStrategy(
+        self.strategy: RetryStrategy = RetryStrategy(
             retry_config.backoff_factor,
             retry_config.jitter_factor,
             retry_config.backoff_strategy,
             retry_config.max_wait_time,
         )
-        self.decider = RetryDecider(
+        self.decider: RetryDecider = RetryDecider(
             retry_config.status_forcelist,
             retry_config.retry_if,
         )
-        self.callbacks = CallbackManager(callback_config)
+        self.callbacks: CallbackManager = CallbackManager(callback_config)
         self.circuit_breaker = circuit_breaker
 
     def execute(
