@@ -12,7 +12,7 @@ from aresilient.config import (
     DEFAULT_MAX_RETRIES,
     RETRY_STATUS_CODES,
 )
-from aresilient.retry_executor import (
+from aresilient.retry import (
     CallbackConfig,
     RetryConfig,
     RetryExecutor,
