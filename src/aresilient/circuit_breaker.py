@@ -346,13 +346,14 @@ class CircuitBreaker:
         # Execute the function
         try:
             result = func()
-            # Success - record it
-            self.record_success()
-            return result
         except Exception as e:
             # Failure - record it
             self.record_failure(e)
             raise
+        else:
+            # Success - record it
+            self.record_success()
+            return result
 
     def record_success(self) -> None:
         """Record a successful request.
@@ -405,14 +406,15 @@ class CircuitBreaker:
             ```
         """
         # Check if this exception type should count as a failure
-        if self._expected_exception is not None:
-            if not isinstance(exception, self._expected_exception):
-                # This exception type doesn't count, ignore it
-                logger.debug(
-                    f"Circuit breaker ignoring exception type {type(exception).__name__} "
-                    f"(expected {self._expected_exception})"
-                )
-                return
+        if self._expected_exception is not None and not isinstance(
+            exception, self._expected_exception
+        ):
+            # This exception type doesn't count, ignore it
+            logger.debug(
+                f"Circuit breaker ignoring exception type {type(exception).__name__} "
+                f"(expected {self._expected_exception})"
+            )
+            return
 
         with self._lock:
             self._failure_count += 1
@@ -424,12 +426,11 @@ class CircuitBreaker:
             )
 
             # Check if we should open the circuit
-            if self._failure_count >= self._failure_threshold:
-                if self._state != CircuitState.OPEN:
-                    self._change_state(CircuitState.OPEN)
-                    logger.warning(
-                        f"Circuit breaker OPENED after {self._failure_count} consecutive failures"
-                    )
+            if self._failure_count >= self._failure_threshold and self._state != CircuitState.OPEN:
+                self._change_state(CircuitState.OPEN)
+                logger.warning(
+                    f"Circuit breaker OPENED after {self._failure_count} consecutive failures"
+                )
 
     def reset(self) -> None:
         """Manually reset the circuit breaker to CLOSED state.

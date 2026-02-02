@@ -66,6 +66,8 @@ HTTP communications, making your applications more robust and fault-tolerant.
   codes (429, 500, 502, 503, 504 by default)
 - **Multiple Backoff Strategies**: Choose from Exponential (default), Linear, Fibonacci, Constant,
   or implement your own custom backoff strategy for fine-tuned retry behavior
+- **Circuit Breaker Pattern**: Prevent cascading failures by automatically stopping requests to
+  failing services and allowing time for recovery
 - **Optional Jitter**: Add randomized jitter to backoff delays to prevent thundering herd problems
   and avoid overwhelming servers
 - **Retry-After Header Support**: Respects server-specified retry delays from `Retry-After` headers
@@ -464,6 +466,100 @@ Each callback receives a dataclass with relevant information:
 - `total_time`: Total time spent on all attempts (seconds)
 
 All callbacks work with both synchronous and async functions.
+
+### Circuit Breaker Pattern
+
+The circuit breaker pattern helps prevent cascading failures by automatically stopping requests to a failing service after a threshold of consecutive failures is reached. The circuit breaker has three states:
+
+- **CLOSED**: Normal operation, requests are allowed
+- **OPEN**: After N consecutive failures, requests fail fast without being attempted
+- **HALF_OPEN**: After a recovery timeout, one test request is allowed to check if the service has recovered
+
+#### Basic Usage
+
+```python
+from aresilient import CircuitBreaker, CircuitBreakerError, get_with_automatic_retry
+
+# Create a circuit breaker instance
+circuit_breaker = CircuitBreaker(
+    failure_threshold=5,  # Open circuit after 5 consecutive failures
+    recovery_timeout=60.0,  # Try again after 60 seconds
+)
+
+# Use the circuit breaker with requests
+try:
+    response = get_with_automatic_retry(
+        "https://api.example.com/data",
+        circuit_breaker=circuit_breaker,
+    )
+except CircuitBreakerError:
+    # Circuit is open, service is unavailable
+    print("Service is temporarily unavailable, please try again later")
+```
+
+#### Sharing Circuit Breaker Across Requests
+
+A single circuit breaker instance can be shared across multiple requests to protect a specific service:
+
+```python
+from aresilient import CircuitBreaker, get_with_automatic_retry
+
+# Create a shared circuit breaker for a specific API
+api_circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
+
+# Use it for multiple endpoints of the same service
+for endpoint in ["/users", "/posts", "/comments"]:
+    try:
+        response = get_with_automatic_retry(
+            f"https://api.example.com{endpoint}",
+            circuit_breaker=api_circuit_breaker,
+        )
+        process_response(response)
+    except CircuitBreakerError:
+        print(f"Service unavailable for {endpoint}")
+```
+
+#### Advanced Configuration
+
+```python
+from aresilient import CircuitBreaker, HttpRequestError
+
+def on_state_change(old_state, new_state):
+    """Called when circuit breaker state changes."""
+    print(f"Circuit breaker: {old_state.value} -> {new_state.value}")
+
+# Circuit breaker with custom configuration
+circuit_breaker = CircuitBreaker(
+    failure_threshold=3,  # Lower threshold for faster detection
+    recovery_timeout=30.0,  # Shorter recovery window
+    expected_exception=HttpRequestError,  # Only count specific exceptions
+    on_state_change=on_state_change,  # Monitor state changes
+)
+```
+
+#### Monitoring Circuit State
+
+```python
+from aresilient import CircuitBreaker, CircuitState
+
+circuit_breaker = CircuitBreaker(failure_threshold=5)
+
+# Check current state
+print(f"State: {circuit_breaker.state}")  # CircuitState.CLOSED
+print(f"Failures: {circuit_breaker.failure_count}")  # 0
+
+# Manually reset if needed (use with caution)
+if circuit_breaker.state == CircuitState.OPEN:
+    circuit_breaker.reset()
+```
+
+#### Benefits
+
+- **Prevent Cascading Failures**: Stop making requests to a failing service before it becomes completely overwhelmed
+- **Fail Fast**: Immediately return errors when the circuit is open instead of waiting for timeouts
+- **Automatic Recovery Testing**: Automatically tests if the service has recovered after the timeout
+- **Protect Multiple Services**: Use different circuit breakers for different backend services
+- **Graceful Degradation**: Handle circuit breaker errors to provide fallback functionality
 
 ## Configuration
 
