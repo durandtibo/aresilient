@@ -78,13 +78,12 @@ async def test_max_wait_time_below_backoff_async(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
-    """Test that max_wait_time does not affect smaller backoff values."""
+    """Test that max_wait_time does not affect smaller backoff
+    values."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
     mock_client = Mock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(
-        side_effect=[mock_response_fail, mock_response_fail, mock_response]
-    )
+    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response_fail, mock_response])
     setattr(mock_client, test_case.client_method, client_method)
 
     response = await test_case.method_func(

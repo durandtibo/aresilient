@@ -1,8 +1,8 @@
 r"""Utility functions for HTTP request handling and retry logic.
 
 This package provides helper functions for managing HTTP request
-retries, including parameter validation, Retry-After header parsing, and error
-handling for various HTTP failure scenarios.
+retries, including parameter validation, Retry-After header parsing, and
+error handling for various HTTP failure scenarios.
 """
 
 from __future__ import annotations

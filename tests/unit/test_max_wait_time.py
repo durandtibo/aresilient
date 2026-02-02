@@ -1,7 +1,7 @@
 r"""Parametrized unit tests for max_wait_time functionality.
 
-This test module tests max_wait_time behavior across all HTTP
-methods using pytest parametrization.
+This test module tests max_wait_time behavior across all HTTP methods
+using pytest parametrization.
 """
 
 from __future__ import annotations
@@ -75,7 +75,8 @@ def test_max_wait_time_below_backoff(
     test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
-    """Test that max_wait_time does not affect smaller backoff values."""
+    """Test that max_wait_time does not affect smaller backoff
+    values."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
     mock_client = Mock(spec=httpx.Client)

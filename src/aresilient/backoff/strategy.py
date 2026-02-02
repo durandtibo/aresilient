@@ -1,7 +1,8 @@
 r"""Backoff strategy implementations for retry delays.
 
-This module provides various backoff strategies for calculating retry delays,
-including exponential, linear, Fibonacci, and constant backoff patterns.
+This module provides various backoff strategies for calculating retry
+delays, including exponential, linear, Fibonacci, and constant backoff
+patterns.
 """
 
 from __future__ import annotations
@@ -20,8 +21,8 @@ from abc import ABC, abstractmethod
 class BackoffStrategy(ABC):
     """Abstract base class for backoff strategies.
 
-    A backoff strategy determines how long to wait before retrying a failed
-    request based on the attempt number and other parameters.
+    A backoff strategy determines how long to wait before retrying a
+    failed request based on the attempt number and other parameters.
     """
 
     @abstractmethod
@@ -98,7 +99,7 @@ class ExponentialBackoff(BackoffStrategy):
         Returns:
             The calculated delay: base_delay * (2 ** attempt), capped at max_delay if set.
         """
-        delay = self.base_delay * (2 ** attempt)
+        delay = self.base_delay * (2**attempt)
         if self.max_delay is not None:
             delay = min(delay, self.max_delay)
         return delay

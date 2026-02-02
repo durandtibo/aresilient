@@ -1,4 +1,5 @@
-r"""Contains utility functions for asynchronous HTTP requests with automatic retry logic."""
+r"""Contains utility functions for asynchronous HTTP requests with
+automatic retry logic."""
 
 from __future__ import annotations
 
@@ -293,7 +294,12 @@ async def request_with_automatic_retry_async(
                     )
 
             sleep_time = calculate_sleep_time(
-                attempt, backoff_factor, jitter_factor, response, backoff_strategy, max_wait_time
+                attempt=attempt,
+                backoff_factor=backoff_factor,
+                jitter_factor=jitter_factor,
+                response=response,
+                backoff_strategy=backoff_strategy,
+                max_wait_time=max_wait_time,
             )
 
             # Call on_retry callback before sleeping
