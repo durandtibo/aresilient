@@ -143,15 +143,17 @@ You can implement your own backoff strategy by subclassing `BackoffStrategy` and
 ```python
 from aresilient import get_with_automatic_retry, BackoffStrategy
 
+
 class SquareBackoff(BackoffStrategy):
     """Custom backoff using square of attempt number."""
-    
+
     def __init__(self, base_delay: float = 1.0):
         self.base_delay = base_delay
-    
+
     def calculate(self, attempt: int) -> float:
         """Calculate delay as square of (attempt + 1)."""
         return self.base_delay * ((attempt + 1) ** 2)
+
 
 response = get_with_automatic_retry(
     "https://api.example.com/data",
@@ -250,6 +252,7 @@ All backoff strategies work identically with async functions:
 
 ```python
 from aresilient import get_with_automatic_retry_async, FibonacciBackoff
+
 
 async def fetch_data():
     response = await get_with_automatic_retry_async(

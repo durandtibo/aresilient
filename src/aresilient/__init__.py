@@ -23,8 +23,7 @@ Example:
     >>> response = get_with_automatic_retry("https://api.example.com/data")  # doctest: +SKIP
     >>> # Use linear backoff strategy
     >>> response = get_with_automatic_retry(
-    ...     "https://api.example.com/data",
-    ...     backoff_strategy=LinearBackoff(base_delay=1.0)
+    ...     "https://api.example.com/data", backoff_strategy=LinearBackoff(base_delay=1.0)
     ... )  # doctest: +SKIP
 
     ```
@@ -68,6 +67,13 @@ __all__ = [
 
 from importlib.metadata import PackageNotFoundError, version
 
+from aresilient.backoff import (
+    BackoffStrategy,
+    ConstantBackoff,
+    ExponentialBackoff,
+    FibonacciBackoff,
+    LinearBackoff,
+)
 from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 from aresilient.config import (
     DEFAULT_BACKOFF_FACTOR,
@@ -92,13 +98,6 @@ from aresilient.put import put_with_automatic_retry
 from aresilient.put_async import put_with_automatic_retry_async
 from aresilient.request import request_with_automatic_retry
 from aresilient.request_async import request_with_automatic_retry_async
-from aresilient.backoff import (
-    BackoffStrategy,
-    ConstantBackoff,
-    ExponentialBackoff,
-    FibonacciBackoff,
-    LinearBackoff,
-)
 
 try:
     __version__ = version(__name__)

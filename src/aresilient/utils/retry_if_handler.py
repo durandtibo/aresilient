@@ -1,9 +1,9 @@
 r"""Helper functions for handling retry_if predicate logic.
 
 This module provides utility functions to consolidate duplicate retry_if
-handling code in request retry functions. The helpers evaluate custom retry
-predicates and manage exception/error handling when retries should not
-continue.
+handling code in request retry functions. The helpers evaluate custom
+retry predicates and manage exception/error handling when retries should
+not continue.
 """
 
 from __future__ import annotations
@@ -79,9 +79,7 @@ def handle_response_with_retry_if(
         raise HttpRequestError(
             method=method,
             url=url,
-            message=(
-                f"{method} request to {url} failed with status {response.status_code}"
-            ),
+            message=(f"{method} request to {url} failed with status {response.status_code}"),
             status_code=response.status_code,
             response=response,
         )
@@ -138,8 +136,7 @@ def handle_exception_with_retry_if(
         # Create appropriate error based on exception type
         if isinstance(exc, httpx.TimeoutException):
             logger.debug(
-                f"{method} request to {url} timed out, "
-                f"retry_if predicate returned {should_retry}"
+                f"{method} request to {url} timed out, retry_if predicate returned {should_retry}"
             )
             error = HttpRequestError(
                 method=method,
@@ -157,9 +154,7 @@ def handle_exception_with_retry_if(
             error = HttpRequestError(
                 method=method,
                 url=url,
-                message=(
-                    f"{method} request to {url} failed after {attempt + 1} attempts: {exc}"
-                ),
+                message=(f"{method} request to {url} failed after {attempt + 1} attempts: {exc}"),
                 cause=exc,
             )
 

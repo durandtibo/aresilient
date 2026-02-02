@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
-from aresilient.utils import calculate_sleep_time
+from aresilient.backoff import calculate_sleep_time
 
 ##########################################
 #     Tests for calculate_sleep_time     #
@@ -151,7 +151,8 @@ def test_calculate_sleep_time_strategy_with_jitter() -> None:
 
 
 def test_calculate_sleep_time_retry_after_takes_precedence_over_strategy() -> None:
-    """Test that Retry-After header takes precedence over backoff strategy."""
+    """Test that Retry-After header takes precedence over backoff
+    strategy."""
     from aresilient.backoff import LinearBackoff
 
     mock_response = Mock(spec=httpx.Response, headers={"Retry-After": "120"})

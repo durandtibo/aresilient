@@ -23,7 +23,8 @@ async def test_max_total_time_exceeded_async(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
-    """Test that max_total_time stops retries when time budget is exceeded."""
+    """Test that max_total_time stops retries when time budget is
+    exceeded."""
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
     mock_client = Mock(spec=httpx.AsyncClient)
     client_method = AsyncMock(return_value=mock_response_fail)
@@ -32,7 +33,7 @@ async def test_max_total_time_exceeded_async(
     # Mock time.time() to simulate elapsed time exceeding budget
     call_count = {"count": 0}
 
-    def time_side_effect():
+    def time_side_effect() -> float:
         # First call: start_time = 0.0
         # Subsequent calls: return 2.0 to simulate 2 seconds elapsed (exceeds 1.0s budget)
         call_count["count"] += 1
@@ -61,7 +62,8 @@ async def test_max_total_time_not_exceeded_async(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
-    """Test that retries continue when max_total_time is not exceeded."""
+    """Test that retries continue when max_total_time is not
+    exceeded."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
     mock_client = Mock(spec=httpx.AsyncClient)
@@ -117,9 +119,7 @@ async def test_max_total_time_none_async(
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
     mock_client = Mock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(
-        side_effect=[mock_response_fail, mock_response_fail, mock_response]
-    )
+    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response_fail, mock_response])
     setattr(mock_client, test_case.client_method, client_method)
 
     response = await test_case.method_func(

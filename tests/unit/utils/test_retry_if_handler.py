@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 import httpx
 import pytest
 
-from aresilient.callbacks import FailureInfo
 from aresilient.exceptions import HttpRequestError
 from aresilient.utils.retry_if_handler import (
     handle_exception_with_retry_if,
@@ -16,7 +15,7 @@ from aresilient.utils.retry_if_handler import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from aresilient.callbacks import FailureInfo
 
 
 class TestHandleResponseWithRetryIf:
@@ -39,7 +38,8 @@ class TestHandleResponseWithRetryIf:
         assert result is False
 
     def test_success_response_retry_if_returns_true(self) -> None:
-        """Test successful response when retry_if returns True (retry even on success)."""
+        """Test successful response when retry_if returns True (retry
+        even on success)."""
         response = httpx.Response(200, content=b"OK")
 
         def retry_if(resp: httpx.Response | None, exc: Exception | None) -> bool:
@@ -55,7 +55,8 @@ class TestHandleResponseWithRetryIf:
         assert result is True
 
     def test_error_response_retry_if_returns_true(self) -> None:
-        """Test error response when retry_if returns True (should retry)."""
+        """Test error response when retry_if returns True (should
+        retry)."""
         response = httpx.Response(500, content=b"Server Error")
 
         def retry_if(resp: httpx.Response | None, exc: Exception | None) -> bool:
@@ -71,7 +72,8 @@ class TestHandleResponseWithRetryIf:
         assert result is True
 
     def test_error_response_retry_if_returns_false(self) -> None:
-        """Test error response when retry_if returns False (raise error)."""
+        """Test error response when retry_if returns False (raise
+        error)."""
         response = httpx.Response(400, content=b"Bad Request")
 
         def retry_if(resp: httpx.Response | None, exc: Exception | None) -> bool:
@@ -127,7 +129,8 @@ class TestHandleExceptionWithRetryIf:
     """Tests for handle_exception_with_retry_if function."""
 
     def test_timeout_exception_retry_if_returns_true_with_attempts_remaining(self) -> None:
-        """Test TimeoutException when retry_if returns True and attempts remain."""
+        """Test TimeoutException when retry_if returns True and attempts
+        remain."""
         exc = httpx.TimeoutException("Request timed out")
 
         def retry_if(resp: httpx.Response | None, exc_arg: Exception | None) -> bool:
@@ -241,7 +244,8 @@ class TestHandleExceptionWithRetryIf:
         assert error.__cause__ is exc
 
     def test_with_on_failure_callback(self) -> None:
-        """Test that on_failure callback is invoked when exception is raised."""
+        """Test that on_failure callback is invoked when exception is
+        raised."""
         exc = httpx.TimeoutException("Request timed out")
         callback_invoked = False
         callback_info: FailureInfo | None = None

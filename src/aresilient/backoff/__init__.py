@@ -1,7 +1,8 @@
 r"""Backoff strategies and utilities for retry delays.
 
-This package provides various backoff strategies for calculating retry delays,
-including exponential, linear, Fibonacci, and constant backoff patterns.
+This package provides various backoff strategies for calculating retry
+delays, including exponential, linear, Fibonacci, and constant backoff
+patterns.
 """
 
 from __future__ import annotations

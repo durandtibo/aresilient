@@ -1,19 +1,13 @@
 r"""Utility functions for HTTP request handling and retry logic.
 
 This package provides helper functions for managing HTTP request
-retries, including parameter validation, Retry-After header parsing, and error
-handling for various HTTP failure scenarios.
+retries, including parameter validation, Retry-After header parsing, and
+error handling for various HTTP failure scenarios.
 """
 
 from __future__ import annotations
 
 __all__ = [
-    "BackoffStrategy",
-    "ConstantBackoff",
-    "ExponentialBackoff",
-    "FibonacciBackoff",
-    "LinearBackoff",
-    "calculate_sleep_time",
     "handle_exception_with_callback",
     "handle_exception_with_retry_if",
     "handle_request_error",
@@ -28,14 +22,7 @@ __all__ = [
     "validate_retry_params",
 ]
 
-from aresilient.backoff import (
-    BackoffStrategy,
-    ConstantBackoff,
-    ExponentialBackoff,
-    FibonacciBackoff,
-    LinearBackoff,
-    calculate_sleep_time,
-)
+
 from aresilient.utils.callbacks import (
     invoke_on_request,
     invoke_on_retry,

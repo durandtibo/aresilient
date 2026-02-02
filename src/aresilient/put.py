@@ -20,8 +20,8 @@ from aresilient.utils import validate_retry_params
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
     from aresilient.backoff import BackoffStrategy
+    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
 def put_with_automatic_retry(

@@ -1,7 +1,7 @@
 r"""Backoff and sleep time calculation utilities.
 
-This module provides functions for calculating sleep time with
-backoff strategies and jitter for HTTP request retries.
+This module provides functions for calculating sleep time with backoff
+strategies and jitter for HTTP request retries.
 """
 
 from __future__ import annotations
@@ -82,7 +82,9 @@ def calculate_sleep_time(
         >>> calculate_sleep_time(attempt=2, backoff_factor=0.3, jitter_factor=0.0, response=None)
         1.2
         >>> # Third retry with max_wait_time cap
-        >>> calculate_sleep_time(attempt=2, backoff_factor=0.3, jitter_factor=0.0, response=None, max_wait_time=1.0)
+        >>> calculate_sleep_time(
+        ...     attempt=2, backoff_factor=0.3, jitter_factor=0.0, response=None, max_wait_time=1.0
+        ... )
         1.0
 
         ```

@@ -1,7 +1,7 @@
 r"""Parametrized unit tests for max_total_time functionality.
 
-This test module tests max_total_time behavior across all HTTP
-methods using pytest parametrization.
+This test module tests max_total_time behavior across all HTTP methods
+using pytest parametrization.
 """
 
 from __future__ import annotations
@@ -22,7 +22,8 @@ def test_max_total_time_exceeded(
     test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
-    """Test that max_total_time stops retries when time budget is exceeded."""
+    """Test that max_total_time stops retries when time budget is
+    exceeded."""
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
     mock_client = Mock(spec=httpx.Client)
     client_method = Mock(return_value=mock_response_fail)
@@ -31,7 +32,7 @@ def test_max_total_time_exceeded(
     # Mock time.time() to simulate elapsed time exceeding budget
     call_count = {"count": 0}
 
-    def time_side_effect():
+    def time_side_effect() -> float:
         # First call: start_time = 0.0
         # Subsequent calls: return 2.0 to simulate 2 seconds elapsed (exceeds 1.0s budget)
         call_count["count"] += 1
@@ -59,7 +60,8 @@ def test_max_total_time_not_exceeded(
     test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
-    """Test that retries continue when max_total_time is not exceeded."""
+    """Test that retries continue when max_total_time is not
+    exceeded."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
     mock_client = Mock(spec=httpx.Client)
