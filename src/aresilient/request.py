@@ -29,13 +29,13 @@ from aresilient.utils import (
     invoke_on_success,
     raise_final_error,
 )
-from aresilient.circuit_breaker import CircuitBreaker
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from aresilient.backoff import BackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
+    from aresilient.circuit_breaker import CircuitBreaker
 
 logger: logging.Logger = logging.getLogger(__name__)
 

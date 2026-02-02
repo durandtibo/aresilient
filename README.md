@@ -524,9 +524,11 @@ for endpoint in ["/users", "/posts", "/comments"]:
 ```python
 from aresilient import CircuitBreaker, HttpRequestError
 
+
 def on_state_change(old_state, new_state):
     """Called when circuit breaker state changes."""
     print(f"Circuit breaker: {old_state.value} -> {new_state.value}")
+
 
 # Circuit breaker with custom configuration
 circuit_breaker = CircuitBreaker(

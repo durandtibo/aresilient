@@ -1,4 +1,5 @@
-r"""Circuit Breaker Pattern implementation for preventing cascading failures.
+r"""Circuit Breaker Pattern implementation for preventing cascading
+failures.
 
 This module provides a circuit breaker pattern implementation that can be used
 with HTTP requests to prevent overwhelming failing services. The circuit breaker

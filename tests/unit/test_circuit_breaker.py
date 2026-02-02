@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import time
+from typing import NoReturn
 from unittest.mock import Mock
 
 import pytest
 
 from aresilient import CircuitBreaker, CircuitBreakerError, CircuitState
-
 
 ########################################
 #     Tests for CircuitBreaker class     #
@@ -58,7 +58,8 @@ def test_circuit_breaker_opens_at_threshold() -> None:
 
 
 def test_circuit_breaker_check_raises_when_open() -> None:
-    """Test that check() raises CircuitBreakerError when circuit is open."""
+    """Test that check() raises CircuitBreakerError when circuit is
+    open."""
     cb = CircuitBreaker(failure_threshold=1, recovery_timeout=60.0)
 
     cb.record_failure(Exception("error"))
@@ -69,7 +70,8 @@ def test_circuit_breaker_check_raises_when_open() -> None:
 
 
 def test_circuit_breaker_transitions_to_half_open_after_timeout() -> None:
-    """Test that circuit transitions to HALF_OPEN after recovery timeout."""
+    """Test that circuit transitions to HALF_OPEN after recovery
+    timeout."""
     cb = CircuitBreaker(failure_threshold=1, recovery_timeout=0.1)
 
     cb.record_failure(Exception("error"))
@@ -125,7 +127,7 @@ def test_circuit_breaker_call_success() -> None:
     """Test that call() executes function and records success."""
     cb = CircuitBreaker()
 
-    def successful_func():
+    def successful_func() -> str:
         return "success"
 
     result = cb.call(successful_func)
@@ -134,11 +136,13 @@ def test_circuit_breaker_call_success() -> None:
 
 
 def test_circuit_breaker_call_failure() -> None:
-    """Test that call() records failure when function raises exception."""
+    """Test that call() records failure when function raises
+    exception."""
     cb = CircuitBreaker(failure_threshold=2)
 
-    def failing_func():
-        raise ValueError("test error")
+    def failing_func() -> NoReturn:
+        msg = "test error"
+        raise ValueError(msg)
 
     with pytest.raises(ValueError, match="test error"):
         cb.call(failing_func)
@@ -151,8 +155,9 @@ def test_circuit_breaker_call_opens_on_threshold() -> None:
     """Test that call() opens circuit when threshold is reached."""
     cb = CircuitBreaker(failure_threshold=2)
 
-    def failing_func():
-        raise ValueError("test error")
+    def failing_func() -> NoReturn:
+        msg = "test error"
+        raise ValueError(msg)
 
     with pytest.raises(ValueError):
         cb.call(failing_func)
@@ -164,11 +169,13 @@ def test_circuit_breaker_call_opens_on_threshold() -> None:
 
 
 def test_circuit_breaker_call_raises_when_open() -> None:
-    """Test that call() raises CircuitBreakerError when circuit is open."""
+    """Test that call() raises CircuitBreakerError when circuit is
+    open."""
     cb = CircuitBreaker(failure_threshold=1, recovery_timeout=60.0)
 
-    def failing_func():
-        raise ValueError("test error")
+    def failing_func() -> NoReturn:
+        msg = "test error"
+        raise ValueError(msg)
 
     with pytest.raises(ValueError):
         cb.call(failing_func)
@@ -213,7 +220,8 @@ def test_circuit_breaker_expected_exception_filtering() -> None:
 
 
 def test_circuit_breaker_expected_exception_tuple() -> None:
-    """Test that expected_exception works with tuple of exception types."""
+    """Test that expected_exception works with tuple of exception
+    types."""
     cb = CircuitBreaker(
         failure_threshold=2,
         expected_exception=(ValueError, TypeError),
@@ -233,7 +241,8 @@ def test_circuit_breaker_expected_exception_tuple() -> None:
 
 
 def test_circuit_breaker_state_change_callback() -> None:
-    """Test that on_state_change callback is called on state transitions."""
+    """Test that on_state_change callback is called on state
+    transitions."""
     callback = Mock()
     cb = CircuitBreaker(failure_threshold=2, on_state_change=callback)
 
@@ -272,7 +281,8 @@ def test_circuit_breaker_invalid_recovery_timeout() -> None:
 
 
 def test_circuit_breaker_concurrent_failures() -> None:
-    """Test that circuit breaker handles concurrent failures correctly."""
+    """Test that circuit breaker handles concurrent failures
+    correctly."""
     cb = CircuitBreaker(failure_threshold=3)
 
     # Simulate multiple failures happening quickly

@@ -9,7 +9,6 @@ import pytest
 
 from aresilient import CircuitBreaker, CircuitBreakerError, request_with_automatic_retry
 
-
 ##########################################################
 #     Integration tests for CircuitBreaker with HTTP     #
 ##########################################################
@@ -35,7 +34,8 @@ def test_circuit_breaker_with_http_request_success(
 
 
 def test_circuit_breaker_opens_after_http_failures(mock_sleep: Mock) -> None:
-    """Test that circuit breaker opens after consecutive HTTP failures."""
+    """Test that circuit breaker opens after consecutive HTTP
+    failures."""
     cb = CircuitBreaker(failure_threshold=3, recovery_timeout=60.0)
 
     # Create mock that fails with 503 three times, then exhausts retries
@@ -86,9 +86,10 @@ def test_circuit_breaker_fails_fast_when_open(mock_sleep: Mock) -> None:
 def test_circuit_breaker_recovers_after_timeout(
     mock_response: httpx.Response, mock_sleep: Mock
 ) -> None:
-    """Test that circuit breaker recovers after timeout and successful request."""
-    from unittest.mock import patch
+    """Test that circuit breaker recovers after timeout and successful
+    request."""
     import time as real_time
+    from unittest.mock import patch
 
     cb = CircuitBreaker(failure_threshold=2, recovery_timeout=0.1)
 
@@ -121,7 +122,8 @@ def test_circuit_breaker_recovers_after_timeout(
 
 
 def test_circuit_breaker_with_retry_if_predicate(mock_sleep: Mock) -> None:
-    """Test that circuit breaker works with custom retry_if predicate."""
+    """Test that circuit breaker works with custom retry_if
+    predicate."""
     cb = CircuitBreaker(failure_threshold=3)
 
     # Custom predicate that triggers retry on specific condition
@@ -152,7 +154,8 @@ def test_circuit_breaker_with_retry_if_predicate(mock_sleep: Mock) -> None:
 
 
 def test_circuit_breaker_shared_across_requests(mock_sleep: Mock) -> None:
-    """Test that circuit breaker state is shared across multiple requests."""
+    """Test that circuit breaker state is shared across multiple
+    requests."""
     cb = CircuitBreaker(failure_threshold=3, recovery_timeout=60.0)
 
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
