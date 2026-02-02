@@ -104,13 +104,11 @@ def calculate_sleep_time(
         sleep_time = backoff_strategy.calculate(attempt)
 
     # Apply max_wait_time cap if configured
-    if max_wait_time is not None:
-        original_sleep_time = sleep_time
-        sleep_time = min(sleep_time, max_wait_time)
-        if original_sleep_time > sleep_time:
-            logger.debug(
-                f"Capping sleep time from {original_sleep_time:.2f}s to {sleep_time:.2f}s (max_wait_time={max_wait_time:.2f}s)"
-            )
+    if max_wait_time is not None and sleep_time > max_wait_time:
+        logger.debug(
+            f"Capping sleep time from {sleep_time:.2f}s to {max_wait_time:.2f}s (max_wait_time={max_wait_time:.2f}s)"
+        )
+        sleep_time = max_wait_time
 
     # Add jitter if jitter_factor is configured
     if jitter_factor > 0:
