@@ -9,6 +9,9 @@ import pytest
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+# Configure pytest-asyncio
+pytest_plugins = ("pytest_asyncio",)
+
 
 @pytest.fixture
 def mock_sleep() -> Generator[Mock, None, None]:
