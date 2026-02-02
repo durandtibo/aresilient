@@ -87,7 +87,7 @@ def test_should_retry_response_non_retryable_status_raises() -> None:
 def test_should_retry_response_with_custom_predicate_success() -> None:
     """Test custom predicate allows retry on success."""
 
-    def always_retry(response, exc):
+    def always_retry(response, exc) -> bool:
         return True
 
     decider = RetryDecider(
@@ -135,7 +135,7 @@ def test_should_retry_response_with_custom_predicate_error_true() -> None:
 def test_should_retry_response_with_custom_predicate_error_false_raises() -> None:
     """Test custom predicate returns False for error raises."""
 
-    def never_retry(response, exc):
+    def never_retry(response, exc) -> bool:
         return False
 
     decider = RetryDecider(
@@ -182,7 +182,7 @@ def test_should_retry_exception_with_predicate_true() -> None:
 def test_should_retry_exception_with_predicate_false() -> None:
     """Test exception retry with custom predicate returning False."""
 
-    def never_retry(response, exc):
+    def never_retry(response, exc) -> bool:
         return False
 
     decider = RetryDecider(
@@ -191,7 +191,7 @@ def test_should_retry_exception_with_predicate_false() -> None:
     )
 
     exc = httpx.TimeoutException("Timeout")
-    should_retry, reason = decider.should_retry_exception(
+    should_retry, _reason = decider.should_retry_exception(
         exception=exc,
         attempt=0,
         max_retries=3,
@@ -203,7 +203,7 @@ def test_should_retry_exception_with_predicate_false() -> None:
 def test_should_retry_exception_max_retries_reached() -> None:
     """Test exception retry when max retries reached with predicate."""
 
-    def always_retry(response, exc):
+    def always_retry(response, exc) -> bool:
         return True
 
     decider = RetryDecider(
@@ -212,7 +212,7 @@ def test_should_retry_exception_max_retries_reached() -> None:
     )
 
     exc = httpx.TimeoutException("Timeout")
-    should_retry, reason = decider.should_retry_exception(
+    should_retry, _reason = decider.should_retry_exception(
         exception=exc,
         attempt=3,
         max_retries=3,

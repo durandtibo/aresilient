@@ -11,8 +11,6 @@ __all__ = ["CallbackManager"]
 import time
 from typing import TYPE_CHECKING
 
-import httpx
-
 from aresilient.callbacks import FailureInfo
 from aresilient.utils.callbacks import (
     invoke_on_request,
@@ -21,6 +19,8 @@ from aresilient.utils.callbacks import (
 )
 
 if TYPE_CHECKING:
+    import httpx
+
     from aresilient.retry.config import CallbackConfig
 
 

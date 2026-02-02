@@ -2,12 +2,14 @@ r"""Unit tests for retry strategy."""
 
 from __future__ import annotations
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import httpx
-import pytest
 
-from aresilient.backoff.strategy import ConstantBackoff, ExponentialBackoff, LinearBackoff
+from aresilient.backoff.strategy import (
+    ConstantBackoff,
+    LinearBackoff,
+)
 from aresilient.retry.strategy import RetryStrategy
 
 

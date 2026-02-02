@@ -164,9 +164,7 @@ async def test_async_retry_executor_handles_timeout_exception() -> None:
     executor = AsyncRetryExecutor(retry_config, callback_config)
 
     mock_response = Mock(spec=httpx.Response, status_code=200)
-    mock_request_func = AsyncMock(
-        side_effect=[httpx.TimeoutException("Timeout"), mock_response]
-    )
+    mock_request_func = AsyncMock(side_effect=[httpx.TimeoutException("Timeout"), mock_response])
 
     response = await executor.execute(
         url="https://example.com",

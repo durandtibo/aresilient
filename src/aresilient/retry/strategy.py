@@ -1,6 +1,7 @@
 r"""Retry strategy for calculating backoff delays.
 
-This module provides the RetryStrategy class for calculating retry delays.
+This module provides the RetryStrategy class for calculating retry
+delays.
 """
 
 from __future__ import annotations

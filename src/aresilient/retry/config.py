@@ -1,6 +1,7 @@
 r"""Configuration dataclasses for retry behavior.
 
-This module provides configuration objects for retry logic and callbacks.
+This module provides configuration objects for retry logic and
+callbacks.
 """
 
 from __future__ import annotations

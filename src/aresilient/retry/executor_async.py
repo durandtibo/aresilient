@@ -1,7 +1,8 @@
 r"""Asynchronous retry executor for HTTP requests.
 
-This module provides the AsyncRetryExecutor class that executes async HTTP
-requests with automatic retry logic and circuit breaker integration.
+This module provides the AsyncRetryExecutor class that executes async
+HTTP requests with automatic retry logic and circuit breaker
+integration.
 """
 
 from __future__ import annotations
@@ -16,7 +17,6 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 from aresilient.exceptions import HttpRequestError
-from aresilient.retry.config import CallbackConfig, RetryConfig
 from aresilient.retry.decider import RetryDecider
 from aresilient.retry.manager import CallbackManager
 from aresilient.retry.strategy import RetryStrategy
@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from aresilient.circuit_breaker import CircuitBreaker
+    from aresilient.retry.config import CallbackConfig, RetryConfig
 
 logger: logging.Logger = logging.getLogger(__name__)
 

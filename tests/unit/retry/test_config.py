@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from aresilient.retry.config import CallbackConfig, RetryConfig
 
 if TYPE_CHECKING:
@@ -77,16 +75,16 @@ def test_callback_config_creation() -> None:
 def test_callback_config_with_all_callbacks() -> None:
     """Test CallbackConfig with all callbacks defined."""
 
-    def on_req(info):
+    def on_req(info) -> None:
         pass
 
-    def on_ret(info):
+    def on_ret(info) -> None:
         pass
 
-    def on_succ(info):
+    def on_succ(info) -> None:
         pass
 
-    def on_fail(info):
+    def on_fail(info) -> None:
         pass
 
     config = CallbackConfig(
@@ -105,7 +103,7 @@ def test_callback_config_with_all_callbacks() -> None:
 def test_callback_config_partial_callbacks() -> None:
     """Test CallbackConfig with only some callbacks defined."""
 
-    def on_req(info):
+    def on_req(info) -> None:
         pass
 
     config = CallbackConfig(on_request=on_req)

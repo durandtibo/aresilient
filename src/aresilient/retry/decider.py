@@ -1,8 +1,8 @@
 r"""Retry decision logic for determining whether to retry requests.
 
 This module provides the RetryDecider class that encapsulates the logic
-for deciding whether a request should be retried based on response status
-codes, exceptions, and custom predicates.
+for deciding whether a request should be retried based on response
+status codes, exceptions, and custom predicates.
 """
 
 from __future__ import annotations
@@ -12,12 +12,12 @@ __all__ = ["RetryDecider"]
 import logging
 from typing import TYPE_CHECKING
 
-import httpx
-
 from aresilient.exceptions import HttpRequestError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    import httpx
 
 logger: logging.Logger = logging.getLogger(__name__)
 
