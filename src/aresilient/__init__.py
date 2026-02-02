@@ -37,6 +37,9 @@ __all__ = [
     "DEFAULT_TIMEOUT",
     "RETRY_STATUS_CODES",
     "BackoffStrategy",
+    "CircuitBreaker",
+    "CircuitBreakerError",
+    "CircuitState",
     "ConstantBackoff",
     "ExponentialBackoff",
     "FailureInfo",
@@ -75,6 +78,7 @@ from aresilient.backoff import (
     LinearBackoff,
 )
 from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
+from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError, CircuitState
 from aresilient.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
