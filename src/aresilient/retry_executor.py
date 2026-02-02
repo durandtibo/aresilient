@@ -1,7 +1,8 @@
 r"""Retry executor implementing class-based composition pattern.
 
 This module implements the retry logic using a class-based composition
-pattern with strategy objects for improved maintainability and testability.
+pattern with strategy objects for improved maintainability and
+testability.
 """
 
 from __future__ import annotations
@@ -27,7 +28,11 @@ import httpx
 from aresilient.backoff.sleep import calculate_sleep_time
 from aresilient.callbacks import FailureInfo
 from aresilient.exceptions import HttpRequestError
-from aresilient.utils.callbacks import invoke_on_request, invoke_on_retry, invoke_on_success
+from aresilient.utils.callbacks import (
+    invoke_on_request,
+    invoke_on_retry,
+    invoke_on_success,
+)
 from aresilient.utils.exceptions import raise_final_error
 
 if TYPE_CHECKING:
@@ -90,7 +95,7 @@ class RetryStrategy:
         jitter_factor: float,
         backoff_strategy: BackoffStrategy | None = None,
         max_wait_time: float | None = None,
-    ):
+    ) -> None:
         """Initialize retry strategy.
 
         Args:
@@ -135,7 +140,7 @@ class RetryDecider:
         self,
         status_forcelist: tuple[int, ...],
         retry_if: Callable | None,
-    ):
+    ) -> None:
         """Initialize retry decider.
 
         Args:
@@ -239,7 +244,7 @@ class RetryDecider:
 class CallbackManager:
     """Manages callback invocations."""
 
-    def __init__(self, callbacks: CallbackConfig):
+    def __init__(self, callbacks: CallbackConfig) -> None:
         """Initialize callback manager.
 
         Args:
@@ -370,7 +375,7 @@ class RetryExecutor:
         retry_config: RetryConfig,
         callback_config: CallbackConfig,
         circuit_breaker: CircuitBreaker | None = None,
-    ):
+    ) -> None:
         """Initialize retry executor.
 
         Args:
@@ -558,6 +563,7 @@ class RetryExecutor:
             on_failure=self.callbacks.callbacks.on_failure,
             start_time=start_time,
         )
+        return None
 
 
 class AsyncRetryExecutor:
@@ -568,7 +574,7 @@ class AsyncRetryExecutor:
         retry_config: RetryConfig,
         callback_config: CallbackConfig,
         circuit_breaker: CircuitBreaker | None = None,
-    ):
+    ) -> None:
         """Initialize async retry executor.
 
         Args:
@@ -756,3 +762,4 @@ class AsyncRetryExecutor:
             on_failure=self.callbacks.callbacks.on_failure,
             start_time=start_time,
         )
+        return None

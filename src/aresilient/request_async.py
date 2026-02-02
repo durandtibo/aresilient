@@ -7,8 +7,6 @@ __all__ = ["request_with_automatic_retry_async"]
 
 from typing import TYPE_CHECKING, Any
 
-import httpx
-
 from aresilient.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
@@ -22,6 +20,8 @@ from aresilient.retry_executor import (
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
+
+    import httpx
 
     from aresilient.backoff import BackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
