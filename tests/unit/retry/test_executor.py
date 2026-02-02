@@ -199,3 +199,182 @@ def test_retry_executor_with_callbacks() -> None:
 
     on_request_mock.assert_called_once()
     on_success_mock.assert_called_once()
+
+
+def test_retry_executor_circuit_breaker_records_exception_failure() -> None:
+    """Test circuit breaker records failure for retryable exception."""
+    from aresilient.circuit_breaker import CircuitBreaker
+
+    retry_config = RetryConfig(
+        max_retries=2,
+        backoff_factor=0.01,
+        status_forcelist=(500,),
+        jitter_factor=0.0,
+    )
+    callback_config = CallbackConfig()
+    circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=10.0)
+    executor = RetryExecutor(retry_config, callback_config, circuit_breaker)
+
+    # First attempt fails with timeout, second succeeds
+    mock_response = Mock(spec=httpx.Response, status_code=200)
+    mock_request_func = Mock(side_effect=[httpx.TimeoutException("Timeout"), mock_response])
+
+    response = executor.execute(
+        url="https://example.com",
+        method="GET",
+        request_func=mock_request_func,
+    )
+
+    assert response is mock_response
+    # Circuit breaker should be in CLOSED state after success
+    assert circuit_breaker.state.name == "CLOSED"
+
+
+def test_retry_executor_max_total_time_exceeded_with_response() -> None:
+    """Test max_total_time exceeded with response available."""
+    from unittest.mock import patch
+
+    retry_config = RetryConfig(
+        max_retries=5,
+        backoff_factor=0.01,
+        status_forcelist=(500,),
+        jitter_factor=0.0,
+        max_total_time=1.0,
+    )
+    callback_config = CallbackConfig()
+    executor = RetryExecutor(retry_config, callback_config)
+
+    mock_response = Mock(spec=httpx.Response, status_code=500)
+    mock_request_func = Mock(return_value=mock_response)
+
+    # Mock time to simulate exceeding max_total_time
+    call_count = {"count": 0}
+
+    def time_side_effect():
+        call_count["count"] += 1
+        return 0.0 if call_count["count"] == 1 else 2.0
+
+    with patch("aresilient.retry.executor.time.time", side_effect=time_side_effect):
+        with pytest.raises(HttpRequestError) as exc_info:
+            executor.execute(
+                url="https://example.com",
+                method="GET",
+                request_func=mock_request_func,
+            )
+
+    # Should fail after first attempt due to time exceeded
+    assert mock_request_func.call_count == 1
+    assert exc_info.value.status_code == 500
+
+
+def test_retry_executor_max_total_time_exceeded_with_exception_only() -> None:
+    """Test max_total_time exceeded with exception but no response."""
+    from unittest.mock import patch
+
+    retry_config = RetryConfig(
+        max_retries=5,
+        backoff_factor=0.01,
+        status_forcelist=(500,),
+        jitter_factor=0.0,
+        max_total_time=1.0,
+    )
+    callback_config = CallbackConfig()
+    executor = RetryExecutor(retry_config, callback_config)
+
+    mock_request_func = Mock(side_effect=httpx.TimeoutException("Timeout"))
+
+    # Mock time to simulate exceeding max_total_time
+    call_count = {"count": 0}
+
+    def time_side_effect():
+        call_count["count"] += 1
+        return 0.0 if call_count["count"] == 1 else 2.0
+
+    with patch("aresilient.retry.executor.time.time", side_effect=time_side_effect):
+        with pytest.raises(HttpRequestError) as exc_info:
+            executor.execute(
+                url="https://example.com",
+                method="GET",
+                request_func=mock_request_func,
+            )
+
+    # Should fail after first attempt due to time exceeded
+    assert mock_request_func.call_count == 1
+    assert "max_total_time exceeded" in str(exc_info.value)
+
+
+def test_retry_executor_handles_request_error() -> None:
+    """Test handling of RequestError exception."""
+    retry_config = RetryConfig(
+        max_retries=2,
+        backoff_factor=0.01,
+        status_forcelist=(500,),
+        jitter_factor=0.0,
+    )
+    callback_config = CallbackConfig()
+    executor = RetryExecutor(retry_config, callback_config)
+
+    mock_response = Mock(spec=httpx.Response, status_code=200)
+    mock_request_func = Mock(
+        side_effect=[httpx.RequestError("Connection failed"), mock_response]
+    )
+
+    response = executor.execute(
+        url="https://example.com",
+        method="GET",
+        request_func=mock_request_func,
+    )
+
+    assert response is mock_response
+    assert mock_request_func.call_count == 2
+
+
+def test_retry_executor_request_error_exhausts_retries() -> None:
+    """Test RequestError exhausts all retries."""
+    retry_config = RetryConfig(
+        max_retries=2,
+        backoff_factor=0.01,
+        status_forcelist=(500,),
+        jitter_factor=0.0,
+    )
+    callback_config = CallbackConfig()
+    executor = RetryExecutor(retry_config, callback_config)
+
+    mock_request_func = Mock(side_effect=httpx.RequestError("Connection failed"))
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        executor.execute(
+            url="https://example.com",
+            method="GET",
+            request_func=mock_request_func,
+        )
+
+    # Should be called max_retries + 1 times
+    assert mock_request_func.call_count == 3
+    assert "failed after 3 attempts" in str(exc_info.value)
+
+
+def test_retry_executor_timeout_exhausts_retries() -> None:
+    """Test TimeoutException exhausts all retries."""
+    retry_config = RetryConfig(
+        max_retries=2,
+        backoff_factor=0.01,
+        status_forcelist=(500,),
+        jitter_factor=0.0,
+    )
+    callback_config = CallbackConfig()
+    executor = RetryExecutor(retry_config, callback_config)
+
+    mock_request_func = Mock(side_effect=httpx.TimeoutException("Timeout"))
+
+    with pytest.raises(HttpRequestError) as exc_info:
+        executor.execute(
+            url="https://example.com",
+            method="GET",
+            request_func=mock_request_func,
+        )
+
+    # Should be called max_retries + 1 times
+    assert mock_request_func.call_count == 3
+    assert "timed out" in str(exc_info.value)
+

@@ -30,7 +30,48 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class RetryExecutor:
-    """Executes HTTP requests with automatic retry logic."""
+    """Executes HTTP requests with automatic retry logic.
+
+    This class implements the core retry loop for HTTP requests, handling
+    retryable errors, managing callbacks, and coordinating with circuit
+    breakers. It uses composition with strategy objects for better separation
+    of concerns.
+
+    The executor orchestrates the following components:
+    - RetryStrategy: Calculates backoff delays between retries
+    - RetryDecider: Determines whether to retry based on responses/exceptions
+    - CallbackManager: Invokes user-defined callbacks at lifecycle events
+    - CircuitBreaker: Optional fail-fast protection against cascading failures
+
+    Attributes:
+        config: Retry configuration containing max retries, backoff settings, etc.
+        strategy: Strategy for calculating retry delays.
+        decider: Logic for deciding whether to retry.
+        callbacks: Manager for invoking callbacks.
+        circuit_breaker: Optional circuit breaker for fail-fast behavior.
+
+    Example:
+        ```pycon
+        >>> import httpx
+        >>> from aresilient.retry import RetryExecutor, RetryConfig, CallbackConfig
+        >>> retry_config = RetryConfig(
+        ...     max_retries=3,
+        ...     backoff_factor=0.5,
+        ...     status_forcelist=(500, 502, 503),
+        ...     jitter_factor=0.1,
+        ... )
+        >>> callback_config = CallbackConfig()
+        >>> executor = RetryExecutor(retry_config, callback_config)
+        >>> 
+        >>> with httpx.Client() as client:
+        ...     response = executor.execute(
+        ...         url="https://api.example.com/data",
+        ...         method="GET",
+        ...         request_func=client.get,
+        ...     )  # doctest: +SKIP
+
+        ```
+    """
 
     def __init__(
         self,
@@ -40,10 +81,17 @@ class RetryExecutor:
     ) -> None:
         """Initialize retry executor.
 
+        Creates the executor with the provided configuration and initializes
+        the internal strategy, decider, and callback manager components.
+
         Args:
-            retry_config: Retry configuration.
-            callback_config: Callback configuration.
-            circuit_breaker: Optional circuit breaker.
+            retry_config: Configuration for retry behavior including max retries,
+                backoff settings, status codes to retry, and time limits.
+            callback_config: Configuration for lifecycle callbacks (on_request,
+                on_retry, on_success, on_failure).
+            circuit_breaker: Optional circuit breaker for fail-fast protection.
+                When provided, the executor will check the circuit breaker before
+                each request and record successes/failures.
         """
         self.config = retry_config
         self.strategy = RetryStrategy(
@@ -66,19 +114,67 @@ class RetryExecutor:
         request_func: Callable[..., httpx.Response],
         **kwargs: Any,
     ) -> httpx.Response:
-        """Execute request with retry logic.
+        """Execute request with automatic retry logic.
+
+        Attempts the HTTP request up to max_retries + 1 times (initial attempt
+        plus retries), waiting progressively longer between attempts using the
+        configured backoff strategy.
+
+        The retry loop handles:
+        - Successful responses (status < 400): Returns immediately
+        - Retryable status codes (e.g., 500, 502, 503): Retries with backoff
+        - Non-retryable status codes (e.g., 404): Raises immediately
+        - Timeout exceptions (httpx.TimeoutException): Retries with backoff
+        - Network errors (httpx.RequestError): Retries with backoff
+        - Custom retry predicates: Uses user-defined logic for retry decisions
+
+        Circuit breaker integration:
+        - Checks breaker before starting (fails fast if OPEN)
+        - Records failures for retryable errors
+        - Records success on completion
+
+        Time limits:
+        - max_total_time: Stops retrying if total elapsed time exceeds limit
+        - max_wait_time: Caps individual backoff delays
 
         Args:
             url: The URL to request.
-            method: The HTTP method.
-            request_func: Function to make the request.
-            **kwargs: Additional arguments for request_func.
+            method: The HTTP method name (e.g., "GET", "POST"). Used for logging.
+            request_func: Function to make the HTTP request. Should accept
+                url as first parameter and return httpx.Response.
+            **kwargs: Additional keyword arguments passed to request_func.
 
         Returns:
-            The successful HTTP response.
+            The successful HTTP response (status < 400 or custom retry_if
+            predicate returns False for successful response).
 
         Raises:
-            HttpRequestError: If all retries are exhausted or circuit breaker is open.
+            HttpRequestError: If all retries are exhausted, a non-retryable
+                status code is encountered, max_total_time is exceeded, or
+                the circuit breaker is open.
+            CircuitBreakerError: If the circuit breaker is in OPEN state.
+
+        Example:
+            ```pycon
+            >>> import httpx
+            >>> from aresilient.retry import RetryExecutor, RetryConfig, CallbackConfig
+            >>> retry_config = RetryConfig(
+            ...     max_retries=2,
+            ...     backoff_factor=0.3,
+            ...     status_forcelist=(500, 502, 503),
+            ...     jitter_factor=0.0,
+            ... )
+            >>> executor = RetryExecutor(retry_config, CallbackConfig())
+            >>> 
+            >>> with httpx.Client() as client:
+            ...     response = executor.execute(
+            ...         url="https://api.example.com/data",
+            ...         method="GET",
+            ...         request_func=client.get,
+            ...         timeout=10.0,
+            ...     )  # doctest: +SKIP
+
+            ```
         """
         # Check circuit breaker before starting
         if self.circuit_breaker is not None:
