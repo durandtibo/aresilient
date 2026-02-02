@@ -28,7 +28,13 @@ from aresilient.backoff.sleep import calculate_sleep_time
 from aresilient.callbacks import FailureInfo
 from aresilient.exceptions import HttpRequestError
 from aresilient.utils.callbacks import invoke_on_request, invoke_on_retry, invoke_on_success
-from aresilient.utils.exceptions import raise_final_error
+from aresilient.utils.exceptions import (
+    handle_exception_with_callback,
+    handle_request_error,
+    handle_timeout_exception,
+    raise_final_error,
+)
+from aresilient.utils.response import handle_response
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -415,7 +421,7 @@ class RetryExecutor:
         """
         # Check circuit breaker before starting
         if self.circuit_breaker is not None:
-            self.circuit_breaker.check()
+            self.circuit_breaker.call(lambda: None)
 
         start_time = time.time()
         last_error: Exception | None = None
@@ -447,17 +453,8 @@ class RetryExecutor:
                     )
                     return response
 
-                # Mark for retry - record circuit breaker failure
+                # Mark for retry
                 last_status_code = response.status_code
-                if self.circuit_breaker is not None:
-                    error = HttpRequestError(
-                        method=method,
-                        url=url,
-                        message=f"{method} request to {url} failed with status {response.status_code}",
-                        status_code=response.status_code,
-                        response=response,
-                    )
-                    self.circuit_breaker.record_failure(error)
                 logger.debug(f"{method} to {url}: will retry ({reason})")
 
             except (httpx.TimeoutException, httpx.RequestError) as exc:
@@ -469,35 +466,30 @@ class RetryExecutor:
                 )
 
                 if not should_retry:
-                    # Create and raise error immediately
+                    # Handle final error with callbacks
                     if isinstance(exc, httpx.TimeoutException):
-                        error = HttpRequestError(
-                            method=method,
+                        handle_exception_with_callback(
+                            exc,
                             url=url,
-                            message=f"{method} request to {url} timed out ({attempt + 1} attempts)",
-                            cause=exc,
+                            method=method,
+                            attempt=attempt,
+                            max_retries=self.config.max_retries,
+                            handler_func=handle_timeout_exception,
+                            on_failure=self.callbacks.callbacks.on_failure,
+                            start_time=start_time,
                         )
                     else:
-                        error = HttpRequestError(
-                            method=method,
+                        handle_exception_with_callback(
+                            exc,
                             url=url,
-                            message=f"{method} request to {url} failed after {attempt + 1} attempts: {exc}",
-                            cause=exc,
+                            method=method,
+                            attempt=attempt,
+                            max_retries=self.config.max_retries,
+                            handler_func=handle_request_error,
+                            on_failure=self.callbacks.callbacks.on_failure,
+                            start_time=start_time,
                         )
-                    self.callbacks.on_failure(
-                        url,
-                        method,
-                        attempt,
-                        self.config.max_retries,
-                        error,
-                        None,
-                        start_time,
-                    )
-                    raise error from exc
 
-                # Record circuit breaker failure for retryable exception
-                if self.circuit_breaker is not None:
-                    self.circuit_breaker.record_failure(exc)
                 logger.debug(f"{method} to {url}: will retry ({reason})")
 
             # Sleep before retry (if not last attempt)
@@ -550,6 +542,9 @@ class RetryExecutor:
                 time.sleep(sleep_time)
 
         # All retries exhausted
+        if self.circuit_breaker is not None:
+            self.circuit_breaker.record_failure()
+
         raise_final_error(
             url=url,
             method=method,
@@ -613,7 +608,7 @@ class AsyncRetryExecutor:
         """
         # Check circuit breaker before starting
         if self.circuit_breaker is not None:
-            self.circuit_breaker.check()
+            self.circuit_breaker.call(lambda: None)
 
         start_time = time.time()
         last_error: Exception | None = None
@@ -645,17 +640,8 @@ class AsyncRetryExecutor:
                     )
                     return response
 
-                # Mark for retry - record circuit breaker failure
+                # Mark for retry
                 last_status_code = response.status_code
-                if self.circuit_breaker is not None:
-                    error = HttpRequestError(
-                        method=method,
-                        url=url,
-                        message=f"{method} request to {url} failed with status {response.status_code}",
-                        status_code=response.status_code,
-                        response=response,
-                    )
-                    self.circuit_breaker.record_failure(error)
                 logger.debug(f"{method} to {url}: will retry ({reason})")
 
             except (httpx.TimeoutException, httpx.RequestError) as exc:
@@ -667,35 +653,30 @@ class AsyncRetryExecutor:
                 )
 
                 if not should_retry:
-                    # Create and raise error immediately
+                    # Handle final error with callbacks
                     if isinstance(exc, httpx.TimeoutException):
-                        error = HttpRequestError(
-                            method=method,
+                        handle_exception_with_callback(
+                            exc,
                             url=url,
-                            message=f"{method} request to {url} timed out ({attempt + 1} attempts)",
-                            cause=exc,
+                            method=method,
+                            attempt=attempt,
+                            max_retries=self.config.max_retries,
+                            handler_func=handle_timeout_exception,
+                            on_failure=self.callbacks.callbacks.on_failure,
+                            start_time=start_time,
                         )
                     else:
-                        error = HttpRequestError(
-                            method=method,
+                        handle_exception_with_callback(
+                            exc,
                             url=url,
-                            message=f"{method} request to {url} failed after {attempt + 1} attempts: {exc}",
-                            cause=exc,
+                            method=method,
+                            attempt=attempt,
+                            max_retries=self.config.max_retries,
+                            handler_func=handle_request_error,
+                            on_failure=self.callbacks.callbacks.on_failure,
+                            start_time=start_time,
                         )
-                    self.callbacks.on_failure(
-                        url,
-                        method,
-                        attempt,
-                        self.config.max_retries,
-                        error,
-                        None,
-                        start_time,
-                    )
-                    raise error from exc
 
-                # Record circuit breaker failure for retryable exception
-                if self.circuit_breaker is not None:
-                    self.circuit_breaker.record_failure(exc)
                 logger.debug(f"{method} to {url}: will retry ({reason})")
 
             # Sleep before retry (if not last attempt)
@@ -748,6 +729,9 @@ class AsyncRetryExecutor:
                 await asyncio.sleep(sleep_time)
 
         # All retries exhausted
+        if self.circuit_breaker is not None:
+            self.circuit_breaker.record_failure()
+
         raise_final_error(
             url=url,
             method=method,

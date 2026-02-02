@@ -166,7 +166,6 @@ async def request_with_automatic_retry_async(
         backoff_strategy=backoff_strategy,
         max_total_time=max_total_time,
         max_wait_time=max_wait_time,
-        circuit_breaker=circuit_breaker,
     )
 
     # Create callback configuration
@@ -178,5 +177,5 @@ async def request_with_automatic_retry_async(
     )
 
     # Create executor and execute request
-    executor = AsyncRetryExecutor(retry_config, callback_config)
+    executor = AsyncRetryExecutor(retry_config, callback_config, circuit_breaker)
     return await executor.execute(url, method, request_func, **kwargs)
