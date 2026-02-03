@@ -362,17 +362,20 @@ response = get_with_automatic_retry(
 **What it is:** Pythonic context manager for managing request lifecycle
 
 **Current:**
-- User must manually create and close clients
-- Or rely on automatic client creation
+- ✅ Context manager support implemented via `ResilientClient` and `AsyncResilientClient`
+- ✅ Automatic resource cleanup
+- ✅ Shared configuration across requests
 
-**Missing:**
-- Context manager for batch requests
-- Automatic resource cleanup
-- Shared configuration across requests
+**Status:** ✅ **IMPLEMENTED** - Added in 2026
+
+**Implementation:**
+- `ResilientClient` - Synchronous context manager
+- `AsyncResilientClient` - Asynchronous context manager
+- Both provide all HTTP methods (get, post, put, delete, patch, head, options, request)
+- Per-request override of client defaults supported
+- Automatic lifecycle management with `__enter__`/`__exit__` and `__aenter__`/`__aexit__`
 
 **Impact:** **LOW-MEDIUM** - Convenience feature
-
-**Recommendation:** ⚠️ **Consider**
 
 **Example Usage:**
 ```python
@@ -381,6 +384,16 @@ from aresilient import ResilientClient
 with ResilientClient(max_retries=5, timeout=30) as client:
     response1 = client.get("https://api.example.com/data1")
     response2 = client.post("https://api.example.com/data2", json={"key": "value"})
+# Client automatically closed
+```
+
+**Async Example:**
+```python
+from aresilient import AsyncResilientClient
+
+async with AsyncResilientClient(max_retries=5, timeout=30) as client:
+    response1 = await client.get("https://api.example.com/data1")
+    response2 = await client.post("https://api.example.com/data2", json={"key": "value"})
 # Client automatically closed
 ```
 
@@ -443,7 +456,7 @@ with ResilientClient(max_retries=5, timeout=30) as client:
 
 6. **Circuit Breaker Pattern** - Major feature, complex implementation
 7. **Fallback Strategies** - Can work via callbacks
-8. **Context Manager API** - Convenience feature
+8. ~~**Context Manager API**~~ - ✅ **IMPLEMENTED** (2026) - `ResilientClient` and `AsyncResilientClient`
 9. **Retry History Tracking** - Debugging aid
 
 ### ❌ Out of Scope
