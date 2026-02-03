@@ -24,7 +24,9 @@ from aresilient.request import request_with_automatic_retry
 from aresilient.utils import validate_retry_params
 
 if TYPE_CHECKING:
+    from types import TracebackType
     from collections.abc import Callable
+    from typing import Self
 
     from aresilient.backoff import BackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
@@ -122,7 +124,7 @@ class ResilientClient:
         self._client: httpx.Client | None = None
         self._entered = False
 
-    def __enter__(self) -> ResilientClient:
+    def __enter__(self) -> Self:
         """Enter the context manager and create the underlying httpx client.
 
         Returns:
@@ -132,7 +134,12 @@ class ResilientClient:
         self._entered = True
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit the context manager and close the underlying httpx client.
 
         Args:

@@ -24,7 +24,9 @@ from aresilient.request_async import request_with_automatic_retry_async
 from aresilient.utils import validate_retry_params
 
 if TYPE_CHECKING:
+    from types import TracebackType
     from collections.abc import Callable
+    from typing import Self
 
     from aresilient.backoff import BackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
@@ -125,7 +127,7 @@ class AsyncResilientClient:
         self._client: httpx.AsyncClient | None = None
         self._entered = False
 
-    async def __aenter__(self) -> AsyncResilientClient:
+    async def __aenter__(self) -> Self:
         """Enter the async context manager and create the underlying httpx client.
 
         Returns:
@@ -135,7 +137,12 @@ class AsyncResilientClient:
         self._entered = True
         return self
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit the async context manager and close the underlying httpx client.
 
         Args:
