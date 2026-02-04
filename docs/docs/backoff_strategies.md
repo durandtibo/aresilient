@@ -261,3 +261,45 @@ async def fetch_data():
     )
     return response.json()
 ```
+
+## Using with Context Managers
+
+Backoff strategies work seamlessly with `ResilientClient` and `AsyncResilientClient`:
+
+```python
+from aresilient import ResilientClient, LinearBackoff, ConstantBackoff
+
+# All requests in the context use the same backoff strategy
+with ResilientClient(
+    backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=8.0),
+    max_retries=5,
+) as client:
+    response1 = client.get("https://api.example.com/data1")
+    response2 = client.post("https://api.example.com/data2", json={"key": "value"})
+    
+    # Override strategy for a specific request
+    response3 = client.get(
+        "https://api.example.com/data3",
+        backoff_strategy=ConstantBackoff(delay=2.0),
+    )
+```
+
+Async context manager example:
+
+```python
+import asyncio
+from aresilient import AsyncResilientClient, ExponentialBackoff
+
+
+async def fetch_all():
+    async with AsyncResilientClient(
+        backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=15.0),
+        max_retries=3,
+    ) as client:
+        results = await asyncio.gather(
+            client.get("https://api.example.com/data1"),
+            client.get("https://api.example.com/data2"),
+            client.get("https://api.example.com/data3"),
+        )
+        return [r.json() for r in results]
+```
