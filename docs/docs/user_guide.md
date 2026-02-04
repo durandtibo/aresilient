@@ -8,7 +8,10 @@ requests with automatic retry logic.
 - [Basic Usage](#basic-usage)
 - [Async Usage](#async-usage)
 - [Configuration Options](#configuration-options)
+- [Context Manager API](#context-manager-api)
 - [Advanced Usage](#advanced-usage)
+- [Circuit Breaker Pattern](#circuit-breaker-pattern)
+- [Custom Retry Predicates](#custom-retry-predicates)
 - [Callbacks and Observability](#callbacks-and-observability)
 - [Error Handling](#error-handling)
 - [Custom HTTP Methods](#custom-http-methods)
@@ -278,7 +281,12 @@ response = get_with_automatic_retry(
 )
 ```
 
-### Understanding Exponential Backoff
+### Understanding Backoff Strategies
+
+`aresilient` supports multiple backoff strategies to control the wait time between retry attempts.
+By default, exponential backoff is used.
+
+#### Exponential Backoff (Default)
 
 The wait time between retries is calculated using the exponential backoff formula:
 
@@ -291,13 +299,13 @@ total_wait_time = base_wait_time + jitter
 
 Where `attempt` is 0-indexed (0, 1, 2, ...).
 
-#### Example with default `backoff_factor=0.3` (no jitter):
+##### Example with default `backoff_factor=0.3` (no jitter):
 
 - 1st retry: 0.3 * (2^0) = 0.3 seconds
 - 2nd retry: 0.3 * (2^1) = 0.6 seconds
 - 3rd retry: 0.3 * (2^2) = 1.2 seconds
 
-#### Example with `backoff_factor=1.0` and `jitter_factor=0.1`:
+##### Example with `backoff_factor=1.0` and `jitter_factor=0.1`:
 
 - 1st retry: 1.0-1.1 seconds (base 1.0s + up to 10% jitter)
 - 2nd retry: 2.0-2.2 seconds (base 2.0s + up to 10% jitter)
@@ -306,6 +314,47 @@ Where `attempt` is 0-indexed (0, 1, 2, ...).
 **Note**: Jitter is optional (disabled by default with `jitter_factor=0`). When enabled, it's
 randomized for each retry to prevent multiple clients from retrying simultaneously (thundering
 herd problem). Set `jitter_factor=0.1` for 10% jitter, which is recommended for production use.
+
+#### Using Different Backoff Strategies
+
+You can use alternative backoff strategies by providing a `backoff_strategy` parameter:
+
+```python
+from aresilient import (
+    get_with_automatic_retry,
+    LinearBackoff,
+    FibonacciBackoff,
+    ConstantBackoff,
+    ExponentialBackoff,
+)
+
+# Linear backoff: 1s, 2s, 3s, 4s...
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=10.0),
+)
+
+# Fibonacci backoff: 1s, 1s, 2s, 3s, 5s, 8s...
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0),
+)
+
+# Constant backoff: 2s, 2s, 2s, 2s...
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    backoff_strategy=ConstantBackoff(delay=2.0),
+)
+
+# Explicit exponential backoff with custom settings
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0),
+)
+```
+
+See the [Backoff Strategies](backoff_strategies.md) guide for detailed information about each
+strategy and when to use them.
 
 ### Customizing Retryable Status Codes
 
@@ -353,6 +402,165 @@ anything. This works with all HTTP methods (GET, POST, PUT, DELETE, PATCH).
 **Note**: If `jitter_factor` is configured, jitter is still applied to server-specified
 `Retry-After` values to prevent thundering herd issues when many clients receive the same retry
 delay from a server.
+
+### Max Total Time and Max Wait Time
+
+Control the total time budget and maximum wait time for retries:
+
+```python
+from aresilient import get_with_automatic_retry
+
+# Limit total time for all retry attempts
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    max_retries=10,
+    max_total_time=30.0,  # Stop retrying after 30 seconds total
+)
+
+# Cap individual backoff delays
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    max_retries=10,
+    backoff_factor=2.0,
+    max_wait_time=10.0,  # No single wait exceeds 10 seconds
+)
+
+# Combine both for strict SLA guarantees
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    max_retries=10,
+    backoff_factor=2.0,
+    max_total_time=60.0,  # Total budget: 60 seconds
+    max_wait_time=15.0,   # Max wait between retries: 15 seconds
+)
+```
+
+**max_total_time** is useful when you have strict time budgets or SLA requirements. If the total
+elapsed time (including all request attempts and backoff delays) exceeds this value, the retry
+loop stops even if `max_retries` hasn't been reached.
+
+**max_wait_time** caps individual backoff delays. This is particularly useful with exponential
+backoff or when servers send very large `Retry-After` values. Without this cap, exponential
+backoff could lead to very long waits (e.g., 64s, 128s, 256s).
+
+## Context Manager API
+
+The `ResilientClient` and `AsyncResilientClient` classes provide a context manager interface for
+making multiple HTTP requests with shared retry configuration. This is more convenient and efficient
+than passing the same parameters to every function call.
+
+### Using ResilientClient (Sync)
+
+```python
+from aresilient import ResilientClient, LinearBackoff
+
+# Create a client with shared configuration
+with ResilientClient(
+    max_retries=5,
+    timeout=30.0,
+    backoff_strategy=LinearBackoff(base_delay=1.0),
+    jitter_factor=0.1,
+) as client:
+    # All requests use the shared configuration
+    users = client.get("https://api.example.com/users")
+    
+    # Override configuration for specific requests
+    posts = client.get(
+        "https://api.example.com/posts",
+        max_retries=3,  # Override max_retries for this request
+    )
+    
+    # POST request
+    result = client.post(
+        "https://api.example.com/data",
+        json={"key": "value"},
+    )
+    
+    # PUT request
+    updated = client.put(
+        "https://api.example.com/resource/123",
+        json={"status": "active"},
+    )
+    
+    # DELETE request
+    client.delete("https://api.example.com/resource/456")
+```
+
+### Using AsyncResilientClient (Async)
+
+```python
+import asyncio
+from aresilient import AsyncResilientClient, ExponentialBackoff
+
+
+async def fetch_all_data():
+    async with AsyncResilientClient(
+        max_retries=3,
+        timeout=20.0,
+        backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=10.0),
+    ) as client:
+        # Concurrent async requests with shared configuration
+        users_task = client.get("https://api.example.com/users")
+        posts_task = client.get("https://api.example.com/posts")
+        
+        users, posts = await asyncio.gather(users_task, posts_task)
+        
+        # POST request
+        result = await client.post(
+            "https://api.example.com/submit",
+            json={"data": "value"},
+        )
+        
+        return users.json(), posts.json(), result.json()
+
+
+data = asyncio.run(fetch_all_data())
+```
+
+### Supported Methods in Context Manager
+
+Both `ResilientClient` and `AsyncResilientClient` support all HTTP methods:
+
+- `client.get(url, **kwargs)` - GET request
+- `client.post(url, **kwargs)` - POST request
+- `client.put(url, **kwargs)` - PUT request
+- `client.delete(url, **kwargs)` - DELETE request
+- `client.patch(url, **kwargs)` - PATCH request
+- `client.head(url, **kwargs)` - HEAD request
+- `client.options(url, **kwargs)` - OPTIONS request
+- `client.request(method, url, **kwargs)` - Custom method
+
+### Benefits of Context Manager API
+
+1. **Code Reusability**: Define retry configuration once, use for multiple requests
+2. **Connection Pooling**: The underlying httpx client is reused, improving performance
+3. **Cleaner Code**: Less repetition of configuration parameters
+4. **Easy Override**: Per-request overrides of the default configuration
+5. **Resource Management**: Automatic cleanup when exiting the context
+
+### Context Manager with Callbacks
+
+```python
+from aresilient import ResilientClient
+
+
+def log_retry(info):
+    print(f"Retrying {info.url} after {info.wait_time:.2f}s")
+
+
+def log_failure(info):
+    print(f"Failed {info.url} after {info.attempt} attempts")
+
+
+with ResilientClient(
+    max_retries=3,
+    on_retry=log_retry,
+    on_failure=log_failure,
+) as client:
+    # All requests will use these callbacks
+    response1 = client.get("https://api.example.com/data1")
+    response2 = client.get("https://api.example.com/data2")
+```
 
 ## Advanced Usage
 
@@ -423,6 +631,395 @@ response = post_with_automatic_retry(
     files={"attachment": open("file.txt", "rb")},
 )
 ```
+
+## Circuit Breaker Pattern
+
+The circuit breaker pattern prevents cascading failures by failing fast when a service is
+consistently unavailable. After a certain number of consecutive failures, the circuit "opens" and
+immediately rejects requests without attempting them, giving the failing service time to recover.
+
+### Understanding Circuit States
+
+A circuit breaker has three states:
+
+- **CLOSED**: Normal operation - requests are allowed through
+- **OPEN**: After `failure_threshold` consecutive failures, the circuit opens and requests fail
+  immediately without being attempted
+- **HALF_OPEN**: After `recovery_timeout` seconds in OPEN state, one test request is allowed
+  through to check if the service has recovered
+
+### Basic Circuit Breaker Usage
+
+```python
+from aresilient import get_with_automatic_retry, CircuitBreaker
+
+# Create a circuit breaker
+circuit_breaker = CircuitBreaker(
+    failure_threshold=5,    # Open after 5 consecutive failures
+    recovery_timeout=60.0,  # Try again after 60 seconds
+)
+
+# Use with requests
+try:
+    response = get_with_automatic_retry(
+        "https://api.example.com/data",
+        circuit_breaker=circuit_breaker,
+    )
+except Exception as e:
+    print(f"Request failed: {e}")
+```
+
+### How Circuit Breaker Works
+
+1. **Initially CLOSED**: All requests are attempted normally with retry logic
+2. **After N consecutive failures**: Circuit opens (state becomes OPEN)
+3. **While OPEN**: All requests fail immediately with `CircuitBreakerError`, no actual HTTP requests
+   are made
+4. **After recovery_timeout**: Circuit enters HALF_OPEN state
+5. **In HALF_OPEN**: One test request is attempted
+   - If successful: Circuit closes (back to CLOSED state)
+   - If fails: Circuit reopens (back to OPEN state) for another recovery_timeout period
+
+### Circuit Breaker with Multiple Endpoints
+
+Share a circuit breaker across multiple endpoints:
+
+```python
+from aresilient import get_with_automatic_retry, CircuitBreaker
+
+# Shared circuit breaker for API service
+api_circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
+
+# All requests to this API share the circuit breaker
+response1 = get_with_automatic_retry(
+    "https://api.example.com/users",
+    circuit_breaker=api_circuit,
+)
+
+response2 = get_with_automatic_retry(
+    "https://api.example.com/posts",
+    circuit_breaker=api_circuit,
+)
+```
+
+### Circuit Breaker with Context Manager
+
+```python
+from aresilient import ResilientClient, CircuitBreaker
+
+# Create circuit breaker
+circuit = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
+
+# Use with ResilientClient
+with ResilientClient(
+    max_retries=3,
+    circuit_breaker=circuit,
+) as client:
+    # All requests share the circuit breaker
+    response1 = client.get("https://api.example.com/data1")
+    response2 = client.get("https://api.example.com/data2")
+```
+
+### Handling Circuit Breaker Errors
+
+```python
+from aresilient import get_with_automatic_retry, CircuitBreaker, CircuitBreakerError
+
+circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
+
+try:
+    response = get_with_automatic_retry(
+        "https://api.example.com/data",
+        circuit_breaker=circuit,
+    )
+except CircuitBreakerError as e:
+    print(f"Circuit breaker is open: {e}")
+    # Service is down, use fallback or cached data
+except Exception as e:
+    print(f"Other error: {e}")
+```
+
+### Monitoring Circuit State
+
+```python
+from aresilient import CircuitBreaker, CircuitState
+
+circuit = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
+
+# Check circuit state
+if circuit.state == CircuitState.OPEN:
+    print("Circuit is open - service is down")
+elif circuit.state == CircuitState.CLOSED:
+    print("Circuit is closed - service is healthy")
+elif circuit.state == CircuitState.HALF_OPEN:
+    print("Circuit is half-open - testing recovery")
+
+# Access circuit metrics
+print(f"Consecutive failures: {circuit.failure_count}")
+```
+
+### When to Use Circuit Breakers
+
+Circuit breakers are most useful when:
+
+1. **Calling external services**: Protect your application from external service outages
+2. **Microservices architecture**: Prevent cascading failures across services
+3. **Rate-limited APIs**: Avoid wasting attempts when you're blocked
+4. **Expensive operations**: Save resources by not attempting doomed requests
+5. **User-facing applications**: Fail fast and provide better user experience
+
+### Circuit Breaker Best Practices
+
+1. **Tune thresholds carefully**: Set `failure_threshold` based on expected failure patterns
+2. **Appropriate recovery time**: Set `recovery_timeout` long enough for services to recover
+3. **Monitor circuit state**: Log state transitions for observability
+4. **Use with callbacks**: Combine with `on_failure` callbacks to track circuit opens
+5. **Share circuits wisely**: Share circuit breakers for the same backend service, separate for
+   different services
+
+## Custom Retry Predicates
+
+The `retry_if` parameter allows you to define custom logic for determining whether a request
+should be retried based on the response content, headers, or business logic. This is more powerful
+than `status_forcelist` alone.
+
+### Basic Retry Predicate
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+def should_retry(response, exception):
+    """Custom retry logic.
+    
+    Args:
+        response: httpx.Response or None if exception occurred
+        exception: Exception or None if request succeeded
+    
+    Returns:
+        True to retry, False to not retry
+    """
+    # Retry on exceptions
+    if exception:
+        return True
+    
+    # Retry on specific status codes
+    if response.status_code in (429, 500, 502, 503, 504):
+        return True
+    
+    # Don't retry on success
+    return False
+
+
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    retry_if=should_retry,
+)
+```
+
+### Retry Based on Response Content
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+def retry_on_error_field(response, exception):
+    """Retry if response contains an error field."""
+    # Always retry on exceptions
+    if exception:
+        return True
+    
+    # Don't retry on client errors (4xx except 429)
+    if 400 <= response.status_code < 500 and response.status_code != 429:
+        return False
+    
+    # Retry on server errors
+    if response.status_code >= 500:
+        return True
+    
+    # Check response body for application-level errors
+    try:
+        data = response.json()
+        # Retry if API returned an error in the response
+        if data.get("error") == "temporary_unavailable":
+            return True
+    except Exception:
+        pass  # Can't parse JSON, use status code logic
+    
+    return False
+
+
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    retry_if=retry_on_error_field,
+    max_retries=5,
+)
+```
+
+### Retry Based on Response Headers
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+def retry_on_header(response, exception):
+    """Retry based on custom response headers."""
+    if exception:
+        return True
+    
+    # Retry if server indicates the operation is still processing
+    if response.headers.get("X-Processing") == "true":
+        return True
+    
+    # Retry on rate limit
+    if response.status_code == 429:
+        return True
+    
+    # Retry on server errors
+    if response.status_code >= 500:
+        return True
+    
+    return False
+
+
+response = get_with_automatic_retry(
+    "https://api.example.com/long-running-task",
+    retry_if=retry_on_header,
+    max_retries=10,
+)
+```
+
+### Complex Business Logic
+
+```python
+from aresilient import post_with_automatic_retry
+import httpx
+
+
+def complex_retry_logic(response, exception):
+    """Complex retry logic for specific business requirements."""
+    # Network errors and timeouts - always retry
+    if isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)):
+        return True
+    
+    # Other exceptions - don't retry
+    if exception:
+        return False
+    
+    # Success - don't retry
+    if 200 <= response.status_code < 300:
+        return False
+    
+    # Client errors (except specific ones) - don't retry
+    if 400 <= response.status_code < 500:
+        # Retry on rate limit and request timeout
+        if response.status_code in (429, 408):
+            return True
+        return False
+    
+    # Server errors - check response content
+    if response.status_code >= 500:
+        try:
+            error_data = response.json()
+            # Don't retry on permanent errors
+            if error_data.get("error_type") == "permanent":
+                return False
+            # Retry on transient errors
+            if error_data.get("error_type") == "transient":
+                return True
+        except Exception:
+            pass  # Can't parse, default to retry
+        
+        # Default: retry on 500-level errors
+        return True
+    
+    return False
+
+
+response = post_with_automatic_retry(
+    "https://api.example.com/process",
+    json={"task": "data_processing"},
+    retry_if=complex_retry_logic,
+    max_retries=3,
+)
+```
+
+### Combining retry_if with status_forcelist
+
+When `retry_if` is provided, it takes precedence over `status_forcelist` for determining retry
+behavior. However, you can reference `status_forcelist` logic within your predicate:
+
+```python
+from aresilient import get_with_automatic_retry
+
+
+def custom_with_defaults(response, exception):
+    """Custom logic that falls back to default status codes."""
+    if exception:
+        return True
+    
+    # Custom logic first
+    try:
+        data = response.json()
+        if data.get("retry_requested"):
+            return True
+    except Exception:
+        pass
+    
+    # Fall back to common retry status codes
+    return response.status_code in (429, 500, 502, 503, 504)
+
+
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    retry_if=custom_with_defaults,
+)
+```
+
+### Retry Predicate with Async
+
+The `retry_if` predicate works identically with async functions:
+
+```python
+import asyncio
+from aresilient import get_with_automatic_retry_async
+
+
+def should_retry_async(response, exception):
+    """Note: Predicate itself is still synchronous."""
+    if exception:
+        return True
+    return response.status_code >= 500
+
+
+async def fetch_data():
+    response = await get_with_automatic_retry_async(
+        "https://api.example.com/data",
+        retry_if=should_retry_async,
+    )
+    return response.json()
+
+
+data = asyncio.run(fetch_data())
+```
+
+### Use Cases for Custom Retry Predicates
+
+1. **API-specific error codes**: Retry when API returns specific error codes in response body
+2. **Polling operations**: Retry until resource is ready (based on response content)
+3. **Idempotency checks**: Only retry idempotent operations
+4. **Content validation**: Retry if response doesn't match expected schema
+5. **Business rules**: Implement domain-specific retry logic
+6. **Rate limiting**: Custom handling of rate limit responses with specific headers
+
+### Best Practices for Retry Predicates
+
+1. **Keep it simple**: Complex logic makes debugging harder
+2. **Handle exceptions safely**: Wrap JSON parsing and other operations in try/except
+3. **Document your logic**: Clearly explain why certain conditions trigger retries
+4. **Test thoroughly**: Edge cases in retry logic can cause subtle bugs
+5. **Consider performance**: The predicate is called for every response, keep it fast
+6. **Default to safe behavior**: When in doubt, don't retry (especially for write operations)
 
 ## Callbacks and Observability
 
@@ -1103,23 +1700,34 @@ response = get_with_automatic_retry(
 )
 ```
 
-### 2. Reuse HTTP Clients
+### 2. Use Context Managers for Multiple Requests
 
-When making multiple requests, reuse the client to benefit from connection pooling:
+When making multiple requests, use `ResilientClient` or `AsyncResilientClient` for better code
+organization and connection pooling:
 
 ```python
+from aresilient import ResilientClient
+
+# Good: Use ResilientClient for multiple requests
+with ResilientClient(max_retries=3, timeout=30.0) as client:
+    for url in urls:
+        response = client.get(url)
+        process_response(response)
+
+# Alternative: Reuse httpx client (more verbose)
 import httpx
 from aresilient import get_with_automatic_retry
 
-# Good: Reuse client
 with httpx.Client() as client:
     for url in urls:
-        response = get_with_automatic_retry(url, client=client)
+        response = get_with_automatic_retry(url, client=client, max_retries=3)
         process_response(response)
 
 # Bad: Creates new client for each request
+from aresilient import get_with_automatic_retry
+
 for url in urls:
-    response = get_with_automatic_retry(url)
+    response = get_with_automatic_retry(url, max_retries=3)
     process_response(response)
 ```
 
@@ -1250,8 +1858,110 @@ DEBUG:aresilient.request:GET request to https://api.example.com/data succeeded o
 
 For production use, keep the default log level (INFO or WARNING) to avoid excessive logging.
 
+### 8. Use Circuit Breakers for External Dependencies
+
+Protect your application from cascading failures when calling external services:
+
+```python
+from aresilient import ResilientClient, CircuitBreaker
+
+# Create circuit breakers for different services
+payment_circuit = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
+user_service_circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
+
+# Use with different endpoints
+with ResilientClient(circuit_breaker=payment_circuit) as client:
+    response = client.post("https://payment-api.example.com/charge", json={"amount": 100})
+
+with ResilientClient(circuit_breaker=user_service_circuit) as client:
+    response = client.get("https://user-api.example.com/profile")
+```
+
+### 9. Set Time Budgets for Strict SLAs
+
+Use `max_total_time` when you have strict time constraints:
+
+```python
+from aresilient import get_with_automatic_retry
+
+# Critical user-facing operation with 5-second SLA
+response = get_with_automatic_retry(
+    "https://api.example.com/critical-data",
+    max_retries=10,  # Try many times...
+    max_total_time=5.0,  # ...but stop after 5 seconds total
+    max_wait_time=2.0,  # ...and don't wait more than 2s between attempts
+)
+```
+
+### 10. Choose the Right Backoff Strategy
+
+Select backoff strategies based on your use case:
+
+```python
+from aresilient import (
+    get_with_automatic_retry,
+    ExponentialBackoff,
+    LinearBackoff,
+    ConstantBackoff,
+)
+
+# Exponential: Most services (default)
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0),
+)
+
+# Linear: Predictable recovery times
+response = get_with_automatic_retry(
+    "https://api.example.com/stable-service",
+    backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=10.0),
+)
+
+# Constant: Testing or specific API requirements
+response = get_with_automatic_retry(
+    "https://api.example.com/polling-endpoint",
+    backoff_strategy=ConstantBackoff(delay=2.0),
+)
+```
+
+### 11. Use Custom Retry Predicates for Complex Logic
+
+When status codes aren't enough, use `retry_if` for custom logic:
+
+```python
+from aresilient import post_with_automatic_retry
+
+
+def should_retry_payment(response, exception):
+    """Custom retry logic for payment processing."""
+    if exception:
+        return True  # Retry on network errors
+    
+    if response.status_code >= 500:
+        return True  # Retry on server errors
+    
+    # Check for specific business conditions
+    try:
+        data = response.json()
+        # Retry on temporary payment processor issues
+        if data.get("error_code") in ("temporary_unavailable", "rate_limit"):
+            return True
+    except Exception:
+        pass
+    
+    return False
+
+
+response = post_with_automatic_retry(
+    "https://payment-api.example.com/charge",
+    json={"amount": 100},
+    retry_if=should_retry_payment,
+)
+```
+
 ## Additional Resources
 
+- [Backoff Strategies](backoff_strategies.md) - Detailed guide on backoff strategies
 - [API Reference](refs/index.md) - Complete API documentation
 - [Get Started](get_started.md) - Installation and setup instructions
 - [httpx Documentation](https://www.python-httpx.org/) - Learn more about the underlying library

@@ -236,13 +236,19 @@ class AsyncResilientClient:
             request_func=getattr(client, method.lower()),
             max_retries=max_retries if max_retries is not None else self._max_retries,
             backoff_factor=backoff_factor if backoff_factor is not None else self._backoff_factor,
-            status_forcelist=status_forcelist if status_forcelist is not None else self._status_forcelist,
+            status_forcelist=(
+                status_forcelist if status_forcelist is not None else self._status_forcelist
+            ),
             jitter_factor=jitter_factor if jitter_factor is not None else self._jitter_factor,
             retry_if=retry_if if retry_if is not None else self._retry_if,
-            backoff_strategy=backoff_strategy if backoff_strategy is not None else self._backoff_strategy,
+            backoff_strategy=(
+                backoff_strategy if backoff_strategy is not None else self._backoff_strategy
+            ),
             max_total_time=max_total_time if max_total_time is not None else self._max_total_time,
             max_wait_time=max_wait_time if max_wait_time is not None else self._max_wait_time,
-            circuit_breaker=circuit_breaker if circuit_breaker is not None else self._circuit_breaker,
+            circuit_breaker=(
+                circuit_breaker if circuit_breaker is not None else self._circuit_breaker
+            ),
             on_request=on_request if on_request is not None else self._on_request,
             on_retry=on_retry if on_retry is not None else self._on_retry,
             on_success=on_success if on_success is not None else self._on_success,

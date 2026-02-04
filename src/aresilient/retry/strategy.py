@@ -19,7 +19,17 @@ if TYPE_CHECKING:
 
 
 class RetryStrategy:
-    """Strategy for calculating retry delays."""
+    """Strategy for calculating retry delays with backoff and jitter.
+
+    This class encapsulates the logic for calculating sleep times between
+    retry attempts using configurable backoff strategies and jitter.
+
+    Attributes:
+        backoff_factor: Factor for exponential backoff calculations.
+        jitter_factor: Factor for adding random jitter to delays.
+        backoff_strategy: Optional custom backoff strategy instance.
+        max_wait_time: Optional maximum wait time cap in seconds.
+    """
 
     def __init__(
         self,

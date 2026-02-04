@@ -64,17 +64,24 @@ HTTP communications, making your applications more robust and fault-tolerant.
 
 - **Automatic Retry Logic**: Automatically retries failed requests for configurable HTTP status
   codes (429, 500, 502, 503, 504 by default)
-- **Exponential Backoff with Optional Jitter**: Implements exponential backoff strategy with
-  optional randomized jitter to prevent thundering herd problems and avoid overwhelming servers
+- **Multiple Backoff Strategies**: Choose from Exponential (default), Linear, Fibonacci, or Constant
+  backoff, or implement your own custom strategy
+- **Optional Jitter**: Add randomized jitter to prevent thundering herd problems and avoid overwhelming servers
 - **Retry-After Header Support**: Respects server-specified retry delays from `Retry-After` headers
   (supports both integer seconds and HTTP-date formats)
+- **Circuit Breaker Pattern**: Prevent cascading failures with built-in circuit breaker support
+  (CLOSED, OPEN, HALF_OPEN states)
+- **Context Manager API**: Manage multiple requests with shared configuration using ResilientClient
+  and AsyncResilientClient
 - **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
-- **Async Support**: Fully supports asynchronous requests for high-performance applications
+- **Full Async Support**: Fully supports asynchronous requests for high-performance applications
 - **Built on httpx**: Leverages the modern, async-capable httpx library
-- **Configurable**: Customize timeout, retry attempts, backoff factors, jitter, and retryable status codes
+- **Advanced Configuration**: Customize timeout, retry attempts, backoff strategies, jitter, retryable
+  status codes, max total time, and max wait time
+- **Custom Retry Predicates**: Define custom logic for retry decisions based on response content,
+  headers, or business rules using the `retry_if` parameter
 - **Callbacks for Observability**: Built-in callback system for logging, metrics, and alerting
   (on_request, on_retry, on_success, on_failure)
-- **Custom Retry Predicates**: Define custom logic for retry decisions based on response content or business rules
 - **Type-Safe**: Fully typed with comprehensive type hints
 - **Well-Tested**: Extensive test coverage ensuring reliability
 
@@ -114,6 +121,53 @@ response = get_with_automatic_retry(
     backoff_factor=1.0,  # Exponential backoff factor
     timeout=30.0,  # 30 second timeout
     status_forcelist=(429, 503),  # Only retry on these status codes
+)
+```
+
+### Using Different Backoff Strategies
+
+```python
+from aresilient import get_with_automatic_retry, LinearBackoff, FibonacciBackoff
+
+# Linear backoff (1s, 2s, 3s, 4s...)
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=10.0),
+)
+
+# Fibonacci backoff (1s, 1s, 2s, 3s, 5s, 8s...)
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0),
+)
+```
+
+### Using Context Manager for Multiple Requests
+
+```python
+from aresilient import ResilientClient
+
+# Manage multiple requests with shared configuration
+with ResilientClient(max_retries=5, timeout=30.0) as client:
+    response1 = client.get("https://api.example.com/users")
+    response2 = client.post("https://api.example.com/data", json={"key": "value"})
+    response3 = client.put("https://api.example.com/resource/123", json={"status": "active"})
+```
+
+### Using Circuit Breaker
+
+```python
+from aresilient import get_with_automatic_retry, CircuitBreaker
+
+# Prevent cascading failures with circuit breaker
+circuit_breaker = CircuitBreaker(
+    failure_threshold=5,  # Open circuit after 5 consecutive failures
+    recovery_timeout=60.0,  # Try again after 60 seconds
+)
+
+response = get_with_automatic_retry(
+    "https://api.example.com/data",
+    circuit_breaker=circuit_breaker,
 )
 ```
 

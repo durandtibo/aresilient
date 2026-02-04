@@ -37,10 +37,10 @@ class HttpRequestError(RuntimeError):
             exception chaining. Defaults to ``None``.
 
     Attributes:
-        method (str): The HTTP method used for the request.
-        url (str): The target URL that was requested.
-        status_code (int | None): The HTTP status code, if available.
-        response (httpx.Response | None): The full response object, if available.
+        method: The HTTP method used for the request.
+        url: The target URL that was requested.
+        status_code: The HTTP status code, if available.
+        response: The full response object, if available.
 
     Examples:
         Raising an error for a failed GET request:

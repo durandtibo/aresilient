@@ -23,7 +23,15 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class RetryDecider:
-    """Decides whether a request should be retried."""
+    """Decides whether a request should be retried based on responses and exceptions.
+
+    This class encapsulates the retry decision logic, evaluating HTTP responses
+    and exceptions against configured status codes and custom predicates.
+
+    Attributes:
+        status_forcelist: Tuple of HTTP status codes that should trigger retries.
+        retry_if: Optional custom predicate for retry decisions.
+    """
 
     def __init__(
         self,

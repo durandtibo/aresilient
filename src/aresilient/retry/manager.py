@@ -25,7 +25,15 @@ if TYPE_CHECKING:
 
 
 class CallbackManager:
-    """Manages callback invocations."""
+    """Manages callback invocations during the retry lifecycle.
+
+    This class coordinates the invocation of user-defined callbacks at various
+    points in the HTTP request retry lifecycle, including before requests,
+    after success, before retries, and on failures.
+
+    Attributes:
+        callbacks: Configuration containing callback functions for lifecycle events.
+    """
 
     def __init__(self, callbacks: CallbackConfig) -> None:
         """Initialize callback manager.
