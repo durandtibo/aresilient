@@ -366,7 +366,7 @@ response = get_with_automatic_retry(
 - ✅ Automatic resource cleanup
 - ✅ Shared configuration across requests
 
-**Status:** ✅ **IMPLEMENTED** - Added in 2026
+**Status:** ✅ **IMPLEMENTED** - Added in February 2026
 
 **Implementation:**
 - `ResilientClient` - Synchronous context manager
