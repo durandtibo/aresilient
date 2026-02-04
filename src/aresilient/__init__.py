@@ -15,6 +15,7 @@ Key Features:
     - Configurable timeout, retry attempts, backoff factors, and jitter
     - Enhanced error handling with detailed exception information
     - Callback/Event system for observability (logging, metrics, alerting)
+    - Context manager API for managing request sessions
 
 Example:
     ```pycon
@@ -25,6 +26,11 @@ Example:
     >>> response = get_with_automatic_retry(
     ...     "https://api.example.com/data", backoff_strategy=LinearBackoff(base_delay=1.0)
     ... )  # doctest: +SKIP
+    >>> # Use context manager for multiple requests
+    >>> from aresilient import ResilientClient
+    >>> with ResilientClient(max_retries=5, timeout=30) as client:  # doctest: +SKIP
+    ...     response1 = client.get("https://api.example.com/data1")
+    ...     response2 = client.post("https://api.example.com/data2", json={"key": "value"})
 
     ```
 """
@@ -36,6 +42,7 @@ __all__ = [
     "DEFAULT_MAX_RETRIES",
     "DEFAULT_TIMEOUT",
     "RETRY_STATUS_CODES",
+    "AsyncResilientClient",
     "BackoffStrategy",
     "CircuitBreaker",
     "CircuitBreakerError",
@@ -47,6 +54,7 @@ __all__ = [
     "HttpRequestError",
     "LinearBackoff",
     "RequestInfo",
+    "ResilientClient",
     "ResponseInfo",
     "RetryInfo",
     "__version__",
@@ -79,6 +87,8 @@ from aresilient.backoff import (
 )
 from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError, CircuitState
+from aresilient.client import ResilientClient
+from aresilient.client_async import AsyncResilientClient
 from aresilient.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,

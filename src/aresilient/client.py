@@ -1,0 +1,385 @@
+r"""Synchronous context manager client for resilient HTTP requests.
+
+This module provides a context manager-based client for making multiple HTTP
+requests with shared retry configuration. The ResilientClient automatically
+manages the underlying httpx.Client lifecycle and provides convenient methods
+for all HTTP operations with automatic retry logic.
+"""
+
+from __future__ import annotations
+
+__all__ = ["ResilientClient"]
+
+from typing import TYPE_CHECKING, Any
+
+import httpx
+
+from aresilient.config import (
+    DEFAULT_BACKOFF_FACTOR,
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_TIMEOUT,
+    RETRY_STATUS_CODES,
+)
+from aresilient.request import request_with_automatic_retry
+from aresilient.utils import validate_retry_params
+
+if TYPE_CHECKING:
+    from types import TracebackType
+    from collections.abc import Callable
+    from typing import Self
+
+    from aresilient.backoff import BackoffStrategy
+    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
+    from aresilient.circuit_breaker import CircuitBreaker
+
+
+class ResilientClient:
+    r"""Synchronous context manager for resilient HTTP requests.
+
+    This class provides a context manager interface for making multiple HTTP
+    requests with shared retry configuration. The client automatically manages
+    the lifecycle of the underlying httpx.Client and applies consistent retry
+    logic across all requests.
+
+    Args:
+        timeout: Maximum seconds to wait for server responses. Must be > 0.
+        max_retries: Maximum number of retry attempts for failed requests. Must be >= 0.
+        backoff_factor: Factor for exponential backoff between retries. Must be >= 0.
+            Ignored if backoff_strategy is provided.
+        status_forcelist: Tuple of HTTP status codes that should trigger a retry.
+        jitter_factor: Factor for adding random jitter to backoff delays. Must be >= 0.
+        retry_if: Optional custom predicate function to determine whether to retry.
+        backoff_strategy: Optional custom backoff strategy instance.
+        max_total_time: Optional maximum total time budget in seconds for all retry
+            attempts. Must be > 0 if provided.
+        max_wait_time: Optional maximum backoff delay cap in seconds. Must be > 0 if provided.
+        circuit_breaker: Optional circuit breaker instance for advanced failure handling.
+        on_request: Optional callback called before each request attempt.
+        on_retry: Optional callback called before each retry (after backoff).
+        on_success: Optional callback called when request succeeds.
+        on_failure: Optional callback called when all retries are exhausted.
+
+    Example:
+        ```pycon
+        >>> from aresilient import ResilientClient
+        >>> with ResilientClient(max_retries=5, timeout=30) as client:  # doctest: +SKIP
+        ...     response1 = client.get("https://api.example.com/data1")
+        ...     response2 = client.post("https://api.example.com/data2", json={"key": "value"})
+        # Client automatically closed after context exits
+
+        ```
+
+    Note:
+        All HTTP method calls (get, post, put, delete, patch, head, options, request)
+        support the same parameters as their standalone function counterparts, allowing
+        per-request override of the client's default configuration.
+    """
+
+    def __init__(
+        self,
+        *,
+        timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
+        max_retries: int = DEFAULT_MAX_RETRIES,
+        backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
+        status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
+        jitter_factor: float = 0.0,
+        retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
+        backoff_strategy: BackoffStrategy | None = None,
+        max_total_time: float | None = None,
+        max_wait_time: float | None = None,
+        circuit_breaker: CircuitBreaker | None = None,
+        on_request: Callable[[RequestInfo], None] | None = None,
+        on_retry: Callable[[RetryInfo], None] | None = None,
+        on_success: Callable[[ResponseInfo], None] | None = None,
+        on_failure: Callable[[FailureInfo], None] | None = None,
+    ) -> None:
+        """Initialize the resilient client with retry configuration."""
+        # Validate parameters
+        validate_retry_params(
+            max_retries=max_retries,
+            backoff_factor=backoff_factor,
+            jitter_factor=jitter_factor,
+            timeout=timeout,
+            max_total_time=max_total_time,
+            max_wait_time=max_wait_time,
+        )
+
+        # Store configuration
+        self._timeout = timeout
+        self._max_retries = max_retries
+        self._backoff_factor = backoff_factor
+        self._status_forcelist = status_forcelist
+        self._jitter_factor = jitter_factor
+        self._retry_if = retry_if
+        self._backoff_strategy = backoff_strategy
+        self._max_total_time = max_total_time
+        self._max_wait_time = max_wait_time
+        self._circuit_breaker = circuit_breaker
+        self._on_request = on_request
+        self._on_retry = on_retry
+        self._on_success = on_success
+        self._on_failure = on_failure
+
+        # Client will be created when entering context
+        self._client: httpx.Client | None = None
+        self._entered = False
+
+    def __enter__(self) -> Self:
+        """Enter the context manager and create the underlying httpx client.
+
+        Returns:
+            The ResilientClient instance for making requests.
+        """
+        self._client = httpx.Client(timeout=self._timeout)
+        self._entered = True
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit the context manager and close the underlying httpx client.
+
+        Args:
+            exc_type: Exception type if an exception occurred.
+            exc_val: Exception value if an exception occurred.
+            exc_tb: Exception traceback if an exception occurred.
+        """
+        if self._client is not None:
+            self._client.close()
+            self._client = None
+        self._entered = False
+
+    def _ensure_client(self) -> httpx.Client:
+        """Ensure the client is available for use.
+
+        Returns:
+            The httpx.Client instance.
+
+        Raises:
+            RuntimeError: If the client is used outside of a context manager.
+        """
+        if not self._entered or self._client is None:
+            msg = "ResilientClient must be used within a context manager (with statement)"
+            raise RuntimeError(msg)
+        return self._client
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        *,
+        max_retries: int | None = None,
+        backoff_factor: float | None = None,
+        status_forcelist: tuple[int, ...] | None = None,
+        jitter_factor: float | None = None,
+        retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
+        backoff_strategy: BackoffStrategy | None = None,
+        max_total_time: float | None = None,
+        max_wait_time: float | None = None,
+        circuit_breaker: CircuitBreaker | None = None,
+        on_request: Callable[[RequestInfo], None] | None = None,
+        on_retry: Callable[[RetryInfo], None] | None = None,
+        on_success: Callable[[ResponseInfo], None] | None = None,
+        on_failure: Callable[[FailureInfo], None] | None = None,
+        **kwargs: Any,
+    ) -> httpx.Response:
+        r"""Send an HTTP request with automatic retry logic.
+
+        Args:
+            method: HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, etc.).
+            url: The URL to send the request to.
+            max_retries: Override client's max_retries for this request.
+            backoff_factor: Override client's backoff_factor for this request.
+            status_forcelist: Override client's status_forcelist for this request.
+            jitter_factor: Override client's jitter_factor for this request.
+            retry_if: Override client's retry_if for this request.
+            backoff_strategy: Override client's backoff_strategy for this request.
+            max_total_time: Override client's max_total_time for this request.
+            max_wait_time: Override client's max_wait_time for this request.
+            circuit_breaker: Override client's circuit_breaker for this request.
+            on_request: Override client's on_request callback for this request.
+            on_retry: Override client's on_retry callback for this request.
+            on_success: Override client's on_success callback for this request.
+            on_failure: Override client's on_failure callback for this request.
+            **kwargs: Additional keyword arguments passed to httpx.Client.request().
+
+        Returns:
+            An httpx.Response object containing the server's HTTP response.
+
+        Raises:
+            RuntimeError: If called outside of a context manager.
+            HttpRequestError: If the request fails after all retries.
+
+        Example:
+            ```pycon
+            >>> from aresilient import ResilientClient
+            >>> with ResilientClient() as client:  # doctest: +SKIP
+            ...     response = client.request("GET", "https://api.example.com/data")
+
+            ```
+        """
+        client = self._ensure_client()
+
+        # Use client defaults if not overridden
+        return request_with_automatic_retry(
+            url=url,
+            method=method,
+            request_func=getattr(client, method.lower()),
+            max_retries=max_retries if max_retries is not None else self._max_retries,
+            backoff_factor=backoff_factor if backoff_factor is not None else self._backoff_factor,
+            status_forcelist=status_forcelist if status_forcelist is not None else self._status_forcelist,
+            jitter_factor=jitter_factor if jitter_factor is not None else self._jitter_factor,
+            retry_if=retry_if if retry_if is not None else self._retry_if,
+            backoff_strategy=backoff_strategy if backoff_strategy is not None else self._backoff_strategy,
+            max_total_time=max_total_time if max_total_time is not None else self._max_total_time,
+            max_wait_time=max_wait_time if max_wait_time is not None else self._max_wait_time,
+            circuit_breaker=circuit_breaker if circuit_breaker is not None else self._circuit_breaker,
+            on_request=on_request if on_request is not None else self._on_request,
+            on_retry=on_retry if on_retry is not None else self._on_retry,
+            on_success=on_success if on_success is not None else self._on_success,
+            on_failure=on_failure if on_failure is not None else self._on_failure,
+            **kwargs,
+        )
+
+    def get(self, url: str, **kwargs: Any) -> httpx.Response:
+        r"""Send an HTTP GET request with automatic retry logic.
+
+        Args:
+            url: The URL to send the GET request to.
+            **kwargs: Additional keyword arguments (see request() method).
+
+        Returns:
+            An httpx.Response object containing the server's HTTP response.
+
+        Example:
+            ```pycon
+            >>> from aresilient import ResilientClient
+            >>> with ResilientClient() as client:  # doctest: +SKIP
+            ...     response = client.get("https://api.example.com/data")
+
+            ```
+        """
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url: str, **kwargs: Any) -> httpx.Response:
+        r"""Send an HTTP POST request with automatic retry logic.
+
+        Args:
+            url: The URL to send the POST request to.
+            **kwargs: Additional keyword arguments (see request() method).
+
+        Returns:
+            An httpx.Response object containing the server's HTTP response.
+
+        Example:
+            ```pycon
+            >>> from aresilient import ResilientClient
+            >>> with ResilientClient() as client:  # doctest: +SKIP
+            ...     response = client.post("https://api.example.com/data", json={"key": "value"})
+
+            ```
+        """
+        return self.request("POST", url, **kwargs)
+
+    def put(self, url: str, **kwargs: Any) -> httpx.Response:
+        r"""Send an HTTP PUT request with automatic retry logic.
+
+        Args:
+            url: The URL to send the PUT request to.
+            **kwargs: Additional keyword arguments (see request() method).
+
+        Returns:
+            An httpx.Response object containing the server's HTTP response.
+
+        Example:
+            ```pycon
+            >>> from aresilient import ResilientClient
+            >>> with ResilientClient() as client:  # doctest: +SKIP
+            ...     response = client.put("https://api.example.com/data", json={"key": "value"})
+
+            ```
+        """
+        return self.request("PUT", url, **kwargs)
+
+    def delete(self, url: str, **kwargs: Any) -> httpx.Response:
+        r"""Send an HTTP DELETE request with automatic retry logic.
+
+        Args:
+            url: The URL to send the DELETE request to.
+            **kwargs: Additional keyword arguments (see request() method).
+
+        Returns:
+            An httpx.Response object containing the server's HTTP response.
+
+        Example:
+            ```pycon
+            >>> from aresilient import ResilientClient
+            >>> with ResilientClient() as client:  # doctest: +SKIP
+            ...     response = client.delete("https://api.example.com/data")
+
+            ```
+        """
+        return self.request("DELETE", url, **kwargs)
+
+    def patch(self, url: str, **kwargs: Any) -> httpx.Response:
+        r"""Send an HTTP PATCH request with automatic retry logic.
+
+        Args:
+            url: The URL to send the PATCH request to.
+            **kwargs: Additional keyword arguments (see request() method).
+
+        Returns:
+            An httpx.Response object containing the server's HTTP response.
+
+        Example:
+            ```pycon
+            >>> from aresilient import ResilientClient
+            >>> with ResilientClient() as client:  # doctest: +SKIP
+            ...     response = client.patch("https://api.example.com/data", json={"key": "value"})
+
+            ```
+        """
+        return self.request("PATCH", url, **kwargs)
+
+    def head(self, url: str, **kwargs: Any) -> httpx.Response:
+        r"""Send an HTTP HEAD request with automatic retry logic.
+
+        Args:
+            url: The URL to send the HEAD request to.
+            **kwargs: Additional keyword arguments (see request() method).
+
+        Returns:
+            An httpx.Response object containing the server's HTTP response.
+
+        Example:
+            ```pycon
+            >>> from aresilient import ResilientClient
+            >>> with ResilientClient() as client:  # doctest: +SKIP
+            ...     response = client.head("https://api.example.com/data")
+
+            ```
+        """
+        return self.request("HEAD", url, **kwargs)
+
+    def options(self, url: str, **kwargs: Any) -> httpx.Response:
+        r"""Send an HTTP OPTIONS request with automatic retry logic.
+
+        Args:
+            url: The URL to send the OPTIONS request to.
+            **kwargs: Additional keyword arguments (see request() method).
+
+        Returns:
+            An httpx.Response object containing the server's HTTP response.
+
+        Example:
+            ```pycon
+            >>> from aresilient import ResilientClient
+            >>> with ResilientClient() as client:  # doctest: +SKIP
+            ...     response = client.options("https://api.example.com/data")
+
+            ```
+        """
+        return self.request("OPTIONS", url, **kwargs)

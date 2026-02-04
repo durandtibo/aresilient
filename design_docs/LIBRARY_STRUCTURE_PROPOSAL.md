@@ -10,10 +10,12 @@ After analyzing the current codebase (~1,350 lines, 16 modules), **I recommend c
 
 ```
 src/aresilient/
-├── __init__.py          (52 lines)   - Main public API (18 exports)
+├── __init__.py          (60 lines)   - Main public API (36 exports)
 ├── config.py            (27 lines)   - Configuration constants
 ├── exceptions.py        (81 lines)   - Custom exception classes
 ├── utils.py             (33 lines)   - Utility/validation functions
+├── client.py           (385 lines)   - Context manager client (sync)
+├── client_async.py     (410 lines)   - Context manager client (async)
 ├── request.py          (169 lines)   - Core retry logic (sync)
 ├── request_async.py    (173 lines)   - Core retry logic (async)
 ├── get.py               (85 lines)   - GET request wrapper (sync)
@@ -27,7 +29,7 @@ src/aresilient/
 ├── patch.py             (88 lines)   - PATCH request wrapper (sync)
 └── patch_async.py       (93 lines)   - PATCH request wrapper (async)
 
-Total: 16 Python files, ~1,350 lines
+Total: 18 Python files, ~2,145 lines
 ```
 
 ### Strengths of Current Structure
@@ -36,30 +38,53 @@ Total: 16 Python files, ~1,350 lines
 2. ✅ **Clear sync/async separation**: `*_async.py` naming convention is intuitive
 3. ✅ **Consistent patterns**: All HTTP method modules follow identical structure
 4. ✅ **Simple imports**: `from aresilient import get_with_automatic_retry`
-5. ✅ **Manageable size**: ~1,350 lines is still small for a library
+5. ✅ **Manageable size**: ~2,145 lines is still moderate for a library
 6. ✅ **Clean responsibilities**: Each file has a single, focused purpose
 7. ✅ **Parallel structure**: Easy to find async equivalents of sync functions
-8. ✅ **No file exceeds 175 lines**: All modules remain readable and maintainable
+8. ✅ **No file exceeds 410 lines**: All modules remain readable and maintainable
+9. ✅ **Context manager support**: New `ResilientClient` classes provide convenient API for batch requests
 
 ### Current Weaknesses
 
-1. ⚠️ **16 files in one directory**: Getting close to cognitive overload threshold (~20 files)
+1. ⚠️ **18 files in one directory**: Getting closer to cognitive overload threshold (~20 files)
 2. ⚠️ **Duplication**: Sync and async files are nearly identical (could be more DRY)
 3. ⚠️ **Namespace growth**: Will become cluttered if more features are added
 4. ⚠️ **No visual grouping**: Related files (sync/async pairs) are alphabetically separated in some editors
-5. ⚠️ **Limited headroom**: Only ~4-5 more file pairs before restructuring becomes necessary
+5. ⚠️ **Limited headroom**: Only ~2-3 more file pairs before restructuring becomes necessary
 
 ## Public API Overview
 
-### Exported Functions (18 total)
+### Exported Functions (36 total)
+
+**Context Manager Clients:**
+- `ResilientClient` (sync)
+- `AsyncResilientClient` (async)
 
 **HTTP Method Functions:**
-- Sync: `get_with_automatic_retry`, `post_with_automatic_retry`, `put_with_automatic_retry`, `delete_with_automatic_retry`, `patch_with_automatic_retry`
-- Async: `get_with_automatic_retry_async`, `post_with_automatic_retry_async`, `put_with_automatic_retry_async`, `delete_with_automatic_retry_async`, `patch_with_automatic_retry_async`
+- Sync: `get_with_automatic_retry`, `post_with_automatic_retry`, `put_with_automatic_retry`, `delete_with_automatic_retry`, `patch_with_automatic_retry`, `head_with_automatic_retry`, `options_with_automatic_retry`
+- Async: `get_with_automatic_retry_async`, `post_with_automatic_retry_async`, `put_with_automatic_retry_async`, `delete_with_automatic_retry_async`, `patch_with_automatic_retry_async`, `head_with_automatic_retry_async`, `options_with_automatic_retry_async`
 
 **Core Request Functions:**
 - `request_with_automatic_retry` (sync)
 - `request_with_automatic_retry_async` (async)
+
+**Backoff Strategies:**
+- `BackoffStrategy` (base class)
+- `ExponentialBackoff`
+- `LinearBackoff`
+- `FibonacciBackoff`
+- `ConstantBackoff`
+
+**Circuit Breaker:**
+- `CircuitBreaker`
+- `CircuitBreakerError`
+- `CircuitState`
+
+**Callbacks:**
+- `RequestInfo`
+- `ResponseInfo`
+- `RetryInfo`
+- `FailureInfo`
 
 **Configuration Constants:**
 - `DEFAULT_TIMEOUT`
@@ -70,15 +95,27 @@ Total: 16 Python files, ~1,350 lines
 **Exceptions:**
 - `HttpRequestError`
 
+**Version:**
+- `__version__`
+
 ### Import Patterns
 
 ```python
+# Context manager clients (new in 2026)
+from aresilient import ResilientClient, AsyncResilientClient
+
 # Method-specific (most common)
 from aresilient import get_with_automatic_retry
 from aresilient import get_with_automatic_retry_async
 
 # Core request function (advanced)
 from aresilient import request_with_automatic_retry
+
+# Backoff strategies
+from aresilient import LinearBackoff, ExponentialBackoff
+
+# Circuit breaker
+from aresilient import CircuitBreaker
 
 # Configuration
 from aresilient import DEFAULT_TIMEOUT, RETRY_STATUS_CODES
@@ -251,18 +288,20 @@ src/aresilient/
 
 ### Rationale
 
-1. **Library Size**: At ~1,350 lines across 16 files, the library is still well below the threshold where nested structures provide clear benefits. Most successful Python libraries maintain flat structures until **2,500-5,000+ lines** or **20-30+ files**.
+1. **Library Size**: At ~2,145 lines across 18 files, the library is approaching but has not yet reached the threshold where nested structures provide clear benefits. Most successful Python libraries maintain flat structures until **2,500-5,000+ lines** or **20-30+ files**.
 
-2. **Current Structure Works Well**: The `*_async.py` naming convention provides clear visual separation between sync and async variants while maintaining discoverability.
+2. **Current Structure Works Well**: The `*_async.py` naming convention provides clear visual separation between sync and async variants while maintaining discoverability. The addition of context manager clients fits naturally into this structure.
 
 3. **User Experience**: Simple imports are critical for developer happiness:
    ```python
    # Current (Excellent)
-   from aresilient import get_with_automatic_retry, get_with_automatic_retry_async
+   from aresilient import get_with_automatic_retry, ResilientClient
+   from aresilient import get_with_automatic_retry_async, AsyncResilientClient
 
    # With sub-packages (More verbose, no clear benefit at this size)
    from aresilient.methods.sync import get_with_automatic_retry
    from aresilient.methods.async_ import get_with_automatic_retry_async
+   from aresilient.clients.sync import ResilientClient
    ```
 
 4. **Python Philosophy**: "Flat is better than nested" (Zen of Python). The current structure embodies this principle.
@@ -327,10 +366,11 @@ Trigger a restructuring (move to Option B) when **any** of these conditions are 
 
 ## Evolution Timeline
 
-### Phase 1: Current
-- **Status**: ~1,350 lines, 16 files
+### Phase 1: Current (Updated February 2026)
+- **Status**: ~2,145 lines, 18 files
 - **Structure**: Flat with `*_async.py` pattern
 - **Action**: Continue with current structure ✅
+- **Recent additions**: Context manager clients (`ResilientClient`, `AsyncResilientClient`)
 
 ### Phase 2: Growth (~2,500-3,000 lines or 20+ files)
 - **Trigger**: Adding 1-2 major feature categories
@@ -357,5 +397,5 @@ This minimal-change approach maintains stability for users while preserving all 
 
 ---
 
-**Last Updated**: January 2026
-**Next Review**: When library reaches 2,000 lines or 18 files (before restructuring threshold)
+**Last Updated**: February 2026
+**Next Review**: When library reaches 2,500 lines or 20 files (approaching threshold)
