@@ -116,8 +116,7 @@ def delete_with_automatic_retry(
         >>> response = delete_with_automatic_retry(
         ...     "https://api.example.com/resource/123"
         ... )  # doctest: +SKIP
-        >>> response.status_code  # doctest: +SKIP
-        204
+
         ```
     """
     # Input validation
