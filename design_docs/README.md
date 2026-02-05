@@ -91,7 +91,7 @@ The aresilient library has evolved significantly from its initial flat structure
 **Key Achievements:**
 - ✅ Modular structure with backoff/, retry/, utils/ subdirectories
 - ✅ Context Manager API for batch requests
-- ✅ Circuit Breaker pattern for preventing cascading failures  
+- ✅ Circuit Breaker pattern for preventing cascading failures
 - ✅ Custom retry predicates for flexible retry logic
 - ✅ Comprehensive backoff strategies (Exponential, Linear, Fibonacci, Constant)
 - ✅ Full async support across all features

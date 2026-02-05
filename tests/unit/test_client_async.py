@@ -5,16 +5,12 @@ This file contains tests for the asynchronous context manager client.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
 
-from aresilient import AsyncResilientClient, HttpRequestError
-
-if TYPE_CHECKING:
-    from unittest.mock import Mock
+from aresilient import AsyncResilientClient
 
 TEST_URL = "https://api.example.com/data"
 
@@ -26,7 +22,8 @@ TEST_URL = "https://api.example.com/data"
 
 @pytest.mark.asyncio
 async def test_async_client_context_manager_basic(mock_asleep: Mock) -> None:
-    """Test that AsyncResilientClient works as an async context manager."""
+    """Test that AsyncResilientClient works as an async context
+    manager."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
         mock_response = Mock(spec=httpx.Response)
@@ -45,22 +42,25 @@ async def test_async_client_context_manager_basic(mock_asleep: Mock) -> None:
 
 @pytest.mark.asyncio
 async def test_async_client_closes_on_exception(mock_asleep: Mock) -> None:
-    """Test that AsyncResilientClient closes properly even when exception occurs."""
+    """Test that AsyncResilientClient closes properly even when
+    exception occurs."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
 
         with pytest.raises(ValueError, match="test error"):
-            async with AsyncResilientClient() as client:
-                raise ValueError("test error")
+            async with AsyncResilientClient():
+                msg = "test error"
+                raise ValueError(msg)
 
         mock_client.aclose.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_async_client_outside_context_manager_raises(mock_asleep: Mock) -> None:
-    """Test that using client outside context manager raises RuntimeError."""
+    """Test that using client outside context manager raises
+    RuntimeError."""
     client = AsyncResilientClient()
 
     with pytest.raises(RuntimeError, match="must be used within an async context manager"):
@@ -273,7 +273,8 @@ async def test_async_client_override_max_retries(mock_asleep: Mock) -> None:
 
 @pytest.mark.asyncio
 async def test_async_client_default_max_retries(mock_asleep: Mock) -> None:
-    """Test that client's default max_retries is used when not overridden."""
+    """Test that client's default max_retries is used when not
+    overridden."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
         # Simulate retryable error then success

@@ -1,9 +1,10 @@
 r"""Asynchronous context manager client for resilient HTTP requests.
 
-This module provides an async context manager-based client for making multiple HTTP
-requests with shared retry configuration. The AsyncResilientClient automatically
-manages the underlying httpx.AsyncClient lifecycle and provides convenient methods
-for all HTTP operations with automatic retry logic.
+This module provides an async context manager-based client for making
+multiple HTTP requests with shared retry configuration. The
+AsyncResilientClient automatically manages the underlying
+httpx.AsyncClient lifecycle and provides convenient methods for all HTTP
+operations with automatic retry logic.
 """
 
 from __future__ import annotations
@@ -24,8 +25,8 @@ from aresilient.request_async import request_with_automatic_retry_async
 from aresilient.utils import validate_retry_params
 
 if TYPE_CHECKING:
-    from types import TracebackType
     from collections.abc import Callable
+    from types import TracebackType
     from typing import Self
 
     from aresilient.backoff import BackoffStrategy
@@ -66,7 +67,10 @@ class AsyncResilientClient:
         >>> async def main():  # doctest: +SKIP
         ...     async with AsyncResilientClient(max_retries=5, timeout=30) as client:
         ...         response1 = await client.get("https://api.example.com/data1")
-        ...         response2 = await client.post("https://api.example.com/data2", json={"key": "value"})
+        ...         response2 = await client.post(
+        ...             "https://api.example.com/data2", json={"key": "value"}
+        ...         )
+        ...
         >>> asyncio.run(main())  # doctest: +SKIP
         # Client automatically closed after context exits
 
@@ -96,7 +100,8 @@ class AsyncResilientClient:
         on_success: Callable[[ResponseInfo], None] | None = None,
         on_failure: Callable[[FailureInfo], None] | None = None,
     ) -> None:
-        """Initialize the async resilient client with retry configuration."""
+        """Initialize the async resilient client with retry
+        configuration."""
         # Validate parameters
         validate_retry_params(
             max_retries=max_retries,
@@ -128,7 +133,8 @@ class AsyncResilientClient:
         self._entered = False
 
     async def __aenter__(self) -> Self:
-        """Enter the async context manager and create the underlying httpx client.
+        """Enter the async context manager and create the underlying
+        httpx client.
 
         Returns:
             The AsyncResilientClient instance for making requests.
@@ -143,7 +149,8 @@ class AsyncResilientClient:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Exit the async context manager and close the underlying httpx client.
+        """Exit the async context manager and close the underlying httpx
+        client.
 
         Args:
             exc_type: Exception type if an exception occurred.
@@ -223,6 +230,7 @@ class AsyncResilientClient:
             >>> async def main():  # doctest: +SKIP
             ...     async with AsyncResilientClient() as client:
             ...         response = await client.request("GET", "https://api.example.com/data")
+            ...
             >>> asyncio.run(main())  # doctest: +SKIP
 
             ```
@@ -273,6 +281,7 @@ class AsyncResilientClient:
             >>> async def main():  # doctest: +SKIP
             ...     async with AsyncResilientClient() as client:
             ...         response = await client.get("https://api.example.com/data")
+            ...
             >>> asyncio.run(main())  # doctest: +SKIP
 
             ```
@@ -295,7 +304,10 @@ class AsyncResilientClient:
             >>> from aresilient import AsyncResilientClient
             >>> async def main():  # doctest: +SKIP
             ...     async with AsyncResilientClient() as client:
-            ...         response = await client.post("https://api.example.com/data", json={"key": "value"})
+            ...         response = await client.post(
+            ...             "https://api.example.com/data", json={"key": "value"}
+            ...         )
+            ...
             >>> asyncio.run(main())  # doctest: +SKIP
 
             ```
@@ -318,7 +330,10 @@ class AsyncResilientClient:
             >>> from aresilient import AsyncResilientClient
             >>> async def main():  # doctest: +SKIP
             ...     async with AsyncResilientClient() as client:
-            ...         response = await client.put("https://api.example.com/data", json={"key": "value"})
+            ...         response = await client.put(
+            ...             "https://api.example.com/data", json={"key": "value"}
+            ...         )
+            ...
             >>> asyncio.run(main())  # doctest: +SKIP
 
             ```
@@ -342,6 +357,7 @@ class AsyncResilientClient:
             >>> async def main():  # doctest: +SKIP
             ...     async with AsyncResilientClient() as client:
             ...         response = await client.delete("https://api.example.com/data")
+            ...
             >>> asyncio.run(main())  # doctest: +SKIP
 
             ```
@@ -364,7 +380,10 @@ class AsyncResilientClient:
             >>> from aresilient import AsyncResilientClient
             >>> async def main():  # doctest: +SKIP
             ...     async with AsyncResilientClient() as client:
-            ...         response = await client.patch("https://api.example.com/data", json={"key": "value"})
+            ...         response = await client.patch(
+            ...             "https://api.example.com/data", json={"key": "value"}
+            ...         )
+            ...
             >>> asyncio.run(main())  # doctest: +SKIP
 
             ```
@@ -388,6 +407,7 @@ class AsyncResilientClient:
             >>> async def main():  # doctest: +SKIP
             ...     async with AsyncResilientClient() as client:
             ...         response = await client.head("https://api.example.com/data")
+            ...
             >>> asyncio.run(main())  # doctest: +SKIP
 
             ```
@@ -411,6 +431,7 @@ class AsyncResilientClient:
             >>> async def main():  # doctest: +SKIP
             ...     async with AsyncResilientClient() as client:
             ...         response = await client.options("https://api.example.com/data")
+            ...
             >>> asyncio.run(main())  # doctest: +SKIP
 
             ```

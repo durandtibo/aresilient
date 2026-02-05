@@ -5,16 +5,12 @@ This file contains tests for the synchronous context manager client.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 import httpx
 import pytest
 
-from aresilient import HttpRequestError, ResilientClient
-
-if TYPE_CHECKING:
-    from unittest.mock import Mock
+from aresilient import ResilientClient
 
 TEST_URL = "https://api.example.com/data"
 
@@ -42,20 +38,22 @@ def test_client_context_manager_basic(mock_sleep: Mock) -> None:
 
 
 def test_client_closes_on_exception(mock_sleep: Mock) -> None:
-    """Test that ResilientClient closes properly even when exception occurs."""
+    """Test that ResilientClient closes properly even when exception
+    occurs."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
         mock_client_class.return_value = mock_client
 
-        with pytest.raises(ValueError, match="test error"):
-            with ResilientClient() as client:
-                raise ValueError("test error")
+        with pytest.raises(ValueError, match="test error"), ResilientClient():
+            msg = "test error"
+            raise ValueError(msg)
 
         mock_client.close.assert_called_once()
 
 
 def test_client_outside_context_manager_raises(mock_sleep: Mock) -> None:
-    """Test that using client outside context manager raises RuntimeError."""
+    """Test that using client outside context manager raises
+    RuntimeError."""
     client = ResilientClient()
 
     with pytest.raises(RuntimeError, match="must be used within a context manager"):
@@ -242,7 +240,8 @@ def test_client_override_max_retries(mock_sleep: Mock) -> None:
 
 
 def test_client_default_max_retries(mock_sleep: Mock) -> None:
-    """Test that client's default max_retries is used when not overridden."""
+    """Test that client's default max_retries is used when not
+    overridden."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
         # Simulate retryable error then success

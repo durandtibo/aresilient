@@ -213,7 +213,9 @@ with ResilientClient(max_retries=5, timeout=30) as client:
 # Asynchronous
 async with AsyncResilientClient(max_retries=5, timeout=30) as client:
     response1 = await client.get("https://api.example.com/data1")
-    response2 = await client.post("https://api.example.com/data2", json={"key": "value"})
+    response2 = await client.post(
+        "https://api.example.com/data2", json={"key": "value"}
+    )
 # Client automatically closed
 ```
 
@@ -322,8 +324,7 @@ def fallback_handler(error):
 
 
 response = get_with_automatic_retry(
-    "https://api.example.com/data", 
-    on_failure=lambda info: fallback_handler(info.error)
+    "https://api.example.com/data", on_failure=lambda info: fallback_handler(info.error)
 )
 ```
 
