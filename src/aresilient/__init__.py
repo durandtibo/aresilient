@@ -58,13 +58,17 @@ __all__ = [
     "ResilientClient",
     "ResponseInfo",
     "RetryInfo",
+    "StructuredFormatter",
     "__version__",
+    "clear_correlation_id",
     "delete_with_automatic_retry",
     "delete_with_automatic_retry_async",
+    "get_correlation_id",
     "get_with_automatic_retry",
     "get_with_automatic_retry_async",
     "head_with_automatic_retry",
     "head_with_automatic_retry_async",
+    "log_structured",
     "options_with_automatic_retry",
     "options_with_automatic_retry_async",
     "patch_with_automatic_retry",
@@ -75,6 +79,7 @@ __all__ = [
     "put_with_automatic_retry_async",
     "request_with_automatic_retry",
     "request_with_automatic_retry_async",
+    "set_correlation_id",
 ]
 
 from importlib.metadata import PackageNotFoundError, version
@@ -113,6 +118,13 @@ from aresilient.put import put_with_automatic_retry
 from aresilient.put_async import put_with_automatic_retry_async
 from aresilient.request import request_with_automatic_retry
 from aresilient.request_async import request_with_automatic_retry_async
+from aresilient.utils import (
+    StructuredFormatter,
+    clear_correlation_id,
+    get_correlation_id,
+    log_structured,
+    set_correlation_id,
+)
 
 try:
     __version__ = version(__name__)
