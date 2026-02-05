@@ -297,7 +297,7 @@ src/aresilient/
    from aresilient import get_with_automatic_retry, LinearBackoff
    from aresilient import get_with_automatic_retry_async
    from aresilient import ResilientClient, CircuitBreaker
-   
+
    # Also possible if needed
    from aresilient.backoff import ExponentialBackoff
    from aresilient.retry import RetryExecutor
@@ -386,7 +386,7 @@ The current modular structure should remain stable for the foreseeable future. C
 - **Status**: ~6,612 lines, 40 files
 - **Structure**: Modular with `backoff/`, `retry/`, `utils/` subdirectories
 - **Action**: Successfully transitioned to modular structure ✅
-- **Key additions**: 
+- **Key additions**:
   - Circuit breaker implementation (464 lines)
   - Context manager clients (client.py, client_async.py)
   - Comprehensive retry execution framework

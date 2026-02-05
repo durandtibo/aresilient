@@ -431,7 +431,7 @@ response = get_with_automatic_retry(
     max_retries=10,
     backoff_factor=2.0,
     max_total_time=60.0,  # Total budget: 60 seconds
-    max_wait_time=15.0,   # Max wait between retries: 15 seconds
+    max_wait_time=15.0,  # Max wait between retries: 15 seconds
 )
 ```
 
@@ -463,25 +463,25 @@ with ResilientClient(
 ) as client:
     # All requests use the shared configuration
     users = client.get("https://api.example.com/users")
-    
+
     # Override configuration for specific requests
     posts = client.get(
         "https://api.example.com/posts",
         max_retries=3,  # Override max_retries for this request
     )
-    
+
     # POST request
     result = client.post(
         "https://api.example.com/data",
         json={"key": "value"},
     )
-    
+
     # PUT request
     updated = client.put(
         "https://api.example.com/resource/123",
         json={"status": "active"},
     )
-    
+
     # DELETE request
     client.delete("https://api.example.com/resource/456")
 ```
@@ -502,15 +502,15 @@ async def fetch_all_data():
         # Concurrent async requests with shared configuration
         users_task = client.get("https://api.example.com/users")
         posts_task = client.get("https://api.example.com/posts")
-        
+
         users, posts = await asyncio.gather(users_task, posts_task)
-        
+
         # POST request
         result = await client.post(
             "https://api.example.com/submit",
             json={"data": "value"},
         )
-        
+
         return users.json(), posts.json(), result.json()
 
 
@@ -655,7 +655,7 @@ from aresilient import get_with_automatic_retry, CircuitBreaker
 
 # Create a circuit breaker
 circuit_breaker = CircuitBreaker(
-    failure_threshold=5,    # Open after 5 consecutive failures
+    failure_threshold=5,  # Open after 5 consecutive failures
     recovery_timeout=60.0,  # Try again after 60 seconds
 )
 
@@ -791,22 +791,22 @@ from aresilient import get_with_automatic_retry
 
 def should_retry(response, exception):
     """Custom retry logic.
-    
+
     Args:
         response: httpx.Response or None if exception occurred
         exception: Exception or None if request succeeded
-    
+
     Returns:
         True to retry, False to not retry
     """
     # Retry on exceptions
     if exception:
         return True
-    
+
     # Retry on specific status codes
     if response.status_code in (429, 500, 502, 503, 504):
         return True
-    
+
     # Don't retry on success
     return False
 
@@ -828,15 +828,15 @@ def retry_on_error_field(response, exception):
     # Always retry on exceptions
     if exception:
         return True
-    
+
     # Don't retry on client errors (4xx except 429)
     if 400 <= response.status_code < 500 and response.status_code != 429:
         return False
-    
+
     # Retry on server errors
     if response.status_code >= 500:
         return True
-    
+
     # Check response body for application-level errors
     try:
         data = response.json()
@@ -845,7 +845,7 @@ def retry_on_error_field(response, exception):
             return True
     except Exception:
         pass  # Can't parse JSON, use status code logic
-    
+
     return False
 
 
@@ -866,19 +866,19 @@ def retry_on_header(response, exception):
     """Retry based on custom response headers."""
     if exception:
         return True
-    
+
     # Retry if server indicates the operation is still processing
     if response.headers.get("X-Processing") == "true":
         return True
-    
+
     # Retry on rate limit
     if response.status_code == 429:
         return True
-    
+
     # Retry on server errors
     if response.status_code >= 500:
         return True
-    
+
     return False
 
 
@@ -901,22 +901,22 @@ def complex_retry_logic(response, exception):
     # Network errors and timeouts - always retry
     if isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)):
         return True
-    
+
     # Other exceptions - don't retry
     if exception:
         return False
-    
+
     # Success - don't retry
     if 200 <= response.status_code < 300:
         return False
-    
+
     # Client errors (except specific ones) - don't retry
     if 400 <= response.status_code < 500:
         # Retry on rate limit and request timeout
         if response.status_code in (429, 408):
             return True
         return False
-    
+
     # Server errors - check response content
     if response.status_code >= 500:
         try:
@@ -929,10 +929,10 @@ def complex_retry_logic(response, exception):
                 return True
         except Exception:
             pass  # Can't parse, default to retry
-        
+
         # Default: retry on 500-level errors
         return True
-    
+
     return False
 
 
@@ -957,7 +957,7 @@ def custom_with_defaults(response, exception):
     """Custom logic that falls back to default status codes."""
     if exception:
         return True
-    
+
     # Custom logic first
     try:
         data = response.json()
@@ -965,7 +965,7 @@ def custom_with_defaults(response, exception):
             return True
     except Exception:
         pass
-    
+
     # Fall back to common retry status codes
     return response.status_code in (429, 500, 502, 503, 504)
 
@@ -1871,7 +1871,9 @@ user_service_circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0
 
 # Use with different endpoints
 with ResilientClient(circuit_breaker=payment_circuit) as client:
-    response = client.post("https://payment-api.example.com/charge", json={"amount": 100})
+    response = client.post(
+        "https://payment-api.example.com/charge", json={"amount": 100}
+    )
 
 with ResilientClient(circuit_breaker=user_service_circuit) as client:
     response = client.get("https://user-api.example.com/profile")
@@ -1936,10 +1938,10 @@ def should_retry_payment(response, exception):
     """Custom retry logic for payment processing."""
     if exception:
         return True  # Retry on network errors
-    
+
     if response.status_code >= 500:
         return True  # Retry on server errors
-    
+
     # Check for specific business conditions
     try:
         data = response.json()
@@ -1948,7 +1950,7 @@ def should_retry_payment(response, exception):
             return True
     except Exception:
         pass
-    
+
     return False
 
 

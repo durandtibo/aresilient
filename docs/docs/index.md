@@ -151,7 +151,9 @@ from aresilient import ResilientClient
 with ResilientClient(max_retries=5, timeout=30.0) as client:
     response1 = client.get("https://api.example.com/users")
     response2 = client.post("https://api.example.com/data", json={"key": "value"})
-    response3 = client.put("https://api.example.com/resource/123", json={"status": "active"})
+    response3 = client.put(
+        "https://api.example.com/resource/123", json={"status": "active"}
+    )
 ```
 
 ### Using Circuit Breaker

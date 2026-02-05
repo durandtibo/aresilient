@@ -276,7 +276,7 @@ with ResilientClient(
 ) as client:
     response1 = client.get("https://api.example.com/data1")
     response2 = client.post("https://api.example.com/data2", json={"key": "value"})
-    
+
     # Override strategy for a specific request
     response3 = client.get(
         "https://api.example.com/data3",

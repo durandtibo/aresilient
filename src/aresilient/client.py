@@ -1,9 +1,9 @@
 r"""Synchronous context manager client for resilient HTTP requests.
 
-This module provides a context manager-based client for making multiple HTTP
-requests with shared retry configuration. The ResilientClient automatically
-manages the underlying httpx.Client lifecycle and provides convenient methods
-for all HTTP operations with automatic retry logic.
+This module provides a context manager-based client for making multiple
+HTTP requests with shared retry configuration. The ResilientClient
+automatically manages the underlying httpx.Client lifecycle and provides
+convenient methods for all HTTP operations with automatic retry logic.
 """
 
 from __future__ import annotations
@@ -24,8 +24,8 @@ from aresilient.request import request_with_automatic_retry
 from aresilient.utils import validate_retry_params
 
 if TYPE_CHECKING:
-    from types import TracebackType
     from collections.abc import Callable
+    from types import TracebackType
     from typing import Self
 
     from aresilient.backoff import BackoffStrategy
@@ -65,6 +65,7 @@ class ResilientClient:
         >>> with ResilientClient(max_retries=5, timeout=30) as client:  # doctest: +SKIP
         ...     response1 = client.get("https://api.example.com/data1")
         ...     response2 = client.post("https://api.example.com/data2", json={"key": "value"})
+        ...
         # Client automatically closed after context exits
 
         ```
@@ -125,7 +126,8 @@ class ResilientClient:
         self._entered = False
 
     def __enter__(self) -> Self:
-        """Enter the context manager and create the underlying httpx client.
+        """Enter the context manager and create the underlying httpx
+        client.
 
         Returns:
             The ResilientClient instance for making requests.
@@ -140,7 +142,8 @@ class ResilientClient:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Exit the context manager and close the underlying httpx client.
+        """Exit the context manager and close the underlying httpx
+        client.
 
         Args:
             exc_type: Exception type if an exception occurred.
@@ -218,6 +221,7 @@ class ResilientClient:
             >>> from aresilient import ResilientClient
             >>> with ResilientClient() as client:  # doctest: +SKIP
             ...     response = client.request("GET", "https://api.example.com/data")
+            ...
 
             ```
         """
@@ -265,6 +269,7 @@ class ResilientClient:
             >>> from aresilient import ResilientClient
             >>> with ResilientClient() as client:  # doctest: +SKIP
             ...     response = client.get("https://api.example.com/data")
+            ...
 
             ```
         """
@@ -285,6 +290,7 @@ class ResilientClient:
             >>> from aresilient import ResilientClient
             >>> with ResilientClient() as client:  # doctest: +SKIP
             ...     response = client.post("https://api.example.com/data", json={"key": "value"})
+            ...
 
             ```
         """
@@ -305,6 +311,7 @@ class ResilientClient:
             >>> from aresilient import ResilientClient
             >>> with ResilientClient() as client:  # doctest: +SKIP
             ...     response = client.put("https://api.example.com/data", json={"key": "value"})
+            ...
 
             ```
         """
@@ -325,6 +332,7 @@ class ResilientClient:
             >>> from aresilient import ResilientClient
             >>> with ResilientClient() as client:  # doctest: +SKIP
             ...     response = client.delete("https://api.example.com/data")
+            ...
 
             ```
         """
@@ -345,6 +353,7 @@ class ResilientClient:
             >>> from aresilient import ResilientClient
             >>> with ResilientClient() as client:  # doctest: +SKIP
             ...     response = client.patch("https://api.example.com/data", json={"key": "value"})
+            ...
 
             ```
         """
@@ -365,6 +374,7 @@ class ResilientClient:
             >>> from aresilient import ResilientClient
             >>> with ResilientClient() as client:  # doctest: +SKIP
             ...     response = client.head("https://api.example.com/data")
+            ...
 
             ```
         """
@@ -385,6 +395,7 @@ class ResilientClient:
             >>> from aresilient import ResilientClient
             >>> with ResilientClient() as client:  # doctest: +SKIP
             ...     response = client.options("https://api.example.com/data")
+            ...
 
             ```
         """
