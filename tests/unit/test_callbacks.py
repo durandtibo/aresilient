@@ -11,15 +11,17 @@ from aresilient import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
     HttpRequestError,
+    RequestInfo,
+    RetryInfo,
 )
 from aresilient.request import request_with_automatic_retry
 
 TEST_URL = "https://api.example.com/data"
 
 
-##################################################
-#     Tests for on_request callback              #
-##################################################
+#########################################
+#     Tests for on_request callback     #
+#########################################
 
 
 def test_on_request_callback_called_on_first_attempt(
@@ -37,81 +39,70 @@ def test_on_request_callback_called_on_first_attempt(
     )
 
     assert response == mock_response
-    on_request_callback.assert_called_once()
-    call_args = on_request_callback.call_args[0][0]
-    assert call_args.url == TEST_URL
-    assert call_args.method == "GET"
-    assert call_args.attempt == 1
-    assert call_args.max_retries == DEFAULT_MAX_RETRIES
+    on_request_callback.assert_called_once_with(
+        RequestInfo(url=TEST_URL, method="GET", attempt=1, max_retries=DEFAULT_MAX_RETRIES)
+    )
     mock_sleep.assert_not_called()
 
 
 def test_on_request_callback_called_on_each_retry(
-    mock_response: httpx.Response, mock_sleep: Mock
+    mock_response: httpx.Response, mock_sleep: Mock, mock_response_fail: httpx.Response
 ) -> None:
     """Test that on_request callback is called before each retry
     attempt."""
     on_request_callback = Mock()
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_request_func = Mock(side_effect=[mock_fail_response, mock_fail_response, mock_response])
+    mock_request_func = Mock(side_effect=[mock_response_fail, mock_response_fail, mock_response])
 
     response = request_with_automatic_retry(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        status_forcelist=(500,),
         on_request=on_request_callback,
     )
 
     assert response == mock_response
-    assert on_request_callback.call_count == 3
+    assert on_request_callback.call_args_list == [
+        call(RequestInfo(url=TEST_URL, method="GET", attempt=1, max_retries=DEFAULT_MAX_RETRIES)),
+        call(RequestInfo(url=TEST_URL, method="GET", attempt=2, max_retries=DEFAULT_MAX_RETRIES)),
+        call(RequestInfo(url=TEST_URL, method="GET", attempt=3, max_retries=DEFAULT_MAX_RETRIES)),
+    ]
 
-    # Check first attempt
-    first_call = on_request_callback.call_args_list[0][0][0]
-    assert first_call.attempt == 1
-    assert first_call.max_retries == DEFAULT_MAX_RETRIES
-
-    # Check second attempt
-    second_call = on_request_callback.call_args_list[1][0][0]
-    assert second_call.attempt == 2
-
-    # Check third attempt
-    third_call = on_request_callback.call_args_list[2][0][0]
-    assert third_call.attempt == 3
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
-##################################################
-#     Tests for on_retry callback                #
-##################################################
+#######################################
+#     Tests for on_retry callback     #
+#######################################
 
 
 def test_on_retry_callback_called_before_retry(
-    mock_response: httpx.Response, mock_sleep: Mock
+    mock_response: httpx.Response, mock_sleep: Mock, mock_response_fail: httpx.Response
 ) -> None:
     """Test that on_retry callback is called before each retry."""
     on_retry_callback = Mock()
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
+    mock_request_func = Mock(side_effect=[mock_response_fail, mock_response])
 
     response = request_with_automatic_retry(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        status_forcelist=(500,),
         on_retry=on_retry_callback,
     )
 
     assert response == mock_response
-    on_retry_callback.assert_called_once()
-    call_args = on_retry_callback.call_args[0][0]
-    assert call_args.url == TEST_URL
-    assert call_args.method == "GET"
-    assert call_args.attempt == 2  # Next attempt
-    assert call_args.max_retries == DEFAULT_MAX_RETRIES
-    assert call_args.wait_time == DEFAULT_BACKOFF_FACTOR
-    assert call_args.status_code == 503
-    assert call_args.error is None
+    on_retry_callback.assert_called_once_with(
+        RetryInfo(
+            url=TEST_URL,
+            method="GET",
+            attempt=2,
+            max_retries=DEFAULT_MAX_RETRIES,
+            wait_time=DEFAULT_BACKOFF_FACTOR,
+            error=None,
+            status_code=500,
+        )
+    )
     mock_sleep.assert_called_once_with(0.3)
 
 
@@ -134,11 +125,12 @@ def test_on_retry_callback_not_called_on_first_success(
     mock_sleep.assert_not_called()
 
 
-def test_on_retry_callback_with_timeout_exception(mock_sleep: Mock) -> None:
+def test_on_retry_callback_with_timeout_exception(
+    mock_sleep: Mock, mock_response: httpx.Response
+) -> None:
     """Test that on_retry callback receives error information on
     timeout."""
     on_retry_callback = Mock()
-    mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[httpx.TimeoutException("timeout"), mock_response])
 
     response = request_with_automatic_retry(
@@ -151,16 +143,22 @@ def test_on_retry_callback_with_timeout_exception(mock_sleep: Mock) -> None:
     assert response == mock_response
     on_retry_callback.assert_called_once()
     call_args = on_retry_callback.call_args[0][0]
+    assert call_args.url == TEST_URL
+    assert call_args.method == "GET"
+    assert call_args.attempt == 2  # Next attempt
+    assert call_args.max_retries == DEFAULT_MAX_RETRIES
+    assert call_args.wait_time == DEFAULT_BACKOFF_FACTOR
     assert isinstance(call_args.error, httpx.TimeoutException)
     assert call_args.status_code is None
     mock_sleep.assert_called_once_with(0.3)
 
 
-def test_on_retry_callback_with_request_error(mock_sleep: Mock) -> None:
+def test_on_retry_callback_with_request_error(
+    mock_sleep: Mock, mock_response: httpx.Response
+) -> None:
     """Test that on_retry callback receives error information on request
     error."""
     on_retry_callback = Mock()
-    mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[httpx.ConnectError("connection failed"), mock_response])
 
     response = request_with_automatic_retry(
@@ -173,14 +171,19 @@ def test_on_retry_callback_with_request_error(mock_sleep: Mock) -> None:
     assert response == mock_response
     on_retry_callback.assert_called_once()
     call_args = on_retry_callback.call_args[0][0]
+    assert call_args.url == TEST_URL
+    assert call_args.method == "GET"
+    assert call_args.attempt == 2  # Next attempt
+    assert call_args.max_retries == DEFAULT_MAX_RETRIES
+    assert call_args.wait_time == DEFAULT_BACKOFF_FACTOR
     assert isinstance(call_args.error, httpx.ConnectError)
     assert call_args.status_code is None
     mock_sleep.assert_called_once_with(0.3)
 
 
-##################################################
-#     Tests for on_success callback              #
-##################################################
+#########################################
+#     Tests for on_success callback     #
+#########################################
 
 
 def test_on_success_callback_called_on_success(
@@ -208,26 +211,31 @@ def test_on_success_callback_called_on_success(
     mock_sleep.assert_not_called()
 
 
-def test_on_success_callback_after_retries(mock_response: httpx.Response, mock_sleep: Mock) -> None:
+def test_on_success_callback_after_retries(
+    mock_response: httpx.Response, mock_sleep: Mock, mock_response_fail: httpx.Response
+) -> None:
     """Test that on_success callback is called after successful
     retry."""
     on_success_callback = Mock()
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_request_func = Mock(side_effect=[mock_fail_response, mock_fail_response, mock_response])
+    mock_request_func = Mock(side_effect=[mock_response_fail, mock_response_fail, mock_response])
 
     response = request_with_automatic_retry(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        status_forcelist=(500,),
         on_success=on_success_callback,
     )
 
     assert response == mock_response
     on_success_callback.assert_called_once()
     call_args = on_success_callback.call_args[0][0]
+    assert call_args.url == TEST_URL
+    assert call_args.method == "GET"
     assert call_args.attempt == 3  # Succeeded on third attempt
+    assert call_args.max_retries == DEFAULT_MAX_RETRIES
     assert call_args.response == mock_response
+    assert call_args.total_time >= 0
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
@@ -238,7 +246,10 @@ def test_on_success_callback_not_called_on_failure(mock_sleep: Mock) -> None:
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_request_func = Mock(return_value=mock_fail_response)
 
-    with pytest.raises(HttpRequestError):
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://api.example.com/data failed with status 503 after 3 attempts",
+    ):
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",
@@ -252,26 +263,25 @@ def test_on_success_callback_not_called_on_failure(mock_sleep: Mock) -> None:
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
-##################################################
-#     Tests for on_failure callback              #
-##################################################
+#########################################
+#     Tests for on_failure callback     #
+#########################################
 
 
 def test_on_failure_callback_called_on_retryable_status_failure(
-    mock_sleep: Mock,
+    mock_sleep: Mock, mock_response_fail: httpx.Response
 ) -> None:
     """Test that on_failure callback is called when retries are
     exhausted."""
     on_failure_callback = Mock()
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_request_func = Mock(return_value=mock_fail_response)
+    mock_request_func = Mock(return_value=mock_response_fail)
 
-    with pytest.raises(HttpRequestError):
+    with pytest.raises(HttpRequestError, match=r"GET request to https://api.example.com/data"):
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(503,),
+            status_forcelist=(500,),
             max_retries=2,
             on_failure=on_failure_callback,
         )
@@ -283,7 +293,7 @@ def test_on_failure_callback_called_on_retryable_status_failure(
     assert call_args.attempt == 3  # max_retries + 1
     assert call_args.max_retries == 2
     assert isinstance(call_args.error, HttpRequestError)
-    assert call_args.status_code == 503
+    assert call_args.status_code == 500
     assert call_args.total_time >= 0
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
@@ -329,12 +339,14 @@ def test_on_failure_callback_with_timeout_error(mock_sleep: Mock) -> None:
     mock_sleep.assert_called_once_with(0.3)
 
 
-##################################################
-#     Tests for multiple callbacks               #
-##################################################
+########################################
+#     Tests for multiple callbacks     #
+########################################
 
 
-def test_all_callbacks_together_on_success(mock_response: httpx.Response, mock_sleep: Mock) -> None:
+def test_all_callbacks_together_on_success(
+    mock_response: httpx.Response, mock_sleep: Mock, mock_response_fail: httpx.Response
+) -> None:
     """Test that all callbacks work together correctly on successful
     retry."""
     on_request_callback = Mock()
@@ -342,14 +354,13 @@ def test_all_callbacks_together_on_success(mock_response: httpx.Response, mock_s
     on_success_callback = Mock()
     on_failure_callback = Mock()
 
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
+    mock_request_func = Mock(side_effect=[mock_response_fail, mock_response])
 
     response = request_with_automatic_retry(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        status_forcelist=(500,),
         on_request=on_request_callback,
         on_retry=on_retry_callback,
         on_success=on_success_callback,
@@ -357,29 +368,45 @@ def test_all_callbacks_together_on_success(mock_response: httpx.Response, mock_s
     )
 
     assert response == mock_response
-    assert on_request_callback.call_count == 2  # Two attempts
-    on_retry_callback.assert_called_once()  # One retry
+    assert on_request_callback.call_args_list == [
+        call(RequestInfo(url=TEST_URL, method="GET", attempt=1, max_retries=DEFAULT_MAX_RETRIES)),
+        call(RequestInfo(url=TEST_URL, method="GET", attempt=2, max_retries=DEFAULT_MAX_RETRIES)),
+    ]
+    on_retry_callback.assert_called_once_with(
+        RetryInfo(
+            url=TEST_URL,
+            method="GET",
+            attempt=2,
+            max_retries=DEFAULT_MAX_RETRIES,
+            wait_time=0.3,
+            error=None,
+            status_code=500,
+        )
+    )  # One retry
     on_success_callback.assert_called_once()  # One success
     on_failure_callback.assert_not_called()  # No failure
     mock_sleep.assert_called_once_with(0.3)
 
 
-def test_all_callbacks_together_on_failure(mock_sleep: Mock) -> None:
+def test_all_callbacks_together_on_failure(
+    mock_sleep: Mock, mock_response_fail: httpx.Response
+) -> None:
     """Test that all callbacks work together correctly on failure."""
     on_request_callback = Mock()
     on_retry_callback = Mock()
     on_success_callback = Mock()
     on_failure_callback = Mock()
+    mock_request_func = Mock(return_value=mock_response_fail)
 
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_request_func = Mock(return_value=mock_fail_response)
-
-    with pytest.raises(HttpRequestError):
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://api.example.com/data failed with status 500 after 3 attempts",
+    ):
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(503,),
+            status_forcelist=(500,),
             max_retries=2,
             on_request=on_request_callback,
             on_retry=on_retry_callback,
@@ -387,16 +414,43 @@ def test_all_callbacks_together_on_failure(mock_sleep: Mock) -> None:
             on_failure=on_failure_callback,
         )
 
-    assert on_request_callback.call_count == 3  # Three attempts
-    assert on_retry_callback.call_count == 2  # Two retries
+    assert on_request_callback.call_args_list == [
+        call(RequestInfo(url=TEST_URL, method="GET", attempt=1, max_retries=2)),
+        call(RequestInfo(url=TEST_URL, method="GET", attempt=2, max_retries=2)),
+        call(RequestInfo(url=TEST_URL, method="GET", attempt=3, max_retries=2)),
+    ]
+    assert on_retry_callback.call_args_list == [
+        call(
+            RetryInfo(
+                url=TEST_URL,
+                method="GET",
+                attempt=2,
+                max_retries=2,
+                wait_time=0.3,
+                error=None,
+                status_code=500,
+            )
+        ),
+        call(
+            RetryInfo(
+                url=TEST_URL,
+                method="GET",
+                attempt=3,
+                max_retries=2,
+                wait_time=0.6,
+                error=None,
+                status_code=500,
+            )
+        ),
+    ]
     on_success_callback.assert_not_called()  # No success
     on_failure_callback.assert_called_once()  # One failure
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
-##################################################
-#     Tests for callback exceptions              #
-##################################################
+#########################################
+#     Tests for callback exceptions     #
+#########################################
 
 
 def test_callback_exception_does_not_break_retry_logic(
@@ -418,24 +472,24 @@ def test_callback_exception_does_not_break_retry_logic(
     mock_sleep.assert_not_called()
 
 
-##################################################
-#     Tests with custom retry parameters         #
-##################################################
+##############################################
+#     Tests with custom retry parameters     #
+##############################################
 
 
-def test_callbacks_with_custom_max_retries(mock_response: httpx.Response, mock_sleep: Mock) -> None:
+def test_callbacks_with_custom_max_retries(
+    mock_response: httpx.Response, mock_sleep: Mock, mock_response_fail: httpx.Response
+) -> None:
     """Test that callbacks receive correct max_retries value."""
     on_request_callback = Mock()
     on_retry_callback = Mock()
-
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
+    mock_request_func = Mock(side_effect=[mock_response_fail, mock_response])
 
     response = request_with_automatic_retry(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        status_forcelist=(500,),
         max_retries=5,
         on_request=on_request_callback,
         on_retry=on_retry_callback,
@@ -444,35 +498,52 @@ def test_callbacks_with_custom_max_retries(mock_response: httpx.Response, mock_s
     assert response == mock_response
 
     # Check that max_retries is correctly passed
-    request_call_args = on_request_callback.call_args_list[0][0][0]
-    assert request_call_args.max_retries == 5
-
-    retry_call_args = on_retry_callback.call_args[0][0]
-    assert retry_call_args.max_retries == 5
+    assert on_request_callback.call_args_list == [
+        call(RequestInfo(url=TEST_URL, method="GET", attempt=1, max_retries=5)),
+        call(RequestInfo(url=TEST_URL, method="GET", attempt=2, max_retries=5)),
+    ]
+    on_retry_callback.assert_called_once_with(
+        RetryInfo(
+            url=TEST_URL,
+            method="GET",
+            attempt=2,
+            max_retries=5,
+            wait_time=0.3,
+            error=None,
+            status_code=500,
+        )
+    )
     mock_sleep.assert_called_once_with(0.3)
 
 
 def test_callbacks_with_custom_backoff_factor(
-    mock_response: httpx.Response, mock_sleep: Mock
+    mock_response: httpx.Response, mock_sleep: Mock, mock_response_fail: httpx.Response
 ) -> None:
     """Test that on_retry callback receives correct wait_time with
     custom backoff."""
     on_retry_callback = Mock()
-
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
+    mock_request_func = Mock(side_effect=[mock_response_fail, mock_response])
 
     response = request_with_automatic_retry(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        status_forcelist=(500,),
         backoff_factor=2.0,
         on_retry=on_retry_callback,
     )
 
     assert response == mock_response
 
-    retry_call_args = on_retry_callback.call_args[0][0]
-    assert retry_call_args.wait_time == 2.0  # 2.0 * (2 ** 0)
+    on_retry_callback.assert_called_once_with(
+        RetryInfo(
+            url=TEST_URL,
+            method="GET",
+            attempt=2,
+            max_retries=DEFAULT_MAX_RETRIES,
+            wait_time=2.0,
+            error=None,
+            status_code=500,
+        )
+    )
     mock_sleep.assert_called_once_with(2.0)
