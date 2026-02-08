@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     import httpx
 
     from aresilient.backoff.strategy import BackoffStrategy
+    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
 @dataclass
@@ -55,7 +56,7 @@ class CallbackConfig:
         on_failure: Optional callback invoked when all retries are exhausted.
     """
 
-    on_request: Callable | None = None
-    on_retry: Callable | None = None
-    on_success: Callable | None = None
-    on_failure: Callable | None = None
+    on_request: Callable[[RequestInfo], None] | None = None
+    on_retry: Callable[[RetryInfo], None] | None = None
+    on_success: Callable[[ResponseInfo], None] | None = None
+    on_failure: Callable[[FailureInfo], None] | None = None
