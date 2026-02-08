@@ -56,7 +56,7 @@ def test_retry_if_returns_true_for_successful_response(
 ) -> None:
     """Test retry_if that returns True even for successful response
     (triggers retry)."""
-    mock_client, mock_response_ok = setup_mock_client_for_method(
+    mock_client, _ = setup_mock_client_for_method(
         test_case.client_method, test_case.status_code, {"text": "success"}
     )
 
@@ -113,7 +113,7 @@ def test_retry_if_returns_false_for_error_response(
 ) -> None:
     """Test retry_if that returns False for error response (no retry,
     immediate fail)."""
-    mock_client, mock_response_error = setup_mock_client_for_method(test_case.client_method, 500)
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, 500)
 
     def retry_predicate(
         response: httpx.Response | None,  # noqa: ARG001
@@ -183,7 +183,7 @@ def test_retry_if_does_not_retry_non_retryable_status(
     test_case: HttpMethodTestCase, mock_sleep: Mock
 ) -> None:
     """Test retry_if that doesn't retry on 404 (client error)."""
-    mock_client, mock_response_404 = setup_mock_client_for_method(test_case.client_method, 404)
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, 404)
 
     def retry_predicate(
         response: httpx.Response | None,

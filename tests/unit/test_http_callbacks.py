@@ -37,7 +37,7 @@ def test_http_method_on_request_callback(
     mock_callback: Mock,
 ) -> None:
     """Test that on_request callback is called for all HTTP methods."""
-    mock_client, mock_response = setup_mock_client_for_method(
+    mock_client, _ = setup_mock_client_for_method(
         test_case.client_method, test_case.status_code
     )
 
@@ -60,7 +60,7 @@ def test_http_method_on_success_callback(
 ) -> None:
     """Test that on_success callback is called for successful HTTP
     requests."""
-    mock_client, mock_response = setup_mock_client_for_method(
+    mock_client, _ = setup_mock_client_for_method(
         test_case.client_method, test_case.status_code
     )
 

@@ -14,8 +14,8 @@ __all__ = [
     "HttpMethodTestCase",
     "assert_successful_request",
     "assert_successful_request_async",
-    "create_mock_client_with_side_effect",
     "create_mock_async_client_with_side_effect",
+    "create_mock_client_with_side_effect",
     "setup_mock_async_client_for_method",
     "setup_mock_client_for_method",
 ]
@@ -339,7 +339,7 @@ def assert_successful_request(
     url: str,
     client: httpx.Client,
     expected_status: int = 200,
-    **kwargs,
+    **kwargs: dict,
 ) -> httpx.Response:
     """Assert that a request function succeeds and returns expected
     status.
@@ -381,7 +381,7 @@ async def assert_successful_request_async(
     url: str,
     client: httpx.AsyncClient,
     expected_status: int = 200,
-    **kwargs,
+    **kwargs: dict,
 ) -> httpx.Response:
     """Assert that an async request function succeeds and returns
     expected status.

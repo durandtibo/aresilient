@@ -67,7 +67,7 @@ def test_max_retries_exceeded(
 ) -> None:
     """Test that HttpRequestError is raised when max retries
     exceeded."""
-    mock_client, mock_response = setup_mock_client_for_method(test_case.client_method, 503)
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, 503)
 
     with pytest.raises(
         HttpRequestError,
@@ -85,7 +85,7 @@ def test_non_retryable_status_code(
     mock_sleep: Mock,
 ) -> None:
     """Test that 404 status code is not retried."""
-    mock_client, mock_response = setup_mock_client_for_method(test_case.client_method, 404)
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, 404)
 
     with pytest.raises(
         HttpRequestError,
@@ -102,7 +102,7 @@ def test_zero_max_retries(
     mock_sleep: Mock,
 ) -> None:
     """Test with zero retries - should only try once."""
-    mock_client, mock_response = setup_mock_client_for_method(test_case.client_method, 503)
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, 503)
 
     with pytest.raises(
         HttpRequestError,
@@ -157,7 +157,7 @@ def test_all_retries_with_429(
     mock_sleep: Mock,
 ) -> None:
     """Test retry behavior with 429 Too Many Requests."""
-    mock_client, mock_response = setup_mock_client_for_method(test_case.client_method, 429)
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, 429)
 
     with pytest.raises(
         HttpRequestError,

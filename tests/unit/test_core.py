@@ -49,7 +49,7 @@ def test_successful_request_with_custom_client(
     mock_sleep: Mock,
 ) -> None:
     """Test successful request with custom client."""
-    mock_client, mock_response = setup_mock_client_for_method(
+    mock_client, _ = setup_mock_client_for_method(
         test_case.client_method, test_case.status_code
     )
 
@@ -82,7 +82,7 @@ def test_request_with_json_payload(
     mock_sleep: Mock,
 ) -> None:
     """Test request with JSON data."""
-    mock_client, mock_response = setup_mock_client_for_method(
+    mock_client, _ = setup_mock_client_for_method(
         test_case.client_method, test_case.status_code
     )
 

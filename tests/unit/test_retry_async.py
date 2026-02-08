@@ -70,7 +70,7 @@ async def test_max_retries_exceeded(
 ) -> None:
     """Test that HttpRequestError is raised when max retries
     exceeded."""
-    mock_client, mock_response = setup_mock_async_client_for_method(test_case.client_method, 503)
+    mock_client, _ = setup_mock_async_client_for_method(test_case.client_method, 503)
 
     with pytest.raises(HttpRequestError) as exc_info:
         await test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
