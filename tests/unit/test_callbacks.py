@@ -239,22 +239,23 @@ def test_on_success_callback_after_retries(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
-def test_on_success_callback_not_called_on_failure(mock_sleep: Mock) -> None:
+def test_on_success_callback_not_called_on_failure(
+    mock_sleep: Mock, mock_response_fail: httpx.Response
+) -> None:
     """Test that on_success callback is not called when request
     fails."""
     on_success_callback = Mock()
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_request_func = Mock(return_value=mock_fail_response)
+    mock_request_func = Mock(return_value=mock_response_fail)
 
     with pytest.raises(
         HttpRequestError,
-        match=r"GET request to https://api.example.com/data failed with status 503 after 3 attempts",
+        match=r"GET request to https://api.example.com/data failed with status 500 after 3 attempts",
     ):
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(503,),
+            status_forcelist=(500,),
             max_retries=2,
             on_success=on_success_callback,
         )
