@@ -557,7 +557,7 @@ def test_request_with_automatic_retry_mixed_error_and_status_failures(
 
 
 @pytest.mark.parametrize(
-    "exception,method,error_type",
+    ("exception", "method", "error_type"),
     [
         pytest.param(
             httpx.NetworkError("Network unreachable"),

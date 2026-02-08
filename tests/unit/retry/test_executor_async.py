@@ -303,7 +303,7 @@ async def test_async_retry_executor_max_total_time_exceeded_with_exception_only(
         with pytest.raises(
             HttpRequestError,
             match=r"GET request to https://example\.com failed after 1 attempts \(max_total_time exceeded\)",
-        ) as exc_info:
+        ):
             await executor.execute(
                 url="https://example.com",
                 method="GET",
@@ -358,7 +358,7 @@ async def test_async_retry_executor_request_error_exhausts_retries() -> None:
     with pytest.raises(
         HttpRequestError,
         match=r"GET request to https://example\.com failed after 3 attempts: Connection failed",
-    ) as exc_info:
+    ):
         await executor.execute(
             url="https://example.com",
             method="GET",
@@ -386,7 +386,7 @@ async def test_async_retry_executor_timeout_exhausts_retries() -> None:
     with pytest.raises(
         HttpRequestError,
         match=r"GET request to https://example\.com timed out \(3 attempts\)",
-    ) as exc_info:
+    ):
         await executor.execute(
             url="https://example.com",
             method="GET",
