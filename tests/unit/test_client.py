@@ -24,8 +24,7 @@ def test_client_context_manager_basic(mock_sleep: Mock) -> None:
     """Test that ResilientClient works as a context manager."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.get = Mock(return_value=mock_response)
         mock_client_class.return_value = mock_client
 
@@ -44,9 +43,9 @@ def test_client_closes_on_exception(mock_sleep: Mock) -> None:
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
         mock_client_class.return_value = mock_client
+        msg = "test error"
 
         with pytest.raises(ValueError, match="test error"), ResilientClient():
-            msg = "test error"
             raise ValueError(msg)
 
         mock_client.close.assert_called_once()
@@ -69,10 +68,8 @@ def test_client_multiple_requests(mock_sleep: Mock) -> None:
     """Test that ResilientClient can handle multiple requests."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response1 = Mock(spec=httpx.Response)
-        mock_response1.status_code = 200
-        mock_response2 = Mock(spec=httpx.Response)
-        mock_response2.status_code = 201
+        mock_response1 = Mock(spec=httpx.Response, status_code=200)
+        mock_response2 = Mock(spec=httpx.Response, status_code=201)
         mock_client.get = Mock(return_value=mock_response1)
         mock_client.post = Mock(return_value=mock_response2)
         mock_client_class.return_value = mock_client
@@ -105,8 +102,7 @@ def test_client_get_method(mock_sleep: Mock) -> None:
     """Test client.get() method."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.get = Mock(return_value=mock_response)
         mock_client_class.return_value = mock_client
 
@@ -115,9 +111,9 @@ def test_client_get_method(mock_sleep: Mock) -> None:
 
         assert response.status_code == 200
         # Verify that params were passed through
-        call_kwargs = mock_client.get.call_args[1]
-        assert "params" in call_kwargs
-        assert call_kwargs["params"] == {"page": 1}
+        mock_client.get.assert_called_once_with(
+            url="https://api.example.com/data", params={"page": 1}
+        )
 
     mock_sleep.assert_not_called()
 
@@ -126,8 +122,7 @@ def test_client_post_method(mock_sleep: Mock) -> None:
     """Test client.post() method."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 201
+        mock_response = Mock(spec=httpx.Response, status_code=201)
         mock_client.post = Mock(return_value=mock_response)
         mock_client_class.return_value = mock_client
 
@@ -145,8 +140,7 @@ def test_client_put_method(mock_sleep: Mock) -> None:
     """Test client.put() method."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.put = Mock(return_value=mock_response)
         mock_client_class.return_value = mock_client
 
@@ -162,8 +156,7 @@ def test_client_delete_method(mock_sleep: Mock) -> None:
     """Test client.delete() method."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 204
+        mock_response = Mock(spec=httpx.Response, status_code=204)
         mock_client.delete = Mock(return_value=mock_response)
         mock_client_class.return_value = mock_client
 
@@ -179,8 +172,7 @@ def test_client_patch_method(mock_sleep: Mock) -> None:
     """Test client.patch() method."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.patch = Mock(return_value=mock_response)
         mock_client_class.return_value = mock_client
 
@@ -196,8 +188,7 @@ def test_client_head_method(mock_sleep: Mock) -> None:
     """Test client.head() method."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.head = Mock(return_value=mock_response)
         mock_client_class.return_value = mock_client
 
@@ -213,8 +204,7 @@ def test_client_options_method(mock_sleep: Mock) -> None:
     """Test client.options() method."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.options = Mock(return_value=mock_response)
         mock_client_class.return_value = mock_client
 
@@ -230,8 +220,7 @@ def test_client_request_method(mock_sleep: Mock) -> None:
     """Test client.request() method with custom HTTP method."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.trace = Mock(return_value=mock_response)
         mock_client_class.return_value = mock_client
 
@@ -248,10 +237,8 @@ def test_client_override_max_retries(mock_sleep: Mock) -> None:
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
         # Simulate retryable error then success
-        mock_response_error = Mock(spec=httpx.Response)
-        mock_response_error.status_code = 503
-        mock_response_success = Mock(spec=httpx.Response)
-        mock_response_success.status_code = 200
+        mock_response_error = Mock(spec=httpx.Response, status_code=503)
+        mock_response_success = Mock(spec=httpx.Response, status_code=200)
         mock_client.get = Mock(side_effect=[mock_response_error, mock_response_success])
         mock_client_class.return_value = mock_client
 
@@ -272,10 +259,8 @@ def test_client_default_max_retries(mock_sleep: Mock) -> None:
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
         # Simulate retryable error then success
-        mock_response_error = Mock(spec=httpx.Response)
-        mock_response_error.status_code = 503
-        mock_response_success = Mock(spec=httpx.Response)
-        mock_response_success.status_code = 200
+        mock_response_error = Mock(spec=httpx.Response, status_code=503)
+        mock_response_success = Mock(spec=httpx.Response, status_code=200)
         mock_client.get = Mock(side_effect=[mock_response_error, mock_response_success])
         mock_client_class.return_value = mock_client
 
@@ -319,8 +304,7 @@ def test_client_shares_configuration_across_requests(mock_sleep: Mock) -> None:
     """Test that all requests share the same configuration."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.get = Mock(return_value=mock_response)
         mock_client.post = Mock(return_value=mock_response)
         mock_client_class.return_value = mock_client

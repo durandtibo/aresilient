@@ -26,8 +26,7 @@ async def test_async_client_context_manager_basic(mock_asleep: Mock) -> None:
     manager."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.get = AsyncMock(return_value=mock_response)
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -49,10 +48,10 @@ async def test_async_client_closes_on_exception(mock_asleep: Mock) -> None:
         mock_client = Mock()
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
+        msg = "test error"
 
         with pytest.raises(ValueError, match="test error"):
             async with AsyncResilientClient():
-                msg = "test error"
                 raise ValueError(msg)
 
         mock_client.aclose.assert_called_once()
@@ -77,10 +76,8 @@ async def test_async_client_multiple_requests(mock_asleep: Mock) -> None:
     """Test that AsyncResilientClient can handle multiple requests."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response1 = Mock(spec=httpx.Response)
-        mock_response1.status_code = 200
-        mock_response2 = Mock(spec=httpx.Response)
-        mock_response2.status_code = 201
+        mock_response1 = Mock(spec=httpx.Response, status_code=200)
+        mock_response2 = Mock(spec=httpx.Response, status_code=201)
         mock_client.get = AsyncMock(return_value=mock_response1)
         mock_client.post = AsyncMock(return_value=mock_response2)
         mock_client.aclose = AsyncMock()
@@ -120,8 +117,7 @@ async def test_async_client_get_method(mock_asleep: Mock) -> None:
     """Test client.get() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.get = AsyncMock(return_value=mock_response)
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -143,8 +139,7 @@ async def test_async_client_post_method(mock_asleep: Mock) -> None:
     """Test client.post() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 201
+        mock_response = Mock(spec=httpx.Response, status_code=201)
         mock_client.post = AsyncMock(return_value=mock_response)
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -164,8 +159,7 @@ async def test_async_client_put_method(mock_asleep: Mock) -> None:
     """Test client.put() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.put = AsyncMock(return_value=mock_response)
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -183,8 +177,7 @@ async def test_async_client_delete_method(mock_asleep: Mock) -> None:
     """Test client.delete() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 204
+        mock_response = Mock(spec=httpx.Response, status_code=204)
         mock_client.delete = AsyncMock(return_value=mock_response)
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -202,8 +195,7 @@ async def test_async_client_patch_method(mock_asleep: Mock) -> None:
     """Test client.patch() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.patch = AsyncMock(return_value=mock_response)
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -221,8 +213,7 @@ async def test_async_client_head_method(mock_asleep: Mock) -> None:
     """Test client.head() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.head = AsyncMock(return_value=mock_response)
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -240,8 +231,7 @@ async def test_async_client_options_method(mock_asleep: Mock) -> None:
     """Test client.options() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.options = AsyncMock(return_value=mock_response)
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -259,8 +249,7 @@ async def test_async_client_request_method(mock_asleep: Mock) -> None:
     """Test client.request() method with custom HTTP method."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.trace = AsyncMock(return_value=mock_response)
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -279,10 +268,8 @@ async def test_async_client_override_max_retries(mock_asleep: Mock) -> None:
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
         # Simulate retryable error then success
-        mock_response_error = Mock(spec=httpx.Response)
-        mock_response_error.status_code = 503
-        mock_response_success = Mock(spec=httpx.Response)
-        mock_response_success.status_code = 200
+        mock_response_error = Mock(spec=httpx.Response, status_code=503)
+        mock_response_success = Mock(spec=httpx.Response, status_code=200)
         mock_client.get = AsyncMock(side_effect=[mock_response_error, mock_response_success])
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -305,10 +292,8 @@ async def test_async_client_default_max_retries(mock_asleep: Mock) -> None:
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
         # Simulate retryable error then success
-        mock_response_error = Mock(spec=httpx.Response)
-        mock_response_error.status_code = 503
-        mock_response_success = Mock(spec=httpx.Response)
-        mock_response_success.status_code = 200
+        mock_response_error = Mock(spec=httpx.Response, status_code=503)
+        mock_response_success = Mock(spec=httpx.Response, status_code=200)
         mock_client.get = AsyncMock(side_effect=[mock_response_error, mock_response_success])
         mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
@@ -329,6 +314,7 @@ async def test_async_client_validation_max_retries_negative(mock_asleep: Mock) -
     """Test that client validates max_retries parameter must be >= 0."""
     with pytest.raises(ValueError, match=r"max_retries must be >= 0, got -1"):
         AsyncResilientClient(max_retries=-1)
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -336,6 +322,7 @@ async def test_async_client_validation_timeout_zero(mock_asleep: Mock) -> None:
     """Test that client validates timeout parameter must be > 0."""
     with pytest.raises(ValueError, match=r"timeout must be > 0, got 0"):
         AsyncResilientClient(timeout=0)
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -344,6 +331,7 @@ async def test_async_client_validation_backoff_factor_negative(mock_asleep: Mock
     0."""
     with pytest.raises(ValueError, match=r"backoff_factor must be >= 0, got -0.5"):
         AsyncResilientClient(backoff_factor=-0.5)
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -351,8 +339,7 @@ async def test_async_client_shares_configuration_across_requests(mock_asleep: Mo
     """Test that all requests share the same configuration."""
     with patch("httpx.AsyncClient") as mock_client_class:
         mock_client = Mock()
-        mock_response = Mock(spec=httpx.Response)
-        mock_response.status_code = 200
+        mock_response = Mock(spec=httpx.Response, status_code=200)
         mock_client.get = AsyncMock(return_value=mock_response)
         mock_client.post = AsyncMock(return_value=mock_response)
         mock_client.aclose = AsyncMock()
@@ -366,6 +353,8 @@ async def test_async_client_shares_configuration_across_requests(mock_asleep: Mo
         # Both requests should use the same client
         assert mock_client.get.call_count == 1
         assert mock_client.post.call_count == 1
+
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
