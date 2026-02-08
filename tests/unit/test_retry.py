@@ -14,7 +14,12 @@ import httpx
 import pytest
 
 from aresilient import RETRY_STATUS_CODES, HttpRequestError
-from tests.helpers import HTTP_METHODS, HttpMethodTestCase
+from tests.helpers import (
+    HTTP_METHODS,
+    HttpMethodTestCase,
+    create_mock_client_with_side_effect,
+    setup_mock_client_for_method,
+)
 
 TEST_URL = "https://api.example.com/data"
 
@@ -27,9 +32,9 @@ def test_retry_on_500_status(
     """Test retry logic for 500 status code."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=500)
-    mock_client = Mock(spec=httpx.Client)
-    client_method = Mock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_response_fail, mock_response]
+    )
 
     response = test_case.method_func(TEST_URL, client=mock_client)
 
@@ -45,9 +50,9 @@ def test_retry_on_503_status(
     """Test retry logic for 503 status code."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
-    mock_client = Mock(spec=httpx.Client)
-    client_method = Mock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_response_fail, mock_response]
+    )
 
     response = test_case.method_func(TEST_URL, client=mock_client)
 
@@ -62,9 +67,7 @@ def test_max_retries_exceeded(
 ) -> None:
     """Test that HttpRequestError is raised when max retries
     exceeded."""
-    mock_response = Mock(spec=httpx.Response, status_code=503)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
+    mock_client, mock_response = setup_mock_client_for_method(test_case.client_method, 503)
 
     with pytest.raises(
         HttpRequestError,
@@ -82,9 +85,7 @@ def test_non_retryable_status_code(
     mock_sleep: Mock,
 ) -> None:
     """Test that 404 status code is not retried."""
-    mock_response = Mock(spec=httpx.Response, status_code=404)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
+    mock_client, mock_response = setup_mock_client_for_method(test_case.client_method, 404)
 
     with pytest.raises(
         HttpRequestError,
@@ -101,9 +102,7 @@ def test_zero_max_retries(
     mock_sleep: Mock,
 ) -> None:
     """Test with zero retries - should only try once."""
-    mock_response = Mock(spec=httpx.Response, status_code=503)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
+    mock_client, mock_response = setup_mock_client_for_method(test_case.client_method, 503)
 
     with pytest.raises(
         HttpRequestError,
@@ -122,9 +121,9 @@ def test_custom_status_forcelist(
     """Test custom status codes for retry."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=404)
-    mock_client = Mock(spec=httpx.Client)
-    client_method = Mock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_response_fail, mock_response]
+    )
 
     response = test_case.method_func(TEST_URL, client=mock_client, status_forcelist=(404,))
 
@@ -142,9 +141,9 @@ def test_default_retry_status_codes(
     """Test default retry status codes."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=status_code)
-    mock_client = Mock(spec=httpx.Client)
-    client_method = Mock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_response_fail, mock_response]
+    )
 
     response = test_case.method_func(TEST_URL, client=mock_client)
 
@@ -158,9 +157,7 @@ def test_all_retries_with_429(
     mock_sleep: Mock,
 ) -> None:
     """Test retry behavior with 429 Too Many Requests."""
-    mock_response = Mock(spec=httpx.Response, status_code=429)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
+    mock_client, mock_response = setup_mock_client_for_method(test_case.client_method, 429)
 
     with pytest.raises(
         HttpRequestError,
