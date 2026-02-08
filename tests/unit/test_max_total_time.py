@@ -71,7 +71,7 @@ def test_max_total_time_not_exceeded(
     # Mock time.time() - elapsed time stays within budget
     call_count = {"count": 0}
 
-    def time_side_effect():
+    def time_side_effect() -> float:
         # Always return times within budget
         call_count["count"] += 1
         return 0.5 * call_count["count"]  # 0.5, 1.0, 1.5, etc

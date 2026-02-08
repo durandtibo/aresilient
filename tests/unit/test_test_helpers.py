@@ -114,20 +114,19 @@ def test_setup_mock_async_client_for_method_with_response_kwargs() -> None:
     assert response.text == "Updated"
 
 
-def test_setup_mock_async_client_for_method_different_methods() -> None:
+@pytest.mark.parametrize("method", ["get", "post", "put", "delete", "patch", "head", "options"])
+def test_setup_mock_async_client_for_method_different_methods(method: str) -> None:
     """Test setup_mock_async_client_for_method works with different HTTP
     methods."""
-    methods = ["get", "post", "put", "delete", "patch", "head", "options"]
+    client, _response = setup_mock_async_client_for_method(method, status_code=200)
 
-    for method in methods:
-        client, _response = setup_mock_async_client_for_method(method, status_code=200)
-        assert hasattr(client, method)
-        assert hasattr(client, "aclose")
+    assert hasattr(client, method)
+    assert hasattr(client, "aclose")
 
 
-##################################################
+###############################################
 #     Tests for assert_successful_request     #
-##################################################
+###############################################
 
 
 def test_assert_successful_request_default_status(mock_sleep: Mock) -> None:
@@ -138,6 +137,7 @@ def test_assert_successful_request_default_status(mock_sleep: Mock) -> None:
 
     assert response.status_code == 200
     client.get.assert_called_once_with(url=TEST_URL)
+    mock_sleep.assert_not_called()
 
 
 def test_assert_successful_request_custom_status(mock_sleep: Mock) -> None:
@@ -150,6 +150,7 @@ def test_assert_successful_request_custom_status(mock_sleep: Mock) -> None:
     )
 
     assert response.status_code == 200
+    mock_sleep.assert_not_called()
 
 
 def test_assert_successful_request_with_kwargs(mock_sleep: Mock) -> None:
@@ -163,6 +164,7 @@ def test_assert_successful_request_with_kwargs(mock_sleep: Mock) -> None:
 
     assert response.status_code == 200
     client.get.assert_called_once_with(url=TEST_URL, headers=headers)
+    mock_sleep.assert_not_called()
 
 
 def test_assert_successful_request_status_mismatch(mock_sleep: Mock) -> None:
@@ -173,6 +175,7 @@ def test_assert_successful_request_status_mismatch(mock_sleep: Mock) -> None:
 
     with pytest.raises(AssertionError):
         assert_successful_request(get_with_automatic_retry, TEST_URL, client, expected_status=201)
+    mock_sleep.assert_not_called()
 
 
 def test_assert_successful_request_returns_response(mock_sleep: Mock) -> None:
@@ -182,11 +185,12 @@ def test_assert_successful_request_returns_response(mock_sleep: Mock) -> None:
     response = assert_successful_request(get_with_automatic_retry, TEST_URL, client)
 
     assert response is mock_response
+    mock_sleep.assert_not_called()
 
 
-########################################################
+#####################################################
 #     Tests for assert_successful_request_async     #
-########################################################
+#####################################################
 
 
 @pytest.mark.asyncio
@@ -201,6 +205,7 @@ async def test_assert_successful_request_async_default_status(mock_asleep: Mock)
 
     assert response.status_code == 200
     client.get.assert_called_once_with(url=TEST_URL)
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -215,6 +220,7 @@ async def test_assert_successful_request_async_custom_status(mock_asleep: Mock) 
     )
 
     assert response.status_code == 200
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -229,6 +235,7 @@ async def test_assert_successful_request_async_with_kwargs(mock_asleep: Mock) ->
 
     assert response.status_code == 200
     client.get.assert_called_once_with(url=TEST_URL, headers=headers)
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -242,6 +249,7 @@ async def test_assert_successful_request_async_status_mismatch(mock_asleep: Mock
         await assert_successful_request_async(
             get_with_automatic_retry_async, TEST_URL, client, expected_status=201
         )
+    mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -255,3 +263,4 @@ async def test_assert_successful_request_async_returns_response(mock_asleep: Moc
     )
 
     assert response is mock_response
+    mock_asleep.assert_not_called()
