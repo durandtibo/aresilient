@@ -23,9 +23,7 @@ TEST_URL = "https://api.example.com/data"
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_exponential_backoff(
-    test_case: HttpMethodTestCase,
-    mock_sleep: Mock,
-    mock_response_fail: httpx.Response,
+    test_case: HttpMethodTestCase, mock_sleep: Mock, mock_response_fail: httpx.Response
 ) -> None:
     """Test exponential backoff timing."""
     mock_response = create_mock_response(status_code=test_case.status_code)
@@ -48,9 +46,7 @@ def test_negative_backoff_factor(test_case: HttpMethodTestCase) -> None:
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_with_jitter_factor(
-    test_case: HttpMethodTestCase,
-    mock_sleep: Mock,
-    mock_response_fail: httpx.Response,
+    test_case: HttpMethodTestCase, mock_sleep: Mock, mock_response_fail: httpx.Response
 ) -> None:
     """Test that jitter_factor is applied during retries."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
@@ -72,9 +68,7 @@ def test_with_jitter_factor(
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_zero_jitter_factor(
-    test_case: HttpMethodTestCase,
-    mock_sleep: Mock,
-    mock_response_fail: httpx.Response,
+    test_case: HttpMethodTestCase, mock_sleep: Mock, mock_response_fail: httpx.Response
 ) -> None:
     """Test that zero jitter_factor results in no jitter."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
