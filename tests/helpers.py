@@ -16,6 +16,7 @@ __all__ = [
     "assert_successful_request_async",
     "create_mock_async_client_with_side_effect",
     "create_mock_client_with_side_effect",
+    "create_mock_response",
     "setup_mock_async_client_for_method",
     "setup_mock_client_for_method",
 ]
@@ -320,9 +321,12 @@ def setup_mock_async_client_for_method(
         - mock_response: The Mock response object that the method will return
 
     Example:
+        ```pycon
         >>> client, response = setup_mock_async_client_for_method("get", 200)
         >>> result = await get_with_automatic_retry_async("https://example.com", client=client)
         >>> assert result.status_code == 200
+
+        ```
     """
     if response_kwargs is None:
         response_kwargs = {}
@@ -362,14 +366,17 @@ def assert_successful_request(
         AssertionError: If the response status code doesn't match expected_status.
 
     Example:
+        ```pycon
         >>> client, _ = setup_mock_client_for_method("get", 200)
         >>> response = assert_successful_request(
         ...     get_with_automatic_retry,
         ...     "https://example.com",
         ...     client,
-        ...     headers={"X-Custom": "value"}
+        ...     headers={"X-Custom": "value"},
         ... )
         >>> assert response.status_code == 200
+
+        ```
     """
     response = method_func(url, client=client, **kwargs)
     assert response.status_code == expected_status
@@ -405,14 +412,17 @@ async def assert_successful_request_async(
         AssertionError: If the response status code doesn't match expected_status.
 
     Example:
+        ```pycon
         >>> client, _ = setup_mock_async_client_for_method("get", 200)
         >>> response = await assert_successful_request_async(
         ...     get_with_automatic_retry_async,
         ...     "https://example.com",
         ...     client,
-        ...     headers={"X-Custom": "value"}
+        ...     headers={"X-Custom": "value"},
         ... )
         >>> assert response.status_code == 200
+
+        ```
     """
     response = await method_func(url, client=client, **kwargs)
     assert response.status_code == expected_status
@@ -440,12 +450,15 @@ def create_mock_client_with_side_effect(
         - mock_responses: The list of mock response objects passed as side_effect
 
     Example:
+        ```pycon
         >>> fail_response = Mock(spec=httpx.Response, status_code=503)
         >>> success_response = Mock(spec=httpx.Response, status_code=200)
         >>> client, responses = create_mock_client_with_side_effect(
         ...     "get", [fail_response, success_response]
         ... )
         >>> # First call returns 503, second call returns 200
+
+        ```
     """
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, client_method, Mock(side_effect=side_effect))
@@ -474,12 +487,15 @@ def create_mock_async_client_with_side_effect(
         - mock_responses: The list of mock response objects passed as side_effect
 
     Example:
-        >>> fail_response = Mock(spec=httpx.Response, status_code=503)
-        >>> success_response = Mock(spec=httpx.Response, status_code=200)
+        ```pycon
+        >>> fail_response = create_mock_response(status_code=503)
+        >>> success_response = create_mock_response(status_code=200)
         >>> client, responses = create_mock_async_client_with_side_effect(
         ...     "get", [fail_response, success_response]
         ... )
         >>> # First call returns 503, second call returns 200
+
+        ```
     """
     mock_client = AsyncMock(spec=httpx.AsyncClient, aclose=AsyncMock())
     setattr(mock_client, client_method, AsyncMock(side_effect=side_effect))
