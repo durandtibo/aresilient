@@ -66,11 +66,13 @@ def test_max_retries_exceeded(
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=rf"{test_case.method_name} request to {TEST_URL} failed with status 503 after 3 attempts",
+    ) as exc_info:
         test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
 
     assert exc_info.value.status_code == 503
-    assert "failed with status 503 after 3 attempts" in str(exc_info.value)
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
@@ -160,11 +162,13 @@ def test_all_retries_with_429(
     mock_client = Mock(spec=httpx.Client)
     setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=rf"{test_case.method_name} request to {TEST_URL} failed with status 429 after 2 attempts",
+    ) as exc_info:
         test_case.method_func(TEST_URL, client=mock_client, max_retries=1)
 
     assert exc_info.value.status_code == 429
-    assert "failed with status 429 after 2 attempts" in str(exc_info.value)
     assert mock_sleep.call_args_list == [call(0.3)]
 
 

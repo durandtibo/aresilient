@@ -62,16 +62,17 @@ def test_setup_mock_client_for_method_with_response_kwargs() -> None:
     assert client.put() == response
 
 
-def test_setup_mock_client_for_method_different_methods() -> None:
+@pytest.mark.parametrize(
+    "method",
+    ["get", "post", "put", "delete", "patch", "head", "options"],
+)
+def test_setup_mock_client_for_method_different_methods(method: str) -> None:
     """Test setup_mock_client_for_method works with different HTTP
     methods."""
-    methods = ["get", "post", "put", "delete", "patch", "head", "options"]
-
-    for method in methods:
-        client, response = setup_mock_client_for_method(method, status_code=200)
-        assert hasattr(client, method)
-        client_method = getattr(client, method)
-        assert client_method() == response
+    client, response = setup_mock_client_for_method(method, status_code=200)
+    assert hasattr(client, method)
+    client_method = getattr(client, method)
+    assert client_method() == response
 
 
 ##########################################################

@@ -325,14 +325,22 @@ async def test_async_client_default_max_retries(mock_asleep: Mock) -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_client_validation_errors(mock_asleep: Mock) -> None:
-    """Test that client validates parameters on initialization."""
-    with pytest.raises(ValueError, match="max_retries"):
+async def test_async_client_validation_max_retries_negative(mock_asleep: Mock) -> None:
+    """Test that client validates max_retries parameter must be >= 0."""
+    with pytest.raises(ValueError, match=r"max_retries must be >= 0, got -1"):
         AsyncResilientClient(max_retries=-1)
 
-    with pytest.raises(ValueError, match="timeout"):
+
+@pytest.mark.asyncio
+async def test_async_client_validation_timeout_zero(mock_asleep: Mock) -> None:
+    """Test that client validates timeout parameter must be > 0."""
+    with pytest.raises(ValueError, match=r"timeout must be > 0, got 0"):
         AsyncResilientClient(timeout=0)
 
+
+@pytest.mark.asyncio
+async def test_async_client_validation_backoff_factor_negative(mock_asleep: Mock) -> None:
+    """Test that client validates backoff_factor parameter must be >= 0."""
     with pytest.raises(ValueError, match=r"backoff_factor must be >= 0, got -0.5"):
         AsyncResilientClient(backoff_factor=-0.5)
 
