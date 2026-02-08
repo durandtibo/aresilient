@@ -5,13 +5,13 @@ This file contains tests for the synchronous context manager client.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import Mock, call, patch
 
 import pytest
 
 from aresilient import ResilientClient
 from tests.helpers import create_mock_response
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import httpx
@@ -19,9 +19,9 @@ if TYPE_CHECKING:
 TEST_URL = "https://api.example.com/data"
 
 
-##############################################
-#     Tests for ResilientClient              #
-##############################################
+#####################################
+#     Tests for ResilientClient     #
+#####################################
 
 
 def test_client_context_manager_basic(mock_sleep: Mock, mock_response: httpx.Response) -> None:
@@ -34,8 +34,8 @@ def test_client_context_manager_basic(mock_sleep: Mock, mock_response: httpx.Res
             response = client.get(TEST_URL)
 
         assert response.status_code == 200
-        mock_client.get.assert_called_once()
-        mock_client.close.assert_called_once()
+        mock_client.get.assert_called_once_with(url=TEST_URL)
+        mock_client.close.assert_called_once_with()
     mock_sleep.assert_not_called()
 
 
@@ -50,7 +50,7 @@ def test_client_closes_on_exception(mock_sleep: Mock) -> None:
         with pytest.raises(ValueError, match=r"test error"), ResilientClient():
             raise ValueError(msg)
 
-        mock_client.close.assert_called_once()
+        mock_client.close.assert_called_once_with()
 
     mock_sleep.assert_not_called()
 
@@ -111,10 +111,7 @@ def test_client_get_method(mock_sleep: Mock, mock_response: httpx.Response) -> N
             response = client.get(TEST_URL, params={"page": 1})
 
         assert response.status_code == 200
-        # Verify that params were passed through
-        mock_client.get.assert_called_once_with(
-            url="https://api.example.com/data", params={"page": 1}
-        )
+        mock_client.get.assert_called_once_with(url=TEST_URL, params={"page": 1})
 
     mock_sleep.assert_not_called()
 
