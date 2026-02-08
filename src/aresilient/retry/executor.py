@@ -323,4 +323,4 @@ class RetryExecutor:
             on_failure=self.callbacks.callbacks.on_failure,
             start_time=start_time,
         )
-        return None
+        return None  # pragma: no cover  # raise_final_error never returns

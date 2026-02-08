@@ -340,3 +340,117 @@ def test_circuit_breaker_multiple_recovery_cycles() -> None:
     assert cb.state == CircuitState.HALF_OPEN
     cb.record_success()
     assert cb.state == CircuitState.CLOSED
+
+
+def test_circuit_breaker_state_change_callback_exception() -> None:
+    """Test that exceptions in state change callback are handled gracefully."""
+
+    def failing_callback(old_state: CircuitState, new_state: CircuitState) -> NoReturn:
+        raise RuntimeError("Callback error")
+
+    # Circuit breaker should work even if callback raises
+    cb = CircuitBreaker(failure_threshold=1, on_state_change=failing_callback)
+
+    # Transition to OPEN - callback will fail but shouldn't break circuit breaker
+    cb.record_failure(Exception("test error"))
+    assert cb.state == CircuitState.OPEN
+
+    # Reset should also work despite callback failure
+    cb.reset()
+    assert cb.state == CircuitState.CLOSED
+
+
+def test_circuit_breaker_reset_when_already_closed() -> None:
+    """Test that resetting an already closed circuit breaker is a no-op."""
+    callback = Mock()
+    cb = CircuitBreaker(on_state_change=callback)
+
+    # Circuit is already CLOSED, reset should not trigger state change
+    assert cb.state == CircuitState.CLOSED
+    cb.reset()
+    assert cb.state == CircuitState.CLOSED
+
+    # Callback should not be called since state didn't change
+    callback.assert_not_called()
+
+
+def test_circuit_breaker_open_with_missing_last_failure_time() -> None:
+    """Test edge case where circuit is OPEN but last_failure_time is None.
+
+    This is a defensive case that shouldn't happen in normal operation,
+    but the code handles it gracefully.
+    """
+    cb = CircuitBreaker(failure_threshold=1)
+
+    # Manually set state to OPEN without last_failure_time
+    # This simulates an internal state inconsistency
+    cb._state = CircuitState.OPEN  # noqa: SLF001
+    cb._last_failure_time = None  # noqa: SLF001
+
+    # check() should raise error even without timestamp
+    with pytest.raises(CircuitBreakerError, match="Circuit breaker is OPEN"):
+        cb.check()
+
+
+def test_circuit_breaker_call_with_missing_last_failure_time() -> None:
+    """Test call() edge case where circuit is OPEN but last_failure_time is None.
+
+    This is a defensive case that shouldn't happen in normal operation,
+    but the code handles it gracefully.
+    """
+    cb = CircuitBreaker(failure_threshold=1)
+
+    # Manually set state to OPEN without last_failure_time
+    cb._state = CircuitState.OPEN  # noqa: SLF001
+    cb._last_failure_time = None  # noqa: SLF001
+
+    # call() should raise error even without timestamp
+    def test_func() -> str:
+        return "should not execute"
+
+    with pytest.raises(CircuitBreakerError, match="Circuit breaker is OPEN"):
+        cb.call(test_func)
+
+
+def test_circuit_breaker_call_transitions_to_half_open_after_timeout() -> None:
+    """Test that call() transitions from OPEN to HALF_OPEN after recovery timeout."""
+    cb = CircuitBreaker(failure_threshold=1, recovery_timeout=0.1)
+
+    def failing_func() -> NoReturn:
+        msg = "test error"
+        raise ValueError(msg)
+
+    def success_func() -> str:
+        return "success"
+
+    # Open the circuit
+    with pytest.raises(ValueError):
+        cb.call(failing_func)
+    assert cb.state == CircuitState.OPEN
+
+    # Wait for recovery timeout to elapse
+    time.sleep(0.15)
+
+    # Next call should transition to HALF_OPEN and succeed
+    result = cb.call(success_func)
+    assert result == "success"
+    assert cb.state == CircuitState.CLOSED  # Success in HALF_OPEN closes circuit
+
+
+def test_circuit_breaker_change_state_no_op_for_same_state() -> None:
+    """Test that _change_state handles same state gracefully.
+
+    This tests the defensive branch where _change_state is called
+    with the current state, ensuring no unnecessary work is done.
+    """
+    callback = Mock()
+    cb = CircuitBreaker(on_state_change=callback)
+
+    # Circuit is CLOSED, call _change_state with CLOSED
+    assert cb.state == CircuitState.CLOSED
+    cb._change_state(CircuitState.CLOSED)  # noqa: SLF001
+
+    # State should still be CLOSED
+    assert cb.state == CircuitState.CLOSED
+    # Callback should not be called since state didn't actually change
+    callback.assert_not_called()
