@@ -114,7 +114,10 @@ def test_request_with_automatic_retry_max_retries_exceeded(mock_sleep: Mock) -> 
     mock_fail_response = Mock(spec=httpx.Response, status_code=502)
     mock_request_func = Mock(return_value=mock_fail_response)
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://api\.example\.com/data failed with status 502 after 3 attempts",
+    ) as exc_info:
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",
@@ -124,7 +127,6 @@ def test_request_with_automatic_retry_max_retries_exceeded(mock_sleep: Mock) -> 
         )
 
     assert exc_info.value.status_code == 502
-    assert "failed with status 502 after 3 attempts" in str(exc_info.value)
     assert mock_request_func.call_args_list == [
         call(url=TEST_URL),
         call(url=TEST_URL),

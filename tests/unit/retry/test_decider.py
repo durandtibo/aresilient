@@ -81,7 +81,10 @@ def test_should_retry_response_non_retryable_status_raises() -> None:
         )
 
     assert exc_info.value.status_code == 404
-    assert "404" in str(exc_info.value)
+    assert (
+        "GET request to https://example.com failed with status 404"
+        in str(exc_info.value)
+    )
 
 
 def test_should_retry_response_with_custom_predicate_success() -> None:

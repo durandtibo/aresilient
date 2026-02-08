@@ -291,7 +291,10 @@ def test_retry_executor_max_total_time_exceeded_with_exception_only() -> None:
         return 0.0 if call_count["count"] == 1 else 2.0
 
     with patch("aresilient.retry.executor.time.time", side_effect=time_side_effect):
-        with pytest.raises(HttpRequestError) as exc_info:
+        with pytest.raises(
+            HttpRequestError,
+            match=r"GET request to https://example\.com failed after 1 attempts \(max_total_time exceeded\)",
+        ) as exc_info:
             executor.execute(
                 url="https://example.com",
                 method="GET",
@@ -300,7 +303,6 @@ def test_retry_executor_max_total_time_exceeded_with_exception_only() -> None:
 
     # Should fail after first attempt due to time exceeded
     assert mock_request_func.call_count == 1
-    assert "max_total_time exceeded" in str(exc_info.value)
 
 
 def test_retry_executor_handles_request_error() -> None:
@@ -340,7 +342,10 @@ def test_retry_executor_request_error_exhausts_retries() -> None:
 
     mock_request_func = Mock(side_effect=httpx.RequestError("Connection failed"))
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://example\.com failed after 3 attempts: Connection failed",
+    ) as exc_info:
         executor.execute(
             url="https://example.com",
             method="GET",
@@ -349,7 +354,6 @@ def test_retry_executor_request_error_exhausts_retries() -> None:
 
     # Should be called max_retries + 1 times
     assert mock_request_func.call_count == 3
-    assert "failed after 3 attempts" in str(exc_info.value)
 
 
 def test_retry_executor_timeout_exhausts_retries() -> None:
@@ -365,7 +369,10 @@ def test_retry_executor_timeout_exhausts_retries() -> None:
 
     mock_request_func = Mock(side_effect=httpx.TimeoutException("Timeout"))
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://example\.com timed out \(3 attempts\)",
+    ) as exc_info:
         executor.execute(
             url="https://example.com",
             method="GET",
@@ -374,4 +381,3 @@ def test_retry_executor_timeout_exhausts_retries() -> None:
 
     # Should be called max_retries + 1 times
     assert mock_request_func.call_count == 3
-    assert "timed out" in str(exc_info.value)
