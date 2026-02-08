@@ -20,6 +20,14 @@ jobs:
   #     Dependencies     #
   ########################
 
+  coola:
+    needs: get-versions
+    uses: ./.github/workflows/test-code-dep.yaml
+    with:
+      package-name: coola
+      package-versions: ${{ toJson(fromJson(needs.get-versions.outputs.package_versions).coola) }}
+
+
   httpx:
     needs: get-versions
     uses: ./.github/workflows/test-code-dep.yaml

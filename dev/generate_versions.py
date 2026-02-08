@@ -22,7 +22,7 @@ def fetch_package_versions() -> dict[str, list[str]]:
     """
     return {
         # Data structure dependencies
-        "coola": list(fetch_latest_minor_versions("coola", lower="1.0")),
+        "coola": list(fetch_latest_minor_versions("coola", lower="1.1")),
         "httpx": list(fetch_latest_minor_versions("httpx", lower="0.28")),
     }
 
