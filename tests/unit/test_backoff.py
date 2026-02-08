@@ -11,7 +11,11 @@ from unittest.mock import Mock, call, patch
 import httpx
 import pytest
 
-from tests.helpers import HTTP_METHODS, HttpMethodTestCase
+from tests.helpers import (
+    HTTP_METHODS,
+    HttpMethodTestCase,
+    create_mock_client_with_side_effect,
+)
 
 TEST_URL = "https://api.example.com/data"
 
@@ -24,9 +28,9 @@ def test_exponential_backoff(
     """Test exponential backoff timing."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
-    mock_client = Mock(spec=httpx.Client)
-    client_method = Mock(side_effect=[mock_response_fail, mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_response_fail, mock_response_fail, mock_response]
+    )
 
     test_case.method_func(TEST_URL, client=mock_client, backoff_factor=2.0)
 
@@ -49,9 +53,9 @@ def test_with_jitter_factor(
     """Test that jitter_factor is applied during retries."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=500)
-    mock_client = Mock(spec=httpx.Client)
-    client_method = Mock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_response_fail, mock_response]
+    )
 
     with patch("aresilient.backoff.sleep.random.uniform", return_value=0.05):
         response = test_case.method_func(
@@ -73,9 +77,9 @@ def test_zero_jitter_factor(
     """Test that zero jitter_factor results in no jitter."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=500)
-    mock_client = Mock(spec=httpx.Client)
-    client_method = Mock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_response_fail, mock_response]
+    )
 
     response = test_case.method_func(
         TEST_URL, client=mock_client, backoff_factor=1.0, jitter_factor=0.0
