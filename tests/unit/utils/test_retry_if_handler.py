@@ -31,7 +31,7 @@ def retry_if_true(
     exc: Exception | None,  # noqa: ARG001
 ) -> bool:
     """Retry if exception occurs."""
-    return False
+    return True
 
 
 def test_handle_response_success_retry_if_returns_false() -> None:
@@ -97,9 +97,8 @@ def test_handle_response_error_retry_if_returns_false() -> None:
     assert "failed with status 400" in str(error)
 
 
-def test_handle_response_different_status_codes() -> None:
-    """Test with various status codes."""
-    # Test 3xx success
+def test_handle_response_different_status_code_3xx() -> None:
+    """Test with various status code 3xx success."""
     response = httpx.Response(301, content=b"Moved")
 
     result = handle_response_with_retry_if(
@@ -108,17 +107,21 @@ def test_handle_response_different_status_codes() -> None:
         url="https://example.com",
         method="GET",
     )
+
     assert result is False
 
-    # Test 5xx error
-    response_500 = httpx.Response(503, content=b"Service Unavailable")
+
+def test_handle_response_different_status_code_5xx() -> None:
+    """Test with various status code 5xx error."""
+    response = httpx.Response(503, content=b"Service Unavailable")
 
     result = handle_response_with_retry_if(
-        response_500,
+        response,
         retry_if=retry_if_true,
         url="https://example.com",
         method="POST",
     )
+
     assert result is True
 
 
@@ -145,7 +148,9 @@ def test_handle_exception_timeout_retry_if_returns_false() -> None:
     """Test TimeoutException when retry_if returns False."""
     exc = httpx.TimeoutException("Request timed out")
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError, match=r"POST request to https://example.com timed out \(1 attempts\)"
+    ) as exc_info:
         handle_exception_with_retry_if(
             exc,
             retry_if=retry_if_false,
@@ -160,7 +165,6 @@ def test_handle_exception_timeout_retry_if_returns_false() -> None:
     error = exc_info.value
     assert error.method == "POST"
     assert error.url == "https://example.com"
-    assert "timed out" in str(error)
     assert error.__cause__ is exc
 
 
@@ -168,7 +172,9 @@ def test_handle_exception_timeout_max_retries_reached() -> None:
     """Test TimeoutException when max retries is reached."""
     exc = httpx.TimeoutException("Request timed out")
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError, match=r"GET request to https://example.com timed out \(4 attempts\)"
+    ) as exc_info:
         handle_exception_with_retry_if(
             exc,
             retry_if=retry_if_true,
@@ -182,8 +188,6 @@ def test_handle_exception_timeout_max_retries_reached() -> None:
 
     error = exc_info.value
     assert error.method == "GET"
-    assert "timed out" in str(error)
-    assert "(4 attempts)" in str(error)
 
 
 def test_handle_exception_request_error_retry_if_returns_true() -> None:
@@ -208,7 +212,10 @@ def test_handle_exception_request_error_retry_if_returns_false() -> None:
     """Test RequestError when retry_if returns False."""
     exc = httpx.ConnectError("Connection failed")
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=r"PUT request to https://api.example.com failed after 3 attempts: Connection failed",
+    ) as exc_info:
         handle_exception_with_retry_if(
             exc,
             retry_if=retry_if_false,
@@ -223,7 +230,6 @@ def test_handle_exception_request_error_retry_if_returns_false() -> None:
     error = exc_info.value
     assert error.method == "PUT"
     assert error.url == "https://api.example.com"
-    assert "failed after 3 attempts" in str(error)
     assert error.__cause__ is exc
 
 
