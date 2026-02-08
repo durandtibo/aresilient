@@ -456,7 +456,8 @@ def create_mock_async_client_with_side_effect(
     client_method: str,
     side_effect: list[httpx.Response | Exception],
 ) -> tuple[Mock, list[Mock]]:
-    """Create a mock httpx.AsyncClient with a method that has side effects.
+    """Create a mock httpx.AsyncClient with a method that has side
+    effects.
 
     This utility is commonly used for testing async retry logic where multiple
     responses (failures followed by success) are returned.
