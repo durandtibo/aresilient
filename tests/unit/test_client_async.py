@@ -328,3 +328,20 @@ async def test_async_client_shares_configuration_across_requests(mock_asleep: Mo
         # Both requests should use the same client
         assert mock_client.get.call_count == 1
         assert mock_client.post.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_async_client_exit_with_none_client() -> None:
+    """Test that __aexit__ handles None client gracefully.
+
+    This tests the defensive branch where _client might be None during exit.
+    """
+    client = AsyncResilientClient()
+
+    # Manually trigger __aexit__ without calling __aenter__
+    # _client will be None
+    await client.__aexit__(None, None, None)
+
+    # Should complete without errors
+    assert client._client is None  # noqa: SLF001
+    assert client._entered is False  # noqa: SLF001

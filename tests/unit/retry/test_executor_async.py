@@ -389,3 +389,38 @@ async def test_async_retry_executor_timeout_exhausts_retries() -> None:
     # Should be called max_retries + 1 times
     assert mock_request_func.call_count == 3
     assert "timed out" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_async_retry_executor_circuit_breaker_records_status_code_failure() -> None:
+    """Test circuit breaker records failure for retryable status code."""
+    from aresilient.circuit_breaker import CircuitBreaker
+
+    retry_config = RetryConfig(
+        max_retries=2,
+        backoff_factor=0.01,
+        status_forcelist=(500,),
+        jitter_factor=0.0,
+    )
+    callback_config = CallbackConfig()
+    circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=10.0)
+    executor = AsyncRetryExecutor(retry_config, callback_config, circuit_breaker)
+
+    # First attempts fail with 500, last succeeds
+    mock_response_500 = Mock(spec=httpx.Response, status_code=500)
+    mock_response_200 = Mock(spec=httpx.Response, status_code=200)
+    mock_request_func = AsyncMock(
+        side_effect=[mock_response_500, mock_response_500, mock_response_200]
+    )
+
+    response = await executor.execute(
+        url="https://example.com",
+        method="GET",
+        request_func=mock_request_func,
+    )
+
+    assert response is mock_response_200
+    # Circuit breaker should be in CLOSED state after success
+    assert circuit_breaker.state.name == "CLOSED"
+    # Should have recorded failures but then success reset the count
+    assert circuit_breaker.failure_count == 0

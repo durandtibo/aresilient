@@ -291,3 +291,19 @@ def test_client_shares_configuration_across_requests(mock_sleep: Mock) -> None:
         # Both requests should use the same client
         assert mock_client.get.call_count == 1
         assert mock_client.post.call_count == 1
+
+
+def test_client_exit_with_none_client() -> None:
+    """Test that __exit__ handles None client gracefully.
+
+    This tests the defensive branch where _client might be None during exit.
+    """
+    client = ResilientClient()
+
+    # Manually trigger __exit__ without calling __enter__
+    # _client will be None
+    client.__exit__(None, None, None)
+
+    # Should complete without errors
+    assert client._client is None  # noqa: SLF001
+    assert client._entered is False  # noqa: SLF001
