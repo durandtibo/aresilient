@@ -163,32 +163,41 @@ async def test_request_with_jitter_applied_async(mock_asleep: Mock) -> None:
 
 
 @pytest.mark.asyncio
-async def test_request_jitter_range_async(mock_asleep: Mock) -> None:
+@pytest.mark.parametrize(
+    "jitter_multiplier",
+    [
+        pytest.param(0.0, id="no_jitter"),
+        pytest.param(0.01, id="1%_jitter"),
+        pytest.param(0.05, id="5%_jitter"),
+        pytest.param(0.1, id="10%_jitter"),
+    ],
+)
+async def test_request_jitter_range_async(
+    jitter_multiplier: float,
+    mock_asleep: Mock,
+) -> None:
     """Test that jitter is within expected range (0-10% of base)."""
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_fail_response.headers = {}
     mock_success_response = Mock(spec=httpx.Response, status_code=200)
 
-    # Run multiple times with different random values
-    for jitter_multiplier in [0.0, 0.01, 0.05, 0.1]:
-        mock_asleep.reset_mock()
-        mock_request_func = AsyncMock(side_effect=[mock_fail_response, mock_success_response])
+    mock_request_func = AsyncMock(side_effect=[mock_fail_response, mock_success_response])
 
-        with patch("aresilient.backoff.sleep.random.uniform", return_value=jitter_multiplier):
-            response = await request_with_automatic_retry_async(
-                url=TEST_URL,
-                method="GET",
-                request_func=mock_request_func,
-                status_forcelist=(503,),
-                backoff_factor=2.0,
-                jitter_factor=1.0,  # Jitter factor of 1.0
-            )
+    with patch("aresilient.backoff.sleep.random.uniform", return_value=jitter_multiplier):
+        response = await request_with_automatic_retry_async(
+            url=TEST_URL,
+            method="GET",
+            request_func=mock_request_func,
+            status_forcelist=(503,),
+            backoff_factor=2.0,
+            jitter_factor=1.0,  # Jitter factor of 1.0
+        )
 
-        assert response == mock_success_response
-        # Base sleep: 2.0 * (2^0) = 2.0
-        # Jitter: jitter_multiplier * 2.0
-        expected_sleep = 2.0 * (1 + jitter_multiplier)
-        mock_asleep.assert_called_once_with(expected_sleep)
+    assert response == mock_success_response
+    # Base sleep: 2.0 * (2^0) = 2.0
+    # Jitter: jitter_multiplier * 2.0
+    expected_sleep = 2.0 * (1 + jitter_multiplier)
+    mock_asleep.assert_called_once_with(expected_sleep)
 
 
 @pytest.mark.asyncio
