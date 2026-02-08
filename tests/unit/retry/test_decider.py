@@ -11,12 +11,37 @@ from aresilient.exceptions import HttpRequestError
 from aresilient.retry.decider import RetryDecider
 
 
+def always_retry(
+    response: httpx.Response | None,  # noqa: ARG001
+    exc: Exception | None,  # noqa: ARG001
+) -> bool:
+    return True
+
+
+def never_retry(
+    response: httpx.Response | None,  # noqa: ARG001
+    exc: Exception | None,  # noqa: ARG001
+) -> bool:
+    return False
+
+
+def retry_timeout(
+    response: httpx.Response | None,  # noqa: ARG001
+    exc: Exception | None,
+) -> bool:
+    return isinstance(exc, httpx.TimeoutException)
+
+
+def retry_500(
+    response: httpx.Response | None,
+    exc: Exception | None,  # noqa: ARG001
+) -> bool:
+    return response is not None and response.status_code == 500
+
+
 def test_retry_decider_creation() -> None:
     """Test RetryDecider initialization."""
-    decider = RetryDecider(
-        status_forcelist=(500, 502, 503),
-        retry_if=None,
-    )
+    decider = RetryDecider(status_forcelist=(500, 502, 503), retry_if=None)
 
     assert decider.status_forcelist == (500, 502, 503)
     assert decider.retry_if is None
@@ -24,10 +49,7 @@ def test_retry_decider_creation() -> None:
 
 def test_should_retry_response_success_no_retry() -> None:
     """Test successful response (2xx) does not retry."""
-    decider = RetryDecider(
-        status_forcelist=(500, 502, 503),
-        retry_if=None,
-    )
+    decider = RetryDecider(status_forcelist=(500, 502, 503), retry_if=None)
 
     mock_response = Mock(spec=httpx.Response, status_code=200)
     should_retry, reason = decider.should_retry_response(
@@ -44,10 +66,7 @@ def test_should_retry_response_success_no_retry() -> None:
 
 def test_should_retry_response_retryable_status() -> None:
     """Test retryable status code triggers retry."""
-    decider = RetryDecider(
-        status_forcelist=(500, 502, 503),
-        retry_if=None,
-    )
+    decider = RetryDecider(status_forcelist=(500, 502, 503), retry_if=None)
 
     mock_response = Mock(spec=httpx.Response, status_code=500)
     should_retry, reason = decider.should_retry_response(
@@ -64,14 +83,14 @@ def test_should_retry_response_retryable_status() -> None:
 
 def test_should_retry_response_non_retryable_status_raises() -> None:
     """Test non-retryable status code raises HttpRequestError."""
-    decider = RetryDecider(
-        status_forcelist=(500, 502, 503),
-        retry_if=None,
-    )
+    decider = RetryDecider(status_forcelist=(500, 502, 503), retry_if=None)
 
     mock_response = Mock(spec=httpx.Response, status_code=404)
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://example\.com failed with status 404",
+    ) as exc_info:
         decider.should_retry_response(
             response=mock_response,
             attempt=0,
@@ -81,19 +100,11 @@ def test_should_retry_response_non_retryable_status_raises() -> None:
         )
 
     assert exc_info.value.status_code == 404
-    assert "404" in str(exc_info.value)
 
 
 def test_should_retry_response_with_custom_predicate_success() -> None:
     """Test custom predicate allows retry on success."""
-
-    def always_retry(response, exc) -> bool:
-        return True
-
-    decider = RetryDecider(
-        status_forcelist=(500,),
-        retry_if=always_retry,
-    )
+    decider = RetryDecider(status_forcelist=(500,), retry_if=always_retry)
 
     mock_response = Mock(spec=httpx.Response, status_code=200)
     should_retry, reason = decider.should_retry_response(
@@ -110,14 +121,7 @@ def test_should_retry_response_with_custom_predicate_success() -> None:
 
 def test_should_retry_response_with_custom_predicate_error_true() -> None:
     """Test custom predicate returns True for error."""
-
-    def retry_500(response, exc):
-        return response is not None and response.status_code == 500
-
-    decider = RetryDecider(
-        status_forcelist=(),
-        retry_if=retry_500,
-    )
+    decider = RetryDecider(status_forcelist=(), retry_if=retry_500)
 
     mock_response = Mock(spec=httpx.Response, status_code=500)
     should_retry, reason = decider.should_retry_response(
@@ -134,14 +138,7 @@ def test_should_retry_response_with_custom_predicate_error_true() -> None:
 
 def test_should_retry_response_with_custom_predicate_error_false_raises() -> None:
     """Test custom predicate returns False for error raises."""
-
-    def never_retry(response, exc) -> bool:
-        return False
-
-    decider = RetryDecider(
-        status_forcelist=(),
-        retry_if=never_retry,
-    )
+    decider = RetryDecider(status_forcelist=(), retry_if=never_retry)
 
     mock_response = Mock(spec=httpx.Response, status_code=500)
 
@@ -159,14 +156,7 @@ def test_should_retry_response_with_custom_predicate_error_false_raises() -> Non
 
 def test_should_retry_exception_with_predicate_true() -> None:
     """Test exception retry with custom predicate returning True."""
-
-    def retry_timeout(response, exc):
-        return isinstance(exc, httpx.TimeoutException)
-
-    decider = RetryDecider(
-        status_forcelist=(),
-        retry_if=retry_timeout,
-    )
+    decider = RetryDecider(status_forcelist=(), retry_if=retry_timeout)
 
     exc = httpx.TimeoutException("Timeout")
     should_retry, reason = decider.should_retry_exception(
@@ -181,14 +171,7 @@ def test_should_retry_exception_with_predicate_true() -> None:
 
 def test_should_retry_exception_with_predicate_false() -> None:
     """Test exception retry with custom predicate returning False."""
-
-    def never_retry(response, exc) -> bool:
-        return False
-
-    decider = RetryDecider(
-        status_forcelist=(),
-        retry_if=never_retry,
-    )
+    decider = RetryDecider(status_forcelist=(), retry_if=never_retry)
 
     exc = httpx.TimeoutException("Timeout")
     should_retry, _reason = decider.should_retry_exception(
@@ -203,13 +186,7 @@ def test_should_retry_exception_with_predicate_false() -> None:
 def test_should_retry_exception_max_retries_reached() -> None:
     """Test exception retry when max retries reached with predicate."""
 
-    def always_retry(response, exc) -> bool:
-        return True
-
-    decider = RetryDecider(
-        status_forcelist=(),
-        retry_if=always_retry,
-    )
+    decider = RetryDecider(status_forcelist=(), retry_if=always_retry)
 
     exc = httpx.TimeoutException("Timeout")
     should_retry, _reason = decider.should_retry_exception(
@@ -223,10 +200,7 @@ def test_should_retry_exception_max_retries_reached() -> None:
 
 def test_should_retry_exception_default_behavior() -> None:
     """Test default exception retry behavior without predicate."""
-    decider = RetryDecider(
-        status_forcelist=(500,),
-        retry_if=None,
-    )
+    decider = RetryDecider(status_forcelist=(500,), retry_if=None)
 
     exc = httpx.TimeoutException("Timeout")
 

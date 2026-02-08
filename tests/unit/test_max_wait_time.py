@@ -35,7 +35,7 @@ def test_max_wait_time_caps_backoff(
         TEST_URL,
         client=mock_client,
         max_retries=5,
-        backoff_factor=2.0,  # Would be 2.0, 4.0, 8.0, 16.0 without cap
+        backoff_factor=2.0,  # Would be 2.0, 4.0, 8.0 without cap
         max_wait_time=5.0,  # Cap at 5.0 seconds
     )
 

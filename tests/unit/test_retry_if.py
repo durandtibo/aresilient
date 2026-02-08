@@ -121,7 +121,7 @@ def test_retry_if_returns_false_for_error_response(
     ) -> bool:
         return False  # Never retry
 
-    with pytest.raises(HttpRequestError, match="failed with status 500"):
+    with pytest.raises(HttpRequestError, match=r"failed with status 500"):
         test_case.method_func(TEST_URL, client=mock_client, retry_if=retry_predicate)
 
     # Should only try once since retry_if returns False
@@ -200,7 +200,7 @@ def test_retry_if_does_not_retry_non_retryable_status(
         # Only retry on server errors (5xx)
         return bool(response and 500 <= response.status_code < 600)
 
-    with pytest.raises(HttpRequestError, match="failed with status 404"):
+    with pytest.raises(HttpRequestError, match=r"failed with status 404"):
         test_case.method_func(TEST_URL, client=mock_client, retry_if=retry_predicate)
 
     # Should only try once
@@ -228,7 +228,7 @@ def test_retry_if_returns_false_for_exception(
     ) -> bool:
         return False  # Never retry
 
-    with pytest.raises(HttpRequestError, match="timed out"):
+    with pytest.raises(HttpRequestError, match=r"timed out"):
         test_case.method_func(TEST_URL, client=mock_client, retry_if=retry_predicate)
 
     # Should only try once
@@ -307,7 +307,7 @@ def test_retry_if_exhausts_retries_with_exception(
         # Always retry timeouts
         return bool(isinstance(exception, httpx.TimeoutException))
 
-    with pytest.raises(HttpRequestError, match="timed out"):
+    with pytest.raises(HttpRequestError, match=r"timed out"):
         test_case.method_func(TEST_URL, client=mock_client, retry_if=retry_predicate, max_retries=2)
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]

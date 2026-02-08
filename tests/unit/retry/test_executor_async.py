@@ -2,11 +2,12 @@ r"""Unit tests for asynchronous retry executor."""
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
 
+from aresilient.circuit_breaker import CircuitBreaker
 from aresilient.exceptions import HttpRequestError
 from aresilient.retry import AsyncRetryExecutor, CallbackConfig, RetryConfig
 
@@ -32,8 +33,6 @@ def test_async_retry_executor_creation() -> None:
 
 def test_async_retry_executor_with_circuit_breaker() -> None:
     """Test AsyncRetryExecutor with circuit breaker."""
-    from aresilient.circuit_breaker import CircuitBreaker
-
     retry_config = RetryConfig(
         max_retries=3,
         backoff_factor=0.5,
@@ -210,8 +209,6 @@ async def test_async_retry_executor_with_callbacks() -> None:
 @pytest.mark.asyncio
 async def test_async_retry_executor_circuit_breaker_records_exception_failure() -> None:
     """Test circuit breaker records failure for retryable exception."""
-    from aresilient.circuit_breaker import CircuitBreaker
-
     retry_config = RetryConfig(
         max_retries=2,
         backoff_factor=0.01,
@@ -240,8 +237,6 @@ async def test_async_retry_executor_circuit_breaker_records_exception_failure() 
 @pytest.mark.asyncio
 async def test_async_retry_executor_max_total_time_exceeded_with_response() -> None:
     """Test max_total_time exceeded with response available."""
-    from unittest.mock import patch
-
     retry_config = RetryConfig(
         max_retries=5,
         backoff_factor=0.01,
@@ -262,13 +257,15 @@ async def test_async_retry_executor_max_total_time_exceeded_with_response() -> N
         call_count["count"] += 1
         return 0.0 if call_count["count"] == 1 else 2.0
 
-    with patch("aresilient.retry.executor_async.time.time", side_effect=time_side_effect):
-        with pytest.raises(HttpRequestError) as exc_info:
-            await executor.execute(
-                url="https://example.com",
-                method="GET",
-                request_func=mock_request_func,
-            )
+    with (
+        patch("aresilient.retry.executor_async.time.time", side_effect=time_side_effect),
+        pytest.raises(HttpRequestError) as exc_info,
+    ):
+        await executor.execute(
+            url="https://example.com",
+            method="GET",
+            request_func=mock_request_func,
+        )
 
     # Should fail after first attempt due to time exceeded
     assert mock_request_func.call_count == 1
@@ -278,7 +275,6 @@ async def test_async_retry_executor_max_total_time_exceeded_with_response() -> N
 @pytest.mark.asyncio
 async def test_async_retry_executor_max_total_time_exceeded_with_exception_only() -> None:
     """Test max_total_time exceeded with exception but no response."""
-    from unittest.mock import patch
 
     retry_config = RetryConfig(
         max_retries=5,
@@ -299,17 +295,21 @@ async def test_async_retry_executor_max_total_time_exceeded_with_exception_only(
         call_count["count"] += 1
         return 0.0 if call_count["count"] == 1 else 2.0
 
-    with patch("aresilient.retry.executor_async.time.time", side_effect=time_side_effect):
-        with pytest.raises(HttpRequestError) as exc_info:
-            await executor.execute(
-                url="https://example.com",
-                method="GET",
-                request_func=mock_request_func,
-            )
+    with (
+        patch("aresilient.retry.executor_async.time.time", side_effect=time_side_effect),
+        pytest.raises(
+            HttpRequestError,
+            match=r"GET request to https://example\.com failed after 1 attempts \(max_total_time exceeded\)",
+        ),
+    ):
+        await executor.execute(
+            url="https://example.com",
+            method="GET",
+            request_func=mock_request_func,
+        )
 
     # Should fail after first attempt due to time exceeded
     assert mock_request_func.call_count == 1
-    assert "max_total_time exceeded" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -353,7 +353,10 @@ async def test_async_retry_executor_request_error_exhausts_retries() -> None:
 
     mock_request_func = AsyncMock(side_effect=httpx.RequestError("Connection failed"))
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://example\.com failed after 3 attempts: Connection failed",
+    ):
         await executor.execute(
             url="https://example.com",
             method="GET",
@@ -362,7 +365,6 @@ async def test_async_retry_executor_request_error_exhausts_retries() -> None:
 
     # Should be called max_retries + 1 times
     assert mock_request_func.call_count == 3
-    assert "failed after 3 attempts" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -379,7 +381,10 @@ async def test_async_retry_executor_timeout_exhausts_retries() -> None:
 
     mock_request_func = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://example\.com timed out \(3 attempts\)",
+    ):
         await executor.execute(
             url="https://example.com",
             method="GET",
@@ -388,14 +393,12 @@ async def test_async_retry_executor_timeout_exhausts_retries() -> None:
 
     # Should be called max_retries + 1 times
     assert mock_request_func.call_count == 3
-    assert "timed out" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
 async def test_async_retry_executor_circuit_breaker_records_status_code_failure() -> None:
-    """Test circuit breaker records failure for retryable status code."""
-    from aresilient.circuit_breaker import CircuitBreaker
-
+    """Test circuit breaker records failure for retryable status
+    code."""
     retry_config = RetryConfig(
         max_retries=2,
         backoff_factor=0.01,
