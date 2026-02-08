@@ -334,7 +334,8 @@ async def test_async_client_shares_configuration_across_requests(mock_asleep: Mo
 async def test_async_client_exit_with_none_client() -> None:
     """Test that __aexit__ handles None client gracefully.
 
-    This tests the defensive branch where _client might be None during exit.
+    This tests the defensive branch where _client might be None during
+    exit.
     """
     client = AsyncResilientClient()
 
@@ -343,5 +344,5 @@ async def test_async_client_exit_with_none_client() -> None:
     await client.__aexit__(None, None, None)
 
     # Should complete without errors
-    assert client._client is None  # noqa: SLF001
-    assert client._entered is False  # noqa: SLF001
+    assert client._client is None
+    assert client._entered is False

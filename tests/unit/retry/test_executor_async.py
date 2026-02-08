@@ -393,7 +393,8 @@ async def test_async_retry_executor_timeout_exhausts_retries() -> None:
 
 @pytest.mark.asyncio
 async def test_async_retry_executor_circuit_breaker_records_status_code_failure() -> None:
-    """Test circuit breaker records failure for retryable status code."""
+    """Test circuit breaker records failure for retryable status
+    code."""
     from aresilient.circuit_breaker import CircuitBreaker
 
     retry_config = RetryConfig(
