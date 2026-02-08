@@ -307,7 +307,8 @@ def test_client_validation_timeout_zero(mock_sleep: Mock) -> None:
 
 
 def test_client_validation_backoff_factor_negative(mock_sleep: Mock) -> None:
-    """Test that client validates backoff_factor parameter must be >= 0."""
+    """Test that client validates backoff_factor parameter must be >=
+    0."""
     with pytest.raises(ValueError, match=r"backoff_factor must be >= 0, got -0.5"):
         ResilientClient(backoff_factor=-0.5)
 

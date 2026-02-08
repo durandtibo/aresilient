@@ -340,7 +340,8 @@ async def test_async_client_validation_timeout_zero(mock_asleep: Mock) -> None:
 
 @pytest.mark.asyncio
 async def test_async_client_validation_backoff_factor_negative(mock_asleep: Mock) -> None:
-    """Test that client validates backoff_factor parameter must be >= 0."""
+    """Test that client validates backoff_factor parameter must be >=
+    0."""
     with pytest.raises(ValueError, match=r"backoff_factor must be >= 0, got -0.5"):
         AsyncResilientClient(backoff_factor=-0.5)
 
