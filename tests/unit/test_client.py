@@ -35,6 +35,7 @@ def test_client_context_manager_basic(mock_sleep: Mock) -> None:
         assert response.status_code == 200
         mock_client.get.assert_called_once()
         mock_client.close.assert_called_once()
+    mock_sleep.assert_not_called()
 
 
 def test_client_closes_on_exception(mock_sleep: Mock) -> None:
@@ -50,6 +51,8 @@ def test_client_closes_on_exception(mock_sleep: Mock) -> None:
 
         mock_client.close.assert_called_once()
 
+    mock_sleep.assert_not_called()
+
 
 def test_client_outside_context_manager_raises(mock_sleep: Mock) -> None:
     """Test that using client outside context manager raises
@@ -58,6 +61,8 @@ def test_client_outside_context_manager_raises(mock_sleep: Mock) -> None:
 
     with pytest.raises(RuntimeError, match="must be used within a context manager"):
         client.get(TEST_URL)
+
+    mock_sleep.assert_not_called()
 
 
 def test_client_multiple_requests(mock_sleep: Mock) -> None:
@@ -82,6 +87,8 @@ def test_client_multiple_requests(mock_sleep: Mock) -> None:
         mock_client.post.assert_called_once()
         mock_client.close.assert_called_once()
 
+    mock_sleep.assert_not_called()
+
 
 def test_client_uses_configured_timeout(mock_sleep: Mock) -> None:
     """Test that ResilientClient uses configured timeout."""
@@ -90,6 +97,8 @@ def test_client_uses_configured_timeout(mock_sleep: Mock) -> None:
             pass
 
         mock_client_class.assert_called_once_with(timeout=30.0)
+
+    mock_sleep.assert_not_called()
 
 
 def test_client_get_method(mock_sleep: Mock) -> None:
@@ -110,6 +119,8 @@ def test_client_get_method(mock_sleep: Mock) -> None:
         assert "params" in call_kwargs
         assert call_kwargs["params"] == {"page": 1}
 
+    mock_sleep.assert_not_called()
+
 
 def test_client_post_method(mock_sleep: Mock) -> None:
     """Test client.post() method."""
@@ -127,6 +138,8 @@ def test_client_post_method(mock_sleep: Mock) -> None:
         call_kwargs = mock_client.post.call_args[1]
         assert "json" in call_kwargs
 
+    mock_sleep.assert_not_called()
+
 
 def test_client_put_method(mock_sleep: Mock) -> None:
     """Test client.put() method."""
@@ -141,6 +154,8 @@ def test_client_put_method(mock_sleep: Mock) -> None:
             response = client.put(TEST_URL, json={"key": "value"})
 
         assert response.status_code == 200
+
+    mock_sleep.assert_not_called()
 
 
 def test_client_delete_method(mock_sleep: Mock) -> None:
@@ -157,6 +172,8 @@ def test_client_delete_method(mock_sleep: Mock) -> None:
 
         assert response.status_code == 204
 
+    mock_sleep.assert_not_called()
+
 
 def test_client_patch_method(mock_sleep: Mock) -> None:
     """Test client.patch() method."""
@@ -171,6 +188,8 @@ def test_client_patch_method(mock_sleep: Mock) -> None:
             response = client.patch(TEST_URL, json={"key": "value"})
 
         assert response.status_code == 200
+
+    mock_sleep.assert_not_called()
 
 
 def test_client_head_method(mock_sleep: Mock) -> None:
@@ -187,6 +206,8 @@ def test_client_head_method(mock_sleep: Mock) -> None:
 
         assert response.status_code == 200
 
+    mock_sleep.assert_not_called()
+
 
 def test_client_options_method(mock_sleep: Mock) -> None:
     """Test client.options() method."""
@@ -202,6 +223,8 @@ def test_client_options_method(mock_sleep: Mock) -> None:
 
         assert response.status_code == 200
 
+    mock_sleep.assert_not_called()
+
 
 def test_client_request_method(mock_sleep: Mock) -> None:
     """Test client.request() method with custom HTTP method."""
@@ -216,6 +239,8 @@ def test_client_request_method(mock_sleep: Mock) -> None:
             response = client.request("TRACE", TEST_URL)
 
         assert response.status_code == 200
+
+    mock_sleep.assert_not_called()
 
 
 def test_client_override_max_retries(mock_sleep: Mock) -> None:
@@ -237,6 +262,8 @@ def test_client_override_max_retries(mock_sleep: Mock) -> None:
         # Should have retried because we overrode max_retries
         assert response.status_code == 200
         assert mock_client.get.call_count == 2
+
+    mock_sleep.assert_called_once_with(0.3)
 
 
 def test_client_default_max_retries(mock_sleep: Mock) -> None:
@@ -260,11 +287,15 @@ def test_client_default_max_retries(mock_sleep: Mock) -> None:
         assert response.status_code == 200
         assert mock_client.get.call_count == 2
 
+    mock_sleep.assert_called_once_with(0.3)
+
 
 def test_client_validation_max_retries_negative(mock_sleep: Mock) -> None:
     """Test that client validates max_retries parameter must be >= 0."""
     with pytest.raises(ValueError, match=r"max_retries must be >= 0, got -1"):
         ResilientClient(max_retries=-1)
+
+    mock_sleep.assert_not_called()
 
 
 def test_client_validation_timeout_zero(mock_sleep: Mock) -> None:
@@ -272,11 +303,15 @@ def test_client_validation_timeout_zero(mock_sleep: Mock) -> None:
     with pytest.raises(ValueError, match=r"timeout must be > 0, got 0"):
         ResilientClient(timeout=0)
 
+    mock_sleep.assert_not_called()
+
 
 def test_client_validation_backoff_factor_negative(mock_sleep: Mock) -> None:
     """Test that client validates backoff_factor parameter must be >= 0."""
     with pytest.raises(ValueError, match=r"backoff_factor must be >= 0, got -0.5"):
         ResilientClient(backoff_factor=-0.5)
+
+    mock_sleep.assert_not_called()
 
 
 def test_client_shares_configuration_across_requests(mock_sleep: Mock) -> None:
@@ -297,6 +332,8 @@ def test_client_shares_configuration_across_requests(mock_sleep: Mock) -> None:
         # Both requests should use the same client
         assert mock_client.get.call_count == 1
         assert mock_client.post.call_count == 1
+
+    mock_sleep.assert_not_called()
 
 
 def test_client_exit_with_none_client() -> None:
