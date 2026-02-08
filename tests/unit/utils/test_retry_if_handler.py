@@ -81,7 +81,9 @@ def test_handle_response_error_retry_if_returns_false() -> None:
     """Test error response when retry_if returns False (raise error)."""
     response = httpx.Response(400, content=b"Bad Request")
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError, match=r"GET request to https://example.com failed with status 400"
+    ) as exc_info:
         handle_response_with_retry_if(
             response,
             retry_if=retry_if_false,
@@ -94,7 +96,6 @@ def test_handle_response_error_retry_if_returns_false() -> None:
     assert error.url == "https://example.com"
     assert error.status_code == 400
     assert error.response is response
-    assert "failed with status 400" in str(error)
 
 
 def test_handle_response_different_status_code_3xx() -> None:
