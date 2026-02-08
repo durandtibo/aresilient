@@ -10,9 +10,9 @@ import pytest
 
 from aresilient import CircuitBreaker, CircuitBreakerError, CircuitState
 
-########################################
-#     Tests for CircuitBreaker class     #
-########################################
+####################################
+#     Tests for CircuitBreaker     #
+####################################
 
 
 def test_circuit_breaker_initial_state() -> None:
@@ -65,7 +65,7 @@ def test_circuit_breaker_check_raises_when_open() -> None:
     cb.record_failure(Exception("error"))
     assert cb.state == CircuitState.OPEN
 
-    with pytest.raises(CircuitBreakerError, match="Circuit breaker is OPEN"):
+    with pytest.raises(CircuitBreakerError, match=r"Circuit breaker is OPEN"):
         cb.check()
 
 
@@ -144,7 +144,7 @@ def test_circuit_breaker_call_failure() -> None:
         msg = "test error"
         raise ValueError(msg)
 
-    with pytest.raises(ValueError, match="test error"):
+    with pytest.raises(ValueError, match=r"test error"):
         cb.call(failing_func)
 
     assert cb.failure_count == 1
@@ -159,11 +159,11 @@ def test_circuit_breaker_call_opens_on_threshold() -> None:
         msg = "test error"
         raise ValueError(msg)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"test error"):
         cb.call(failing_func)
     assert cb.state == CircuitState.CLOSED
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"test error"):
         cb.call(failing_func)
     assert cb.state == CircuitState.OPEN
 
@@ -177,13 +177,13 @@ def test_circuit_breaker_call_raises_when_open() -> None:
         msg = "test error"
         raise ValueError(msg)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"test error"):
         cb.call(failing_func)
 
     assert cb.state == CircuitState.OPEN
 
     # Next call should fail fast
-    with pytest.raises(CircuitBreakerError, match="Circuit breaker is OPEN"):
+    with pytest.raises(CircuitBreakerError, match=r"Circuit breaker is OPEN"):
         cb.call(lambda: "should not execute")
 
 
@@ -264,19 +264,19 @@ def test_circuit_breaker_state_change_callback() -> None:
 
 def test_circuit_breaker_invalid_failure_threshold() -> None:
     """Test that invalid failure_threshold raises ValueError."""
-    with pytest.raises(ValueError, match="failure_threshold must be > 0"):
+    with pytest.raises(ValueError, match=r"failure_threshold must be > 0"):
         CircuitBreaker(failure_threshold=0)
 
-    with pytest.raises(ValueError, match="failure_threshold must be > 0"):
+    with pytest.raises(ValueError, match=r"failure_threshold must be > 0"):
         CircuitBreaker(failure_threshold=-1)
 
 
 def test_circuit_breaker_invalid_recovery_timeout() -> None:
     """Test that invalid recovery_timeout raises ValueError."""
-    with pytest.raises(ValueError, match="recovery_timeout must be > 0"):
+    with pytest.raises(ValueError, match=r"recovery_timeout must be > 0"):
         CircuitBreaker(recovery_timeout=0)
 
-    with pytest.raises(ValueError, match="recovery_timeout must be > 0"):
+    with pytest.raises(ValueError, match=r"recovery_timeout must be > 0"):
         CircuitBreaker(recovery_timeout=-1.0)
 
 
@@ -305,12 +305,6 @@ def test_circuit_breaker_success_resets_failure_count() -> None:
     cb.record_success()
     assert cb.failure_count == 0
     assert cb.state == CircuitState.CLOSED
-
-
-def test_circuit_breaker_repr() -> None:
-    """Test CircuitBreakerError repr."""
-    error = CircuitBreakerError("test message")
-    assert "test message" in str(error)
 
 
 def test_circuit_breaker_multiple_recovery_cycles() -> None:
@@ -346,7 +340,10 @@ def test_circuit_breaker_state_change_callback_exception() -> None:
     """Test that exceptions in state change callback are handled
     gracefully."""
 
-    def failing_callback(old_state: CircuitState, new_state: CircuitState) -> NoReturn:
+    def failing_callback(
+        old_state: CircuitState,  # noqa: ARG001
+        new_state: CircuitState,  # noqa: ARG001
+    ) -> NoReturn:
         msg = "Callback error"
         raise RuntimeError(msg)
 
@@ -392,7 +389,7 @@ def test_circuit_breaker_open_with_missing_last_failure_time() -> None:
     cb._last_failure_time = None
 
     # check() should raise error even without timestamp
-    with pytest.raises(CircuitBreakerError, match="Circuit breaker is OPEN"):
+    with pytest.raises(CircuitBreakerError, match=r"Circuit breaker is OPEN"):
         cb.check()
 
 
@@ -413,7 +410,7 @@ def test_circuit_breaker_call_with_missing_last_failure_time() -> None:
     def test_func() -> str:
         return "should not execute"
 
-    with pytest.raises(CircuitBreakerError, match="Circuit breaker is OPEN"):
+    with pytest.raises(CircuitBreakerError, match=r"Circuit breaker is OPEN"):
         cb.call(test_func)
 
 
@@ -430,7 +427,7 @@ def test_circuit_breaker_call_transitions_to_half_open_after_timeout() -> None:
         return "success"
 
     # Open the circuit
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"test error"):
         cb.call(failing_func)
     assert cb.state == CircuitState.OPEN
 
@@ -460,3 +457,13 @@ def test_circuit_breaker_change_state_no_op_for_same_state() -> None:
     assert cb.state == CircuitState.CLOSED
     # Callback should not be called since state didn't actually change
     callback.assert_not_called()
+
+
+#########################################
+#     Tests for CircuitBreakerError     #
+#########################################
+
+
+def test_circuit_breaker_repr() -> None:
+    """Test CircuitBreakerError repr."""
+    assert repr(CircuitBreakerError("test message")) == "CircuitBreakerError('test message')"

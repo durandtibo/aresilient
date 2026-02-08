@@ -45,7 +45,7 @@ def test_client_closes_on_exception(mock_sleep: Mock) -> None:
         mock_client_class.return_value = mock_client
         msg = "test error"
 
-        with pytest.raises(ValueError, match="test error"), ResilientClient():
+        with pytest.raises(ValueError, match=r"test error"), ResilientClient():
             raise ValueError(msg)
 
         mock_client.close.assert_called_once()
@@ -58,7 +58,7 @@ def test_client_outside_context_manager_raises(mock_sleep: Mock) -> None:
     RuntimeError."""
     client = ResilientClient()
 
-    with pytest.raises(RuntimeError, match="must be used within a context manager"):
+    with pytest.raises(RuntimeError, match=r"must be used within a context manager"):
         client.get(TEST_URL)
 
     mock_sleep.assert_not_called()

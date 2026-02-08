@@ -241,7 +241,7 @@ def test_handle_exception_with_callback_reraises_error() -> None:
 
     exc = Exception("Original error")
 
-    with pytest.raises(HttpRequestError, match="Test failure"):
+    with pytest.raises(HttpRequestError, match=r"Test failure"):
         handle_exception_with_callback(
             exc,
             url=TEST_URL,

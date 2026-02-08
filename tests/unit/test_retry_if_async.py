@@ -132,7 +132,7 @@ async def test_retry_if_returns_false_for_error_response(
     ) -> bool:
         return False  # Never retry
 
-    with pytest.raises(HttpRequestError, match="failed with status 500"):
+    with pytest.raises(HttpRequestError, match=r"failed with status 500"):
         await test_case.method_func(TEST_URL, client=mock_async_client, retry_if=retry_predicate)
 
     # Should only try once since retry_if returns False
@@ -193,7 +193,7 @@ async def test_retry_if_returns_false_for_exception(
     ) -> bool:
         return False  # Never retry
 
-    with pytest.raises(HttpRequestError, match="timed out"):
+    with pytest.raises(HttpRequestError, match=r"timed out"):
         await test_case.method_func(TEST_URL, client=mock_async_client, retry_if=retry_predicate)
 
     # Should only try once
@@ -279,7 +279,7 @@ async def test_retry_if_exhausts_retries_with_exception(
         # Always retry timeouts
         return bool(isinstance(exception, httpx.TimeoutException))
 
-    with pytest.raises(HttpRequestError, match="timed out"):
+    with pytest.raises(HttpRequestError, match=r"timed out"):
         await test_case.method_func(
             TEST_URL, client=mock_async_client, retry_if=retry_predicate, max_retries=2
         )
