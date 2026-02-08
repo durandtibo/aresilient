@@ -293,7 +293,7 @@ def test_client_shares_configuration_across_requests(mock_sleep: Mock) -> None:
         assert mock_client.post.call_count == 1
 
 
-def test_client_exit_with_none_client(mock_sleep: Mock) -> None:
+def test_client_exit_with_none_client() -> None:
     """Test that __exit__ handles None client gracefully.
 
     This tests the defensive branch where _client might be None during exit.

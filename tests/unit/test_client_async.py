@@ -331,7 +331,7 @@ async def test_async_client_shares_configuration_across_requests(mock_asleep: Mo
 
 
 @pytest.mark.asyncio
-async def test_async_client_exit_with_none_client(mock_asleep: Mock) -> None:
+async def test_async_client_exit_with_none_client() -> None:
     """Test that __aexit__ handles None client gracefully.
 
     This tests the defensive branch where _client might be None during exit.
