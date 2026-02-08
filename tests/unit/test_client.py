@@ -261,15 +261,21 @@ def test_client_default_max_retries(mock_sleep: Mock) -> None:
         assert mock_client.get.call_count == 2
 
 
-def test_client_validation_errors(mock_sleep: Mock) -> None:
-    """Test that client validates parameters on initialization."""
-    with pytest.raises(ValueError, match="max_retries"):
+def test_client_validation_max_retries_negative(mock_sleep: Mock) -> None:
+    """Test that client validates max_retries parameter must be >= 0."""
+    with pytest.raises(ValueError, match=r"max_retries must be >= 0, got -1"):
         ResilientClient(max_retries=-1)
 
-    with pytest.raises(ValueError, match="timeout"):
+
+def test_client_validation_timeout_zero(mock_sleep: Mock) -> None:
+    """Test that client validates timeout parameter must be > 0."""
+    with pytest.raises(ValueError, match=r"timeout must be > 0, got 0"):
         ResilientClient(timeout=0)
 
-    with pytest.raises(ValueError, match="backoff_factor"):
+
+def test_client_validation_backoff_factor_negative(mock_sleep: Mock) -> None:
+    """Test that client validates backoff_factor parameter must be >= 0."""
+    with pytest.raises(ValueError, match=r"backoff_factor must be >= 0, got -0.5"):
         ResilientClient(backoff_factor=-0.5)
 
 
