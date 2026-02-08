@@ -114,7 +114,10 @@ def test_request_with_automatic_retry_max_retries_exceeded(mock_sleep: Mock) -> 
     mock_fail_response = Mock(spec=httpx.Response, status_code=502)
     mock_request_func = Mock(return_value=mock_fail_response)
 
-    with pytest.raises(HttpRequestError) as exc_info:
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://api\.example\.com/data failed with status 502 after 3 attempts",
+    ) as exc_info:
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",
@@ -124,7 +127,6 @@ def test_request_with_automatic_retry_max_retries_exceeded(mock_sleep: Mock) -> 
         )
 
     assert exc_info.value.status_code == 502
-    assert "failed with status 502 after 3 attempts" in str(exc_info.value)
     assert mock_request_func.call_args_list == [
         call(url=TEST_URL),
         call(url=TEST_URL),
@@ -554,125 +556,66 @@ def test_request_with_automatic_retry_mixed_error_and_status_failures(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
 
-def test_request_with_automatic_retry_network_error(mock_sleep: Mock) -> None:
-    """Test that NetworkError is retried appropriately."""
-    mock_request_func = Mock(side_effect=httpx.NetworkError("Network unreachable"))
+@pytest.mark.parametrize(
+    ("exception", "method", "match_pattern"),
+    [
+        pytest.param(
+            httpx.NetworkError("Network unreachable"),
+            "GET",
+            r"GET request to https://api\.example\.com/data failed after 4 attempts",
+            id="network_error",
+        ),
+        pytest.param(
+            httpx.ReadError("Connection broken"),
+            "GET",
+            r"GET request to https://api\.example\.com/data failed after 4 attempts",
+            id="read_error",
+        ),
+        pytest.param(
+            httpx.WriteError("Write failed"),
+            "POST",
+            r"POST request to https://api\.example\.com/data failed after 4 attempts",
+            id="write_error",
+        ),
+        pytest.param(
+            httpx.ConnectTimeout("Connection timeout"),
+            "POST",
+            r"POST request to https://api\.example\.com/data timed out \(4 attempts\)",
+            id="connect_timeout",
+        ),
+        pytest.param(
+            httpx.ReadTimeout("Read timeout"),
+            "DELETE",
+            r"DELETE request to https://api\.example\.com/data timed out \(4 attempts\)",
+            id="read_timeout",
+        ),
+        pytest.param(
+            httpx.PoolTimeout("Connection pool exhausted"),
+            "PATCH",
+            r"PATCH request to https://api\.example\.com/data timed out \(4 attempts\)",
+            id="pool_timeout",
+        ),
+        pytest.param(
+            httpx.ProxyError("Proxy connection failed"),
+            "HEAD",
+            r"HEAD request to https://api\.example\.com/data failed after 4 attempts",
+            id="proxy_error",
+        ),
+    ],
+)
+def test_request_with_automatic_retry_error_types(
+    exception: Exception,
+    method: str,
+    match_pattern: str,
+    mock_sleep: Mock,
+) -> None:
+    """Test that various httpx errors are retried appropriately."""
+    mock_request_func = Mock(side_effect=exception)
 
-    with pytest.raises(
-        HttpRequestError,
-        match=r"GET request to https://api.example.com/data failed after 4 attempts",
-    ):
+    with pytest.raises(HttpRequestError, match=match_pattern):
         request_with_automatic_retry(
             url=TEST_URL,
-            method="GET",
-            request_func=mock_request_func,
-            status_forcelist=(500,),
-        )
-
-    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-def test_request_with_automatic_retry_read_error(mock_sleep: Mock) -> None:
-    """Test that ReadError is retried appropriately."""
-    mock_request_func = Mock(side_effect=httpx.ReadError("Connection broken"))
-
-    with pytest.raises(
-        HttpRequestError,
-        match=r"GET request to https://api.example.com/data failed after 4 attempts",
-    ):
-        request_with_automatic_retry(
-            url=TEST_URL,
-            method="GET",
-            request_func=mock_request_func,
-            status_forcelist=(500,),
-        )
-
-    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-def test_request_with_automatic_retry_write_error(mock_sleep: Mock) -> None:
-    """Test that WriteError is retried appropriately."""
-    mock_request_func = Mock(side_effect=httpx.WriteError("Write failed"))
-
-    with pytest.raises(
-        HttpRequestError,
-        match=r"POST request to https://api.example.com/data failed after 4 attempts",
-    ):
-        request_with_automatic_retry(
-            url=TEST_URL,
-            method="POST",
-            request_func=mock_request_func,
-            status_forcelist=(500,),
-        )
-
-    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-def test_request_with_automatic_retry_connect_timeout(mock_sleep: Mock) -> None:
-    """Test that ConnectTimeout is retried appropriately."""
-    mock_request_func = Mock(side_effect=httpx.ConnectTimeout("Connection timeout"))
-
-    with pytest.raises(
-        HttpRequestError,
-        match=r"POST request to https://api.example.com/data timed out \(4 attempts\)",
-    ):
-        request_with_automatic_retry(
-            url=TEST_URL,
-            method="POST",
-            request_func=mock_request_func,
-            status_forcelist=(500,),
-        )
-
-    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-def test_request_with_automatic_retry_read_timeout(mock_sleep: Mock) -> None:
-    """Test that ReadTimeout is retried appropriately."""
-    mock_request_func = Mock(side_effect=httpx.ReadTimeout("Read timeout"))
-
-    with pytest.raises(
-        HttpRequestError,
-        match=r"DELETE request to https://api.example.com/data timed out \(4 attempts\)",
-    ):
-        request_with_automatic_retry(
-            url=TEST_URL,
-            method="DELETE",
-            request_func=mock_request_func,
-            status_forcelist=(500,),
-        )
-
-    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-def test_request_with_automatic_retry_pool_timeout(mock_sleep: Mock) -> None:
-    """Test that PoolTimeout is retried appropriately."""
-    mock_request_func = Mock(side_effect=httpx.PoolTimeout("Connection pool exhausted"))
-
-    with pytest.raises(
-        HttpRequestError,
-        match=r"PATCH request to https://api.example.com/data timed out \(4 attempts\)",
-    ):
-        request_with_automatic_retry(
-            url=TEST_URL,
-            method="PATCH",
-            request_func=mock_request_func,
-            status_forcelist=(500,),
-        )
-
-    assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
-
-
-def test_request_with_automatic_retry_proxy_error(mock_sleep: Mock) -> None:
-    """Test that ProxyError is retried appropriately."""
-    mock_request_func = Mock(side_effect=httpx.ProxyError("Proxy connection failed"))
-
-    with pytest.raises(
-        HttpRequestError,
-        match=r"HEAD request to https://api.example.com/data failed after 4 attempts",
-    ):
-        request_with_automatic_retry(
-            url=TEST_URL,
-            method="HEAD",
+            method=method,
             request_func=mock_request_func,
             status_forcelist=(500,),
         )
