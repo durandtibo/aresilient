@@ -361,7 +361,7 @@ async def test_request_with_automatic_retry_async_retry_if_returns_true_for_succ
         # Always retry - should exhaust retries
         return True
 
-    with pytest.raises(HttpRequestError, match="failed with status 200 after 4 attempts"):
+    with pytest.raises(HttpRequestError, match=r"failed with status 200 after 4 attempts"):
         await request_with_automatic_retry_async(
             url="https://example.com",
             method="GET",
@@ -417,7 +417,7 @@ async def test_request_with_automatic_retry_async_retry_if_returns_false_for_err
     ) -> bool:
         return False  # Never retry
 
-    with pytest.raises(HttpRequestError, match="failed with status 500"):
+    with pytest.raises(HttpRequestError, match=r"failed with status 500"):
         await request_with_automatic_retry_async(
             url="https://example.com",
             method="GET",
@@ -500,7 +500,7 @@ async def test_request_with_automatic_retry_async_retry_if_does_not_retry_client
         # Only retry on server errors (5xx)
         return bool(response and 500 <= response.status_code < 600)
 
-    with pytest.raises(HttpRequestError, match="failed with status 404"):
+    with pytest.raises(HttpRequestError, match=r"failed with status 404"):
         await request_with_automatic_retry_async(
             url="https://example.com",
             method="GET",
@@ -525,7 +525,7 @@ async def test_request_with_automatic_retry_async_retry_if_returns_false_for_exc
     ) -> bool:
         return False  # Never retry
 
-    with pytest.raises(HttpRequestError, match="timed out"):
+    with pytest.raises(HttpRequestError, match=r"timed out"):
         await request_with_automatic_retry_async(
             url="https://example.com",
             method="GET",
@@ -608,7 +608,7 @@ async def test_request_with_automatic_retry_async_retry_if_exhausts_retries_with
         # Always retry timeouts
         return bool(isinstance(exception, httpx.TimeoutException))
 
-    with pytest.raises(HttpRequestError, match="timed out"):
+    with pytest.raises(HttpRequestError, match=r"timed out"):
         await request_with_automatic_retry_async(
             url="https://example.com",
             method="GET",

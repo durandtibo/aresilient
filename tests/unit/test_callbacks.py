@@ -407,7 +407,7 @@ def test_callback_exception_does_not_break_retry_logic(
     on_request_callback = Mock(side_effect=ValueError("callback error"))
 
     # Should still succeed despite callback exception
-    with pytest.raises(ValueError, match="callback error"):
+    with pytest.raises(ValueError, match=r"callback error"):
         request_with_automatic_retry(
             url=TEST_URL,
             method="GET",

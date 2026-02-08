@@ -44,15 +44,15 @@ def test_exponential_backoff_default_values() -> None:
 
 def test_exponential_backoff_invalid_base_delay() -> None:
     """Test that negative base_delay raises ValueError."""
-    with pytest.raises(ValueError, match="base_delay must be non-negative"):
+    with pytest.raises(ValueError, match=r"base_delay must be non-negative"):
         ExponentialBackoff(base_delay=-1.0)
 
 
 def test_exponential_backoff_invalid_max_delay() -> None:
     """Test that non-positive max_delay raises ValueError."""
-    with pytest.raises(ValueError, match="max_delay must be positive"):
+    with pytest.raises(ValueError, match=r"max_delay must be positive"):
         ExponentialBackoff(base_delay=1.0, max_delay=0)
-    with pytest.raises(ValueError, match="max_delay must be positive"):
+    with pytest.raises(ValueError, match=r"max_delay must be positive"):
         ExponentialBackoff(base_delay=1.0, max_delay=-5.0)
 
 
@@ -96,15 +96,15 @@ def test_linear_backoff_default_values() -> None:
 
 def test_linear_backoff_invalid_base_delay() -> None:
     """Test that negative base_delay raises ValueError."""
-    with pytest.raises(ValueError, match="base_delay must be non-negative"):
+    with pytest.raises(ValueError, match=r"base_delay must be non-negative"):
         LinearBackoff(base_delay=-1.0)
 
 
 def test_linear_backoff_invalid_max_delay() -> None:
     """Test that non-positive max_delay raises ValueError."""
-    with pytest.raises(ValueError, match="max_delay must be positive"):
+    with pytest.raises(ValueError, match=r"max_delay must be positive"):
         LinearBackoff(base_delay=1.0, max_delay=0)
-    with pytest.raises(ValueError, match="max_delay must be positive"):
+    with pytest.raises(ValueError, match=r"max_delay must be positive"):
         LinearBackoff(base_delay=1.0, max_delay=-5.0)
 
 
@@ -151,15 +151,15 @@ def test_fibonacci_backoff_default_values() -> None:
 
 def test_fibonacci_backoff_invalid_base_delay() -> None:
     """Test that negative base_delay raises ValueError."""
-    with pytest.raises(ValueError, match="base_delay must be non-negative"):
+    with pytest.raises(ValueError, match=r"base_delay must be non-negative"):
         FibonacciBackoff(base_delay=-1.0)
 
 
 def test_fibonacci_backoff_invalid_max_delay() -> None:
     """Test that non-positive max_delay raises ValueError."""
-    with pytest.raises(ValueError, match="max_delay must be positive"):
+    with pytest.raises(ValueError, match=r"max_delay must be positive"):
         FibonacciBackoff(base_delay=1.0, max_delay=0)
-    with pytest.raises(ValueError, match="max_delay must be positive"):
+    with pytest.raises(ValueError, match=r"max_delay must be positive"):
         FibonacciBackoff(base_delay=1.0, max_delay=-5.0)
 
 
@@ -209,7 +209,7 @@ def test_constant_backoff_default_values() -> None:
 
 def test_constant_backoff_invalid_delay() -> None:
     """Test that negative delay raises ValueError."""
-    with pytest.raises(ValueError, match="delay must be non-negative"):
+    with pytest.raises(ValueError, match=r"delay must be non-negative"):
         ConstantBackoff(delay=-1.0)
 
 
@@ -227,7 +227,7 @@ def test_constant_backoff_zero_delay() -> None:
 
 def test_backoff_strategy_is_abstract() -> None:
     """Test that BackoffStrategy cannot be instantiated directly."""
-    with pytest.raises(TypeError, match="Can't instantiate abstract class"):
+    with pytest.raises(TypeError, match=r"Can't instantiate abstract class"):
         BackoffStrategy()  # type: ignore[abstract]
 
 

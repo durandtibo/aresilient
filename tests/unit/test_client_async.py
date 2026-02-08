@@ -50,7 +50,7 @@ async def test_async_client_closes_on_exception(mock_asleep: Mock) -> None:
         mock_client_class.return_value = mock_client
         msg = "test error"
 
-        with pytest.raises(ValueError, match="test error"):
+        with pytest.raises(ValueError, match=r"test error"):
             async with AsyncResilientClient():
                 raise ValueError(msg)
 
@@ -65,7 +65,7 @@ async def test_async_client_outside_context_manager_raises(mock_asleep: Mock) ->
     RuntimeError."""
     client = AsyncResilientClient()
 
-    with pytest.raises(RuntimeError, match="must be used within an async context manager"):
+    with pytest.raises(RuntimeError, match=r"must be used within an async context manager"):
         await client.get(TEST_URL)
 
     mock_asleep.assert_not_called()
