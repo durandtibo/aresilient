@@ -557,48 +557,48 @@ def test_request_with_automatic_retry_mixed_error_and_status_failures(
 
 
 @pytest.mark.parametrize(
-    ("exception", "method", "error_type"),
+    ("exception", "method", "match_pattern"),
     [
         pytest.param(
             httpx.NetworkError("Network unreachable"),
             "GET",
-            "failed",
+            r"GET request to https://api\.example\.com/data failed after 4 attempts",
             id="network_error",
         ),
         pytest.param(
             httpx.ReadError("Connection broken"),
             "GET",
-            "failed",
+            r"GET request to https://api\.example\.com/data failed after 4 attempts",
             id="read_error",
         ),
         pytest.param(
             httpx.WriteError("Write failed"),
             "POST",
-            "failed",
+            r"POST request to https://api\.example\.com/data failed after 4 attempts",
             id="write_error",
         ),
         pytest.param(
             httpx.ConnectTimeout("Connection timeout"),
             "POST",
-            "timed out",
+            r"POST request to https://api\.example\.com/data timed out \(4 attempts\)",
             id="connect_timeout",
         ),
         pytest.param(
             httpx.ReadTimeout("Read timeout"),
             "DELETE",
-            "timed out",
+            r"DELETE request to https://api\.example\.com/data timed out \(4 attempts\)",
             id="read_timeout",
         ),
         pytest.param(
             httpx.PoolTimeout("Connection pool exhausted"),
             "PATCH",
-            "timed out",
+            r"PATCH request to https://api\.example\.com/data timed out \(4 attempts\)",
             id="pool_timeout",
         ),
         pytest.param(
             httpx.ProxyError("Proxy connection failed"),
             "HEAD",
-            "failed",
+            r"HEAD request to https://api\.example\.com/data failed after 4 attempts",
             id="proxy_error",
         ),
     ],
@@ -606,16 +606,11 @@ def test_request_with_automatic_retry_mixed_error_and_status_failures(
 def test_request_with_automatic_retry_error_types(
     exception: Exception,
     method: str,
-    error_type: str,
+    match_pattern: str,
     mock_sleep: Mock,
 ) -> None:
     """Test that various httpx errors are retried appropriately."""
     mock_request_func = Mock(side_effect=exception)
-
-    if error_type == "timed out":
-        match_pattern = rf"{method} request to https://api\.example\.com/data timed out \(4 attempts\)"
-    else:
-        match_pattern = rf"{method} request to https://api\.example\.com/data failed after 4 attempts"
 
     with pytest.raises(HttpRequestError, match=match_pattern):
         request_with_automatic_retry(
