@@ -422,7 +422,7 @@ async def assert_successful_request_async(
 def create_mock_client_with_side_effect(
     client_method: str,
     side_effect: list[httpx.Response | Exception],
-) -> tuple[Mock, list[Mock]]:
+) -> tuple[Mock, list[httpx.Response | Exception]]:
     """Create a mock httpx.Client with a method that has side effects.
 
     This utility is commonly used for testing retry logic where multiple
@@ -455,7 +455,7 @@ def create_mock_client_with_side_effect(
 def create_mock_async_client_with_side_effect(
     client_method: str,
     side_effect: list[httpx.Response | Exception],
-) -> tuple[Mock, list[Mock]]:
+) -> tuple[AsyncMock, list[httpx.Response | Exception]]:
     """Create a mock httpx.AsyncClient with a method that has side
     effects.
 
@@ -481,6 +481,19 @@ def create_mock_async_client_with_side_effect(
         ... )
         >>> # First call returns 503, second call returns 200
     """
-    mock_client = Mock(spec=httpx.AsyncClient, aclose=AsyncMock())
+    mock_client = AsyncMock(spec=httpx.AsyncClient, aclose=AsyncMock())
     setattr(mock_client, client_method, AsyncMock(side_effect=side_effect))
     return mock_client, side_effect
+
+
+def create_mock_response(status_code: int = 200, **kwargs: Any) -> httpx.Response:
+    r"""Create a mock httpx.Response object with specified status code.
+
+    Args:
+        status_code: The status code to return in case of failure.
+        **kwargs: Any additional keyword arguments to pass to httpx.Response.
+
+    Returns:
+        A mock httpx.Response object with specified status code.
+    """
+    return Mock(spec=httpx.Response, status_code=status_code, **kwargs)
