@@ -13,7 +13,11 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
-from tests.helpers import HTTP_METHODS, HttpMethodTestCase
+from tests.helpers import (
+    HTTP_METHODS,
+    HttpMethodTestCase,
+    create_mock_client_with_side_effect,
+)
 
 TEST_URL = "https://api.example.com/data"
 
@@ -25,16 +29,15 @@ def test_recovery_after_multiple_failures(
 ) -> None:
     """Test successful recovery after multiple transient failures."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = Mock(spec=httpx.Client)
-    client_method = Mock(
-        side_effect=[
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method,
+        [
             Mock(spec=httpx.Response, status_code=429),
             Mock(spec=httpx.Response, status_code=503),
             Mock(spec=httpx.Response, status_code=500),
             mock_response,
-        ]
+        ],
     )
-    setattr(mock_client, test_case.client_method, client_method)
 
     response = test_case.method_func(TEST_URL, client=mock_client, max_retries=5)
 
@@ -49,16 +52,15 @@ def test_mixed_error_and_status_failures(
 ) -> None:
     """Test recovery from mix of errors and retryable status codes."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = Mock(spec=httpx.Client)
-    client_method = Mock(
-        side_effect=[
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method,
+        [
             httpx.RequestError("Network error"),
             Mock(spec=httpx.Response, status_code=502),
             httpx.TimeoutException("Timeout"),
             mock_response,
-        ]
+        ],
     )
-    setattr(mock_client, test_case.client_method, client_method)
 
     response = test_case.method_func(TEST_URL, client=mock_client, max_retries=5)
 

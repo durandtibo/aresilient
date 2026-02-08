@@ -13,7 +13,12 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
-from tests.helpers import HTTP_METHODS, HttpMethodTestCase
+from tests.helpers import (
+    HTTP_METHODS,
+    HttpMethodTestCase,
+    create_mock_client_with_side_effect,
+    setup_mock_client_for_method,
+)
 
 TEST_URL = "https://api.example.com/data"
 
@@ -29,9 +34,9 @@ def test_retry_if_returns_false_for_successful_response(
 ) -> None:
     """Test retry_if that returns False for successful response (no
     retry)."""
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code, text="success")
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
+    mock_client, mock_response = setup_mock_client_for_method(
+        test_case.client_method, test_case.status_code, {"text": "success"}
+    )
 
     def retry_predicate(
         response: httpx.Response | None,  # noqa: ARG001
@@ -51,9 +56,9 @@ def test_retry_if_returns_true_for_successful_response(
 ) -> None:
     """Test retry_if that returns True even for successful response
     (triggers retry)."""
-    mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code, text="success")
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_ok))
+    mock_client, _ = setup_mock_client_for_method(
+        test_case.client_method, test_case.status_code, {"text": "success"}
+    )
 
     def retry_predicate(
         response: httpx.Response | None,  # noqa: ARG001
@@ -78,11 +83,8 @@ def test_retry_if_checks_response_content(test_case: HttpMethodTestCase, mock_sl
         spec=httpx.Response, status_code=test_case.status_code, text="please retry"
     )
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code, text="success")
-    mock_client = Mock(spec=httpx.Client)
-    setattr(
-        mock_client,
-        test_case.client_method,
-        Mock(side_effect=[mock_response_retry, mock_response_ok]),
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_response_retry, mock_response_ok]
     )
 
     def retry_predicate(
@@ -111,9 +113,7 @@ def test_retry_if_returns_false_for_error_response(
 ) -> None:
     """Test retry_if that returns False for error response (no retry,
     immediate fail)."""
-    mock_response_error = Mock(spec=httpx.Response, status_code=500)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_error))
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, 500)
 
     def retry_predicate(
         response: httpx.Response | None,  # noqa: ARG001
@@ -136,11 +136,8 @@ def test_retry_if_returns_true_for_error_response(
     retry)."""
     mock_response_error = Mock(spec=httpx.Response, status_code=500)
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(
-        mock_client,
-        test_case.client_method,
-        Mock(side_effect=[mock_response_error, mock_response_ok]),
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_response_error, mock_response_ok]
     )
 
     def retry_predicate(
@@ -162,11 +159,8 @@ def test_retry_if_with_status_code_logic(test_case: HttpMethodTestCase, mock_sle
     """Test retry_if that implements custom status code retry logic."""
     mock_response_429 = Mock(spec=httpx.Response, status_code=429)
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(
-        mock_client,
-        test_case.client_method,
-        Mock(side_effect=[mock_response_429, mock_response_ok]),
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_response_429, mock_response_ok]
     )
 
     def retry_predicate(
@@ -189,9 +183,7 @@ def test_retry_if_does_not_retry_non_retryable_status(
     test_case: HttpMethodTestCase, mock_sleep: Mock
 ) -> None:
     """Test retry_if that doesn't retry on 404 (client error)."""
-    mock_response_404 = Mock(spec=httpx.Response, status_code=404)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_404))
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, 404)
 
     def retry_predicate(
         response: httpx.Response | None,
@@ -242,11 +234,8 @@ def test_retry_if_returns_true_for_exception(
     """Test retry_if that returns True for exceptions (triggers
     retry)."""
     mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(
-        mock_client,
-        test_case.client_method,
-        Mock(side_effect=[httpx.TimeoutException("timeout"), mock_response_ok]),
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [httpx.TimeoutException("timeout"), mock_response_ok]
     )
 
     def retry_predicate(

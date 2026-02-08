@@ -14,12 +14,14 @@ __all__ = [
     "HttpMethodTestCase",
     "assert_successful_request",
     "assert_successful_request_async",
+    "create_mock_async_client_with_side_effect",
+    "create_mock_client_with_side_effect",
     "setup_mock_async_client_for_method",
     "setup_mock_client_for_method",
 ]
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -337,7 +339,7 @@ def assert_successful_request(
     url: str,
     client: httpx.Client,
     expected_status: int = 200,
-    **kwargs,
+    **kwargs: Any,
 ) -> httpx.Response:
     """Assert that a request function succeeds and returns expected
     status.
@@ -379,7 +381,7 @@ async def assert_successful_request_async(
     url: str,
     client: httpx.AsyncClient,
     expected_status: int = 200,
-    **kwargs,
+    **kwargs: Any,
 ) -> httpx.Response:
     """Assert that an async request function succeeds and returns
     expected status.
@@ -415,3 +417,70 @@ async def assert_successful_request_async(
     response = await method_func(url, client=client, **kwargs)
     assert response.status_code == expected_status
     return response
+
+
+def create_mock_client_with_side_effect(
+    client_method: str,
+    side_effect: list[httpx.Response | Exception],
+) -> tuple[Mock, list[Mock]]:
+    """Create a mock httpx.Client with a method that has side effects.
+
+    This utility is commonly used for testing retry logic where multiple
+    responses (failures followed by success) are returned.
+
+    Args:
+        client_method: The HTTP method name (e.g., "get", "post", "put").
+        side_effect: A list of mock responses or exceptions to return in sequence.
+            Each element will be returned/raised on successive calls.
+
+    Returns:
+        A tuple of (mock_client, mock_responses) where:
+        - mock_client: A Mock object configured as httpx.Client with the
+          specified method set up with side_effect
+        - mock_responses: The list of mock response objects passed as side_effect
+
+    Example:
+        >>> fail_response = Mock(spec=httpx.Response, status_code=503)
+        >>> success_response = Mock(spec=httpx.Response, status_code=200)
+        >>> client, responses = create_mock_client_with_side_effect(
+        ...     "get", [fail_response, success_response]
+        ... )
+        >>> # First call returns 503, second call returns 200
+    """
+    mock_client = Mock(spec=httpx.Client)
+    setattr(mock_client, client_method, Mock(side_effect=side_effect))
+    return mock_client, side_effect
+
+
+def create_mock_async_client_with_side_effect(
+    client_method: str,
+    side_effect: list[httpx.Response | Exception],
+) -> tuple[Mock, list[Mock]]:
+    """Create a mock httpx.AsyncClient with a method that has side
+    effects.
+
+    This utility is commonly used for testing async retry logic where multiple
+    responses (failures followed by success) are returned.
+
+    Args:
+        client_method: The HTTP method name (e.g., "get", "post", "put").
+        side_effect: A list of mock responses or exceptions to return in sequence.
+            Each element will be returned/raised on successive calls.
+
+    Returns:
+        A tuple of (mock_client, mock_responses) where:
+        - mock_client: A Mock object configured as httpx.AsyncClient with the
+          specified method set up with side_effect and aclose method mocked
+        - mock_responses: The list of mock response objects passed as side_effect
+
+    Example:
+        >>> fail_response = Mock(spec=httpx.Response, status_code=503)
+        >>> success_response = Mock(spec=httpx.Response, status_code=200)
+        >>> client, responses = create_mock_async_client_with_side_effect(
+        ...     "get", [fail_response, success_response]
+        ... )
+        >>> # First call returns 503, second call returns 200
+    """
+    mock_client = Mock(spec=httpx.AsyncClient, aclose=AsyncMock())
+    setattr(mock_client, client_method, AsyncMock(side_effect=side_effect))
+    return mock_client, side_effect

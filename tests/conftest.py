@@ -52,3 +52,21 @@ def mock_request_func(mock_response: httpx.Response) -> Mock:
 def mock_async_request_func(mock_response: httpx.Response) -> AsyncMock:
     """Create a mock async request function for testing."""
     return AsyncMock(return_value=mock_response)
+
+
+@pytest.fixture
+def mock_callback() -> Mock:
+    """Create a mock callback function for testing callbacks.
+
+    This fixture provides a simple Mock object that can be used to test
+    callback functionality across different test scenarios.
+
+    Returns:
+        A Mock object that can be used as a callback function.
+
+    Example:
+        >>> def test_callback(mock_callback):
+        ...     some_function(on_request=mock_callback)
+        ...     mock_callback.assert_called_once()
+    """
+    return Mock()

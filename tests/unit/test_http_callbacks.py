@@ -14,7 +14,12 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
-from tests.helpers import HTTP_METHODS, HttpMethodTestCase
+from tests.helpers import (
+    HTTP_METHODS,
+    HttpMethodTestCase,
+    create_mock_client_with_side_effect,
+    setup_mock_client_for_method,
+)
 
 TEST_URL = "https://api.example.com/data"
 
@@ -29,18 +34,16 @@ TEST_URL = "https://api.example.com/data"
 def test_http_method_on_request_callback(
     test_case: HttpMethodTestCase,
     mock_sleep: Mock,
+    mock_callback: Mock,
 ) -> None:
     """Test that on_request callback is called for all HTTP methods."""
-    on_request_callback = Mock()
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, test_case.status_code)
 
-    response = test_case.method_func(TEST_URL, client=mock_client, on_request=on_request_callback)
+    response = test_case.method_func(TEST_URL, client=mock_client, on_request=mock_callback)
 
     assert response.status_code == test_case.status_code
-    on_request_callback.assert_called_once()
-    call_args = on_request_callback.call_args[0][0]
+    mock_callback.assert_called_once()
+    call_args = mock_callback.call_args[0][0]
     assert call_args.url == TEST_URL
     assert call_args.method == test_case.method_name
     assert call_args.attempt == 1
@@ -51,19 +54,17 @@ def test_http_method_on_request_callback(
 def test_http_method_on_success_callback(
     test_case: HttpMethodTestCase,
     mock_sleep: Mock,
+    mock_callback: Mock,
 ) -> None:
     """Test that on_success callback is called for successful HTTP
     requests."""
-    on_success_callback = Mock()
-    mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, test_case.status_code)
 
-    response = test_case.method_func(TEST_URL, client=mock_client, on_success=on_success_callback)
+    response = test_case.method_func(TEST_URL, client=mock_client, on_success=mock_callback)
 
     assert response.status_code == test_case.status_code
-    on_success_callback.assert_called_once()
-    call_args = on_success_callback.call_args[0][0]
+    mock_callback.assert_called_once()
+    call_args = mock_callback.call_args[0][0]
     assert call_args.url == TEST_URL
     assert call_args.method == test_case.method_name
     assert call_args.response.status_code == test_case.status_code
@@ -74,24 +75,21 @@ def test_http_method_on_success_callback(
 def test_http_method_on_retry_callback(
     test_case: HttpMethodTestCase,
     mock_sleep: Mock,
+    mock_callback: Mock,
 ) -> None:
     """Test that on_retry callback is called when HTTP request is
     retried."""
-    on_retry_callback = Mock()
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_success_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(
-        mock_client,
-        test_case.client_method,
-        Mock(side_effect=[mock_fail_response, mock_success_response]),
+    mock_client, _ = create_mock_client_with_side_effect(
+        test_case.client_method, [mock_fail_response, mock_success_response]
     )
 
-    response = test_case.method_func(TEST_URL, client=mock_client, on_retry=on_retry_callback)
+    response = test_case.method_func(TEST_URL, client=mock_client, on_retry=mock_callback)
 
     assert response.status_code == test_case.status_code
-    on_retry_callback.assert_called_once()
-    call_args = on_retry_callback.call_args[0][0]
+    mock_callback.assert_called_once()
+    call_args = mock_callback.call_args[0][0]
     assert call_args.url == TEST_URL
     assert call_args.method == test_case.method_name
     assert call_args.status_code == 503
