@@ -21,7 +21,7 @@ __all__ = [
 ]
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock
 
 import httpx
@@ -339,7 +339,7 @@ def assert_successful_request(
     url: str,
     client: httpx.Client,
     expected_status: int = 200,
-    **kwargs: dict,
+    **kwargs: Any,
 ) -> httpx.Response:
     """Assert that a request function succeeds and returns expected
     status.
@@ -381,7 +381,7 @@ async def assert_successful_request_async(
     url: str,
     client: httpx.AsyncClient,
     expected_status: int = 200,
-    **kwargs: dict,
+    **kwargs: Any,
 ) -> httpx.Response:
     """Assert that an async request function succeeds and returns
     expected status.
