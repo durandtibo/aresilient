@@ -25,7 +25,7 @@ This directory contains design documents and proposals for the aresilient librar
   - Categorization by priority (High, Medium, Low)
   - Implementation recommendations
   - Status tracking of implemented features
-  - **Updated:** February 2026 - Context Manager API, Circuit Breaker, Custom Retry Predicates implemented
+  - **Updated:** February 2026 - Context Manager API, Circuit Breaker, Custom Retry Predicates, Structured Logging implemented
 
 - **[UNIT_TEST_IMPROVEMENT_OPTIONS.md](UNIT_TEST_IMPROVEMENT_OPTIONS.md)** - Test suite enhancement strategies
   - Analysis of current test suite structure and coverage
@@ -77,6 +77,15 @@ Full circuit breaker implementation with three states (CLOSED, OPEN, HALF_OPEN):
 - Integration with all HTTP methods
 - 464 lines of implementation in `circuit_breaker.py`
 
+### Structured Logging (2026)
+
+Structured logging has been implemented to provide machine-readable log output:
+- **StructuredFormatter** - JSON log formatter with ISO 8601 timestamps
+- Correlation/trace ID support for distributed tracing
+- Thread-safe and async-safe via contextvars
+- Opt-in design that doesn't affect existing logging
+- 292 lines of implementation in `utils/structured_logging.py`
+
 ### Custom Retry Predicates (2025-2026)
 
 Implemented `retry_if` functionality allowing custom retry logic:
@@ -93,6 +102,7 @@ The aresilient library has evolved significantly from its initial flat structure
 - ✅ Context Manager API for batch requests
 - ✅ Circuit Breaker pattern for preventing cascading failures
 - ✅ Custom retry predicates for flexible retry logic
+- ✅ Structured logging with JSON formatting and correlation IDs
 - ✅ Comprehensive backoff strategies (Exponential, Linear, Fibonacci, Constant)
 - ✅ Full async support across all features
 - ✅ Backward compatibility maintained through re-exports
