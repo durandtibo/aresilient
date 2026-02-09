@@ -4,6 +4,16 @@ This directory contains design documents and proposals for the aresilient librar
 
 ## Active Documents
 
+- **[SYNC_ASYNC_ARCHITECTURE_REVIEW.md](SYNC_ASYNC_ARCHITECTURE_REVIEW.md)** - Sync/async architecture review and improvement proposal
+  - Comprehensive analysis of code duplication between sync and async implementations (~4,000 lines, 61% of codebase)
+  - Identifies structural issues: maintenance burden, risk of divergence, testing redundancy
+  - Proposes three architectural alternatives with detailed trade-off analysis
+  - **Recommended approach:** Extract shared logic (Option A) - 50% code reduction for moderate effort
+  - Migration strategy with 5-phase implementation roadmap
+  - Backward compatibility guarantees and success metrics
+  - **Status:** 🔄 Under Review
+  - **Created:** February 2026
+
 - **[LIBRARY_STRUCTURE_PROPOSAL.md](LIBRARY_STRUCTURE_PROPOSAL.md)** - Library structure evolution and analysis
   - Comprehensive review of the library's modular structure with 40 modules and ~6,600 lines
   - Documentation of transition from flat to modular architecture
@@ -112,8 +122,10 @@ The aresilient library has evolved significantly from its initial flat structure
 - Ensuring complete test coverage
 - Code quality and consistency improvements
 - Keeping design documents up-to-date
+- **NEW:** Addressing sync/async code duplication (~4,000 lines, 61% of codebase)
 
 For details:
+- **Sync/async architecture review:** [SYNC_ASYNC_ARCHITECTURE_REVIEW.md](SYNC_ASYNC_ARCHITECTURE_REVIEW.md) 🆕
 - Library structure evolution: [LIBRARY_STRUCTURE_PROPOSAL.md](LIBRARY_STRUCTURE_PROPOSAL.md)
 - Request function simplification: [REQUEST_FUNCTION_SIMPLIFICATION.md](REQUEST_FUNCTION_SIMPLIFICATION.md)
 - Feature roadmap: [MISSING_FUNCTIONALITIES.md](MISSING_FUNCTIONALITIES.md)

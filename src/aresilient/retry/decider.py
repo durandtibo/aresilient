@@ -37,7 +37,7 @@ class RetryDecider:
     def __init__(
         self,
         status_forcelist: tuple[int, ...],
-        retry_if: Callable | None,
+        retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None,
     ) -> None:
         """Initialize retry decider.
 

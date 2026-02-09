@@ -6,6 +6,8 @@ from unittest.mock import AsyncMock, Mock, patch
 import httpx
 import pytest
 
+from tests.helpers import create_mock_response
+
 if TYPE_CHECKING:
     from collections.abc import Generator
 
@@ -39,7 +41,25 @@ def mock_async_client() -> httpx.AsyncClient:
 @pytest.fixture
 def mock_response() -> httpx.Response:
     """Create a mock httpx.Response for testing."""
-    return Mock(spec=httpx.Response, status_code=200)
+    return create_mock_response()
+
+
+@pytest.fixture
+def mock_response_fail() -> httpx.Response:
+    """Create a mock httpx.Response for testing."""
+    return create_mock_response(status_code=500)
+
+
+@pytest.fixture
+def mock_response_200() -> httpx.Response:
+    """Create a mock httpx.Response with status code 200 for testing."""
+    return create_mock_response(status_code=200)
+
+
+@pytest.fixture
+def mock_response_404() -> httpx.Response:
+    """Create a mock httpx.Response with status code 404 for testing."""
+    return create_mock_response(status_code=404)
 
 
 @pytest.fixture
@@ -52,3 +72,21 @@ def mock_request_func(mock_response: httpx.Response) -> Mock:
 def mock_async_request_func(mock_response: httpx.Response) -> AsyncMock:
     """Create a mock async request function for testing."""
     return AsyncMock(return_value=mock_response)
+
+
+@pytest.fixture
+def mock_callback() -> Mock:
+    """Create a mock callback function for testing callbacks.
+
+    This fixture provides a simple Mock object that can be used to test
+    callback functionality across different test scenarios.
+
+    Returns:
+        A Mock object that can be used as a callback function.
+
+    Example:
+        >>> def test_callback(mock_callback):
+        ...     some_function(on_request=mock_callback)
+        ...     mock_callback.assert_called_once()
+    """
+    return Mock()

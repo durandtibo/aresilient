@@ -2,11 +2,12 @@ r"""Unit tests for synchronous retry executor."""
 
 from __future__ import annotations
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import httpx
 import pytest
 
+from aresilient.circuit_breaker import CircuitBreaker
 from aresilient.exceptions import HttpRequestError
 from aresilient.retry import CallbackConfig, RetryConfig, RetryExecutor
 
@@ -32,8 +33,6 @@ def test_retry_executor_creation() -> None:
 
 def test_retry_executor_with_circuit_breaker() -> None:
     """Test RetryExecutor with circuit breaker."""
-    from aresilient.circuit_breaker import CircuitBreaker
-
     retry_config = RetryConfig(
         max_retries=3,
         backoff_factor=0.5,
@@ -203,8 +202,6 @@ def test_retry_executor_with_callbacks() -> None:
 
 def test_retry_executor_circuit_breaker_records_exception_failure() -> None:
     """Test circuit breaker records failure for retryable exception."""
-    from aresilient.circuit_breaker import CircuitBreaker
-
     retry_config = RetryConfig(
         max_retries=2,
         backoff_factor=0.01,
@@ -232,8 +229,6 @@ def test_retry_executor_circuit_breaker_records_exception_failure() -> None:
 
 def test_retry_executor_max_total_time_exceeded_with_response() -> None:
     """Test max_total_time exceeded with response available."""
-    from unittest.mock import patch
-
     retry_config = RetryConfig(
         max_retries=5,
         backoff_factor=0.01,
@@ -254,13 +249,15 @@ def test_retry_executor_max_total_time_exceeded_with_response() -> None:
         call_count["count"] += 1
         return 0.0 if call_count["count"] == 1 else 2.0
 
-    with patch("aresilient.retry.executor.time.time", side_effect=time_side_effect):
-        with pytest.raises(HttpRequestError) as exc_info:
-            executor.execute(
-                url="https://example.com",
-                method="GET",
-                request_func=mock_request_func,
-            )
+    with (
+        patch("aresilient.retry.executor.time.time", side_effect=time_side_effect),
+        pytest.raises(HttpRequestError) as exc_info,
+    ):
+        executor.execute(
+            url="https://example.com",
+            method="GET",
+            request_func=mock_request_func,
+        )
 
     # Should fail after first attempt due to time exceeded
     assert mock_request_func.call_count == 1
@@ -269,7 +266,6 @@ def test_retry_executor_max_total_time_exceeded_with_response() -> None:
 
 def test_retry_executor_max_total_time_exceeded_with_exception_only() -> None:
     """Test max_total_time exceeded with exception but no response."""
-    from unittest.mock import patch
 
     retry_config = RetryConfig(
         max_retries=5,
@@ -290,16 +286,18 @@ def test_retry_executor_max_total_time_exceeded_with_exception_only() -> None:
         call_count["count"] += 1
         return 0.0 if call_count["count"] == 1 else 2.0
 
-    with patch("aresilient.retry.executor.time.time", side_effect=time_side_effect):
-        with pytest.raises(
+    with (
+        patch("aresilient.retry.executor.time.time", side_effect=time_side_effect),
+        pytest.raises(
             HttpRequestError,
             match=r"GET request to https://example\.com failed after 1 attempts \(max_total_time exceeded\)",
-        ):
-            executor.execute(
-                url="https://example.com",
-                method="GET",
-                request_func=mock_request_func,
-            )
+        ),
+    ):
+        executor.execute(
+            url="https://example.com",
+            method="GET",
+            request_func=mock_request_func,
+        )
 
     # Should fail after first attempt due to time exceeded
     assert mock_request_func.call_count == 1

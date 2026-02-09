@@ -14,7 +14,12 @@ import httpx
 import pytest
 
 from aresilient import RETRY_STATUS_CODES, HttpRequestError
-from tests.helpers import HTTP_METHODS_ASYNC, AsyncHttpMethodTestCase
+from tests.helpers import (
+    HTTP_METHODS_ASYNC,
+    AsyncHttpMethodTestCase,
+    create_mock_async_client_with_side_effect,
+    setup_mock_async_client_for_method,
+)
 
 TEST_URL = "https://api.example.com/data"
 
@@ -28,9 +33,9 @@ async def test_retry_on_500_status(
     """Test retry logic for 500 status code."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=500)
-    mock_client = Mock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
+    mock_client, _ = create_mock_async_client_with_side_effect(
+        test_case.client_method, [mock_response_fail, mock_response]
+    )
 
     response = await test_case.method_func(TEST_URL, client=mock_client)
 
@@ -47,9 +52,9 @@ async def test_retry_on_503_status(
     """Test retry logic for 503 status code."""
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_response_fail = Mock(spec=httpx.Response, status_code=503)
-    mock_client = Mock(spec=httpx.AsyncClient)
-    client_method = AsyncMock(side_effect=[mock_response_fail, mock_response])
-    setattr(mock_client, test_case.client_method, client_method)
+    mock_client, _ = create_mock_async_client_with_side_effect(
+        test_case.client_method, [mock_response_fail, mock_response]
+    )
 
     response = await test_case.method_func(TEST_URL, client=mock_client)
 
@@ -65,9 +70,7 @@ async def test_max_retries_exceeded(
 ) -> None:
     """Test that HttpRequestError is raised when max retries
     exceeded."""
-    mock_response = Mock(spec=httpx.Response, status_code=503)
-    mock_client = Mock(spec=httpx.AsyncClient)
-    setattr(mock_client, test_case.client_method, AsyncMock(return_value=mock_response))
+    mock_client, _ = setup_mock_async_client_for_method(test_case.client_method, 503)
 
     with pytest.raises(HttpRequestError) as exc_info:
         await test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
