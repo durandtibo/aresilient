@@ -1,7 +1,7 @@
 # Sync/Async Architecture Review and Improvement Proposal
 
-**Date:** February 2026  
-**Status:** 🔄 Under Review  
+**Date:** February 2026
+**Status:** 🔄 Under Review
 **Authors:** Architecture Review Team
 
 ---
@@ -220,7 +220,7 @@ async def get_with_automatic_retry_async(
 # Sync version
 if response.status_code in status_forcelist:
     should_retry = True
-    
+
 # Async version (accidentally different)
 if response.status_code in status_forcelist and attempt < max_retries:
     should_retry = True
@@ -302,9 +302,9 @@ async def test_successful_request():
 # httpx uses a shared Request/Response model
 # Thin wrappers for sync vs async
 class Client:
-    def get(self, url): 
+    def get(self, url):
         return self._send(Request("GET", url))
-    
+
 class AsyncClient:
     async def get(self, url):
         return await self._send_async(Request("GET", url))
@@ -405,7 +405,7 @@ src/aresilient/
 def get_with_automatic_retry(url, *, timeout, max_retries, ...):
     validate_retry_params(timeout, max_retries, ...)
     # ... 100 lines of retry logic
-    
+
 # get_async.py
 async def get_with_automatic_retry_async(url, *, timeout, max_retries, ...):
     validate_retry_params(timeout, max_retries, ...)
@@ -421,7 +421,7 @@ class HttpMethodLogic:
         validate_retry_params(timeout, max_retries, ...)
         # ... shared preparation logic
         return config
-    
+
     @staticmethod
     def should_retry(response, exception, config):
         # ... shared retry decision logic
@@ -533,7 +533,7 @@ ResponseT = TypeVar('ResponseT')
 @runtime_checkable
 class HttpClientProtocol(Protocol[ResponseT]):
     """Protocol for HTTP clients (sync or async)."""
-    
+
     def request(self, method: str, url: str, **kwargs) -> ResponseT:
         """Send HTTP request. May be sync or async."""
         ...
@@ -543,7 +543,7 @@ class HttpClientProtocol(Protocol[ResponseT]):
 class SyncHttpClient:
     def __init__(self, client: httpx.Client):
         self._client = client
-    
+
     def request(self, method: str, url: str, **kwargs) -> httpx.Response:
         return self._client.request(method, url, **kwargs)
 
@@ -551,7 +551,7 @@ class SyncHttpClient:
 class AsyncHttpClient:
     def __init__(self, client: httpx.AsyncClient):
         self._client = client
-    
+
     async def request(self, method: str, url: str, **kwargs) -> httpx.Response:
         return await self._client.request(method, url, **kwargs)
 ```
@@ -567,11 +567,11 @@ ResponseT = TypeVar('ResponseT')
 
 class RequestEngine(Generic[ClientT, ResponseT]):
     """Generic request engine supporting both sync and async."""
-    
+
     def __init__(self, client: ClientT, config: RequestConfig):
         self._client = client
         self._config = config
-    
+
     def execute(
         self,
         method: str,
@@ -580,13 +580,13 @@ class RequestEngine(Generic[ClientT, ResponseT]):
     ) -> Union[ResponseT, Awaitable[ResponseT]]:
         """Execute request, returning Response or Awaitable[Response]."""
         request_func = getattr(self._client, method.lower())
-        
+
         # Detect if async
         if inspect.iscoroutinefunction(request_func):
             return self._execute_async(request_func, url, **kwargs)
         else:
             return self._execute_sync(request_func, url, **kwargs)
-    
+
     def _execute_sync(self, func, url, **kwargs) -> ResponseT:
         # Shared retry logic
         for attempt in range(self._config.max_retries + 1):
@@ -599,7 +599,7 @@ class RequestEngine(Generic[ClientT, ResponseT]):
                     raise
             self._sleep(attempt)
         raise MaxRetriesExceeded()
-    
+
     async def _execute_async(self, func, url, **kwargs) -> ResponseT:
         # Same logic as _execute_sync but with await
         for attempt in range(self._config.max_retries + 1):
@@ -713,7 +713,7 @@ src/aresilient/
 ) -> httpx.Response:
     """{{ method.upper() }} request with automatic retry."""
     validate_retry_params(timeout, max_retries, ...)
-    
+
     {% if is_async %}
     async with httpx.AsyncClient() as client:
         response = await client.{{ method }}(url, **kwargs)
@@ -721,7 +721,7 @@ src/aresilient/
     with httpx.Client() as client:
         response = client.{{ method }}(url, **kwargs)
     {% endif %}
-    
+
     return response
 ```
 
@@ -743,11 +743,11 @@ def http_method(method: str):
         # Generate sync version
         def sync_wrapper(*args, **kwargs):
             return func(*args, **kwargs)
-        
+
         # Generate async version
         async def async_wrapper(*args, **kwargs):
             return await func(*args, **kwargs)
-        
+
         return sync_wrapper, async_wrapper
     return decorator
 
@@ -1280,7 +1280,7 @@ from aresilient.utils import validate_retry_params
 
 class HttpMethodConfig:
     """Shared configuration for HTTP methods."""
-    
+
     @staticmethod
     def prepare(
         timeout: float = DEFAULT_TIMEOUT,
@@ -1381,7 +1381,7 @@ async def get_with_automatic_retry_async(
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** February 8, 2026  
-**Next Review:** Q2 2026 or after Option A implementation  
+**Document Version:** 1.0
+**Last Updated:** February 8, 2026
+**Next Review:** Q2 2026 or after Option A implementation
 **Status:** 🔄 Awaiting Approval
