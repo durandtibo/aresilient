@@ -32,8 +32,9 @@ def test_all_exports_defined() -> None:
 def test_all_exports_count() -> None:
     """Test that __all__ has the expected number of exports."""
     # 4 config constants + 1 exception + 4 callback types + 1 version + 16 HTTP methods (sync+async)
-    # + 5 backoff strategies + 3 circuit breaker exports + 2 client classes = 36
-    assert len(aresilient.__all__) == 36
+    # + 5 backoff strategies + 3 circuit breaker exports + 2 client classes
+    # + 5 structured logging exports (StructuredFormatter, get/set/clear_correlation_id, log_structured) = 41
+    assert len(aresilient.__all__) == 41
 
 
 def test_constants_are_immutable_types() -> None:

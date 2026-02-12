@@ -221,6 +221,71 @@ async with AsyncResilientClient(max_retries=5, timeout=30) as client:
 
 ---
 
+### ✅ Structured Logging (MEDIUM PRIORITY - IMPLEMENTED)
+
+**Implementation Status:** ✅ **COMPLETED - Added in February 2026**
+
+**What was implemented:**
+- `StructuredFormatter` - JSON log formatter with consistent field names
+- Correlation/trace ID support via context variables (thread-safe, async-safe)
+- Helper functions: `get_correlation_id()`, `set_correlation_id()`, `clear_correlation_id()`
+- `log_structured()` - Convenience function for structured logging with extra fields
+- ISO 8601 timestamp formatting
+- Automatic inclusion of exception information
+- Support for extra fields via logging's `extra` parameter
+- Implementation in `utils/structured_logging.py` (292 lines)
+
+**Key Features:**
+- ✅ JSON-formatted logs for machine parsing
+- ✅ Correlation/trace IDs for distributed tracing
+- ✅ Consistent field names across all logs
+- ✅ Support for all log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- ✅ Opt-in design - doesn't affect existing logging
+- ✅ Thread-safe and async-safe via contextvars
+
+**Example Usage:**
+```python
+import logging
+from aresilient import (
+    StructuredFormatter,
+    get_with_automatic_retry,
+    set_correlation_id,
+    clear_correlation_id,
+)
+
+# Enable structured logging
+handler = logging.StreamHandler()
+handler.setFormatter(StructuredFormatter())
+logger = logging.getLogger("aresilient")
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
+
+# Use correlation IDs to track requests
+set_correlation_id("request-123")
+try:
+    response = get_with_automatic_retry("https://api.example.com/data")
+finally:
+    clear_correlation_id()
+```
+
+**JSON Output Example:**
+```json
+{
+  "timestamp": "2026-02-05T10:30:15.123Z",
+  "level": "INFO",
+  "logger": "aresilient.retry.executor",
+  "message": "GET to https://api.example.com/data: will retry (status 503)",
+  "correlation_id": "request-123",
+  "module": "executor",
+  "function": "execute",
+  "line": 226,
+  "thread": "MainThread",
+  "process": 12345
+}
+```
+
+---
+
 ## Missing Observability Features
 
 ### 🔴 HIGH PRIORITY
@@ -257,34 +322,6 @@ print(f"Succeeded on attempt {stats.attempts}/{stats.max_retries}")
 print(f"Total time: {stats.total_time:.2f}s")
 print(f"Retry delays: {stats.backoff_times}")
 ```
-
----
-
-### 🟡 MEDIUM PRIORITY
-
-#### 2. Structured Logging
-**What it is:** Machine-readable log output with consistent fields
-
-**Current state:**
-- ✅ Has debug logging
-- ❌ Logs are unstructured strings
-- ❌ No correlation IDs
-- ❌ No request context
-
-**Missing:**
-- JSON-formatted logs
-- Correlation/trace IDs
-- Consistent field names
-- Log levels beyond DEBUG
-
-**Use cases:**
-- Log aggregation (ELK, Splunk)
-- Automated log parsing
-- Distributed tracing
-
-**Impact:** **MEDIUM** - Helpful for large-scale deployments
-
-**Recommendation:** ⚠️ **Consider** - May be better as separate logging adapter
 
 ---
 
@@ -449,12 +486,12 @@ response = get_with_automatic_retry(
 3. ✅ **Max Total Time / Wait Time Caps** - COMPLETED - `max_total_time` and `max_wait_time`
 4. ✅ **Circuit Breaker Pattern** - COMPLETED - Full implementation with 3 states
 5. ✅ **Context Manager API** - COMPLETED - `ResilientClient` and `AsyncResilientClient`
+6. ✅ **Structured Logging** - COMPLETED - JSON formatter with correlation IDs
 
 ### 🟡 Consider for Next Release (Medium Impact)
 
 1. **Request/Response Statistics** - Valuable monitoring data (attempt counts, timings)
-2. **Structured Logging** - Machine-readable logs or logging adapter
-3. **Retry History Tracking** - Detailed debugging information
+2. **Retry History Tracking** - Detailed debugging information
 
 ### 🟢 Future Considerations (Lower Priority)
 
@@ -548,7 +585,7 @@ Each new feature needs:
 | **Observability** |
 | Callbacks/Events | ✅ | ❌ | ✅ | ❌ |
 | Statistics | ❌ | ❌ | ✅ | ❌ |
-| Structured Logging | ❌ | ❌ | ❌ | ❌ |
+| Structured Logging | ✅ **NEW** | ❌ | ❌ | ❌ |
 | **Resilience Patterns** |
 | Circuit Breaker | ✅ **NEW** | ❌ | ✅ | ❌ |
 | Fallback | ⚠️ (via callback) | ❌ | ✅ | ❌ |
@@ -574,6 +611,7 @@ Each new feature needs:
 3. ✅ **Max total time / wait time caps** - Strict SLA support
 4. ✅ **Circuit breaker pattern** - Prevent cascading failures
 5. ✅ **Context manager API** - Convenient batch request handling
+6. ✅ **Structured logging** - JSON-formatted logs with correlation IDs
 
 The library now has feature parity with leading resilience libraries like tenacity while maintaining its focused HTTP-specific design and excellent developer experience.
 
