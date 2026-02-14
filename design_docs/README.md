@@ -4,14 +4,14 @@ This directory contains design documents and proposals for the aresilient librar
 
 ## Active Documents
 
-- **[HTTPX_COMPATIBLE_CLIENT_API.md](HTTPX_COMPATIBLE_CLIENT_API.md)** - httpx-compatible client API design proposal
-  - Proposes new `Client` and `AsyncClient` classes for drop-in httpx replacement
-  - Enables seamless migration: `import aresilient` instead of `import httpx`
-  - Full API compatibility with httpx.Client while adding resilience features
-  - Recommends `Client`/`AsyncClient` naming (with alternatives analyzed)
-  - Maintains backward compatibility with existing `ResilientClient`
-  - Phased implementation plan with examples and migration guides
-  - **Status:** 📋 Proposal
+- **[HTTPX_COMPATIBLE_CLIENT_API.md](HTTPX_COMPATIBLE_CLIENT_API.md)** - httpx client wrapper design proposal
+  - Proposes modifying `ResilientClient` and `AsyncResilientClient` to accept existing httpx clients
+  - Enables wrapping pre-configured httpx.Client instances to add resilience features
+  - Preserves all httpx configuration (auth, headers, cookies, proxy, HTTP/2, etc.)
+  - Maintains backward compatibility (auto-creates client if not provided)
+  - User controls lifecycle of wrapped clients
+  - Minimal API change (single optional `client` parameter)
+  - **Status:** 📋 Proposal (Updated)
   - **Created:** February 2026
 
 - **[SYNC_ASYNC_ARCHITECTURE_REVIEW.md](SYNC_ASYNC_ARCHITECTURE_REVIEW.md)** - Sync/async architecture review and improvement proposal
