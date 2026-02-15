@@ -1,7 +1,7 @@
 # httpx Client Wrapper Design for aresilient
 
-**Date:** February 2026  
-**Status:** 📋 Proposal (Updated)  
+**Date:** February 2026
+**Status:** 📋 Proposal (Updated)
 **Authors:** Design Team
 
 ---
@@ -147,23 +147,23 @@ class ResilientClient:
         on_failure: Callable | None = None,
     ) -> None:
         ...
-    
+
     def __enter__(self) -> Self:
         """Create underlying httpx.Client"""
         self._client = httpx.Client(timeout=self._timeout)
         return self
-    
+
     def __exit__(self, ...) -> None:
         """Close underlying httpx.Client"""
         self._client.close()
-    
+
     def request(self, method: str, url: str, **kwargs) -> httpx.Response:
         """Make request with retry logic"""
         ...
-    
+
     def get(self, url: str, **kwargs) -> httpx.Response:
         return self.request("GET", url, **kwargs)
-    
+
     # Similar for post, put, delete, patch, head, options
 ```
 
@@ -281,7 +281,7 @@ client = httpx.Client(
 # Wrap it with resilience
 ResilientClient(
     client=client,          # Wrap this client
-    max_retries=5,          # Resilience parameter  
+    max_retries=5,          # Resilience parameter
     backoff_factor=0.5,     # Resilience parameter
 )
 ```
@@ -365,11 +365,11 @@ This design allows Pattern 2 to work correctly where both the httpx.Client conte
 ```python
 class ResilientClient:
     """Synchronous context manager for resilient HTTP requests.
-    
+
     This class wraps an httpx.Client instance (or creates one) and adds
     resilience features including automatic retry, exponential backoff,
     circuit breaker, and custom retry predicates.
-    
+
     Args:
         client: Optional httpx.Client instance to wrap. If not provided,
             a new client will be created using the timeout parameter.
@@ -387,38 +387,38 @@ class ResilientClient:
         on_retry: Callback before each retry.
         on_success: Callback on successful request.
         on_failure: Callback on final failure.
-    
+
     Example (Mode 1 - Auto-create client):
         ```python
         from aresilient import ResilientClient
-        
+
         # ResilientClient creates its own httpx.Client
         with ResilientClient(timeout=30.0, max_retries=5) as client:
             response = client.get('https://api.example.com/data')
         ```
-    
+
     Example (Mode 2 - Wrap existing client):
         ```python
         import httpx
         from aresilient import ResilientClient
-        
+
         # Create configured httpx client
         http_client = httpx.Client(
             auth=httpx.BasicAuth('user', 'pass'),
             headers={'User-Agent': 'MyApp/1.0'},
             proxy='http://proxy.example.com',
         )
-        
+
         # Wrap it with resilience
         with ResilientClient(client=http_client, max_retries=5) as resilient:
             response = resilient.get('https://api.example.com/data')
         ```
-    
+
     Note:
         When wrapping an existing client, the user is responsible for closing
         the wrapped client. The ResilientClient will not close it on exit.
     """
-    
+
     def __init__(
         self,
         *,
@@ -440,38 +440,38 @@ class ResilientClient:
     ) -> None:
         """Initialize the resilient client."""
         ...
-    
+
     def __enter__(self) -> Self:
         """Enter the context manager.
-        
+
         If a client was provided, uses it directly.
         Otherwise, creates a new httpx.Client.
         """
         ...
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Exit the context manager.
-        
+
         Only closes the client if it was auto-created.
         Wrapped clients are not closed (user manages lifecycle).
         """
         ...
-    
+
     def request(self, method: str, url: str, **kwargs) -> httpx.Response:
         """Send an HTTP request with automatic retry logic."""
         ...
-    
+
     def get(self, url: str, **kwargs) -> httpx.Response:
         """Send a GET request."""
         return self.request("GET", url, **kwargs)
-    
+
     # Similar for post, put, delete, patch, head, options
-    
+
     @property
     def cookies(self) -> httpx.Cookies:
         """Get the cookie jar from wrapped client."""
         return self._client.cookies
-    
+
     @property
     def headers(self) -> httpx.Headers:
         """Get the default headers from wrapped client."""
@@ -483,21 +483,21 @@ class ResilientClient:
 ```python
 class AsyncResilientClient:
     """Asynchronous context manager for resilient HTTP requests.
-    
+
     Async version of ResilientClient with identical API but async methods.
     All parameters and features match the synchronous ResilientClient.
-    
+
     Example (wrap existing async client):
         ```python
         import httpx
         from aresilient import AsyncResilientClient
-        
+
         async with httpx.AsyncClient(auth=...) as http_client:
             async with AsyncResilientClient(client=http_client, max_retries=5) as resilient:
                 response = await resilient.get('https://api.example.com/data')
         ```
     """
-    
+
     def __init__(
         self,
         *,
@@ -506,23 +506,23 @@ class AsyncResilientClient:
     ) -> None:
         """Initialize the async resilient client."""
         ...
-    
+
     async def __aenter__(self) -> Self:
         """Enter the async context manager."""
         ...
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Exit the async context manager."""
         ...
-    
+
     async def request(self, method: str, url: str, **kwargs) -> httpx.Response:
         """Send an async HTTP request with retry."""
         ...
-    
+
     async def get(self, url: str, **kwargs) -> httpx.Response:
         """Send an async GET request."""
         return await self.request("GET", url, **kwargs)
-    
+
     # ... similar async methods for post, put, delete, patch, head, options
 ```
 
@@ -557,11 +557,11 @@ class ResilientClient:
     ) -> None:
         # Validate resilience parameters
         validate_retry_params(...)
-        
+
         # Store configuration
         self._max_retries = max_retries
         # ... store other resilience config
-        
+
         # Create or store the client in constructor
         if client is None:
             # Auto-create client if not provided
@@ -571,7 +571,7 @@ class ResilientClient:
             # Use provided client
             self._client = client
             self._owns_client = False
-        
+
         self._entered = False
 ```
 
@@ -591,12 +591,12 @@ def __exit__(self, exc_type, exc_val, exc_tb) -> None:
     if self._entered:
         # Call __exit__ on wrapped client (handles cleanup like connection pooling)
         self._client.__exit__(exc_type, exc_val, exc_tb)
-        
+
         # Only close if we created the client
         if self._owns_client:
             self._client.close()
             self._client = None
-        
+
         self._entered = False
 ```
 
@@ -637,19 +637,19 @@ def test_wrap_configured_client():
         auth=httpx.BasicAuth('user', 'pass'),
         headers={'User-Agent': 'Test/1.0'},
     )
-    
+
     # Wrap it
     with ResilientClient(client=http_client, max_retries=3) as resilient:
         # Make request
         response = resilient.get('https://httpbin.org/get')
-        
+
         # Verify auth and headers were used
         assert response.request.headers['Authorization']
         assert response.request.headers['User-Agent'] == 'Test/1.0'
-    
+
     # Verify wrapped client is NOT closed
     assert not http_client.is_closed
-    
+
     # User closes it
     http_client.close()
 ```
@@ -1288,6 +1288,6 @@ This design proposes modifying `ResilientClient` and `AsyncResilientClient` to a
 
 ---
 
-**Last Updated:** February 2026  
-**Next Review:** After implementation completion  
+**Last Updated:** February 2026
+**Next Review:** After implementation completion
 **Document Status:** 📋 Proposal (Updated) - Awaiting approval and implementation
