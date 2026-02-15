@@ -415,12 +415,12 @@ class Response:
 class Client:
     def __init__(self, transport=None):
         self._transport = transport or HTTPTransport()
-    
+
     def request(self, method, url, **kwargs):
         """Synchronous request."""
         request = Request(method, url, **kwargs)
         return self._transport.handle_request(request)  # Sync call
-    
+
     def get(self, url, **kwargs):
         """GET request wrapper."""
         return self.request("GET", url, **kwargs)
@@ -431,12 +431,12 @@ class Client:
 class AsyncClient:
     def __init__(self, transport=None):
         self._transport = transport or AsyncHTTPTransport()
-    
+
     async def request(self, method, url, **kwargs):
         """Asynchronous request."""
         request = Request(method, url, **kwargs)  # Same Request class
         return await self._transport.handle_request(request)  # Async call
-    
+
     async def get(self, url, **kwargs):
         """Async GET request wrapper."""
         return await self.request("GET", url, **kwargs)
@@ -530,7 +530,7 @@ To adopt httpx's pattern, aresilient should:
            return execute_with_retry(
                httpx.Client.get, url, **kwargs
            )
-   
+
    # client_async.py (async)
    class AsyncResilientClient:
        async def get(self, url, **kwargs):
@@ -546,7 +546,7 @@ To adopt httpx's pattern, aresilient should:
        def calculate_backoff(attempt, config):
            # Pure calculation, works for both sync/async
            return delay
-       
+
        def should_continue(response, attempt, config):
            # Pure decision, works for both sync/async
            return boolean
