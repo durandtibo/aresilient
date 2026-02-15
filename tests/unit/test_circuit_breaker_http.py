@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
-from unittest.mock import Mock
+import time as real_time
+from unittest.mock import Mock, call, patch
 
 import httpx
 import pytest
 
-from aresilient import CircuitBreaker, CircuitBreakerError, request_with_automatic_retry
+from aresilient import (
+    CircuitBreaker,
+    CircuitBreakerError,
+    HttpRequestError,
+    request_with_automatic_retry,
+)
 
-##########################################################
-#     Integration tests for CircuitBreaker with HTTP     #
-##########################################################
+##############################################
+#     Tests for CircuitBreaker with HTTP     #
+##############################################
 
 
 def test_circuit_breaker_with_http_request_success(
@@ -32,18 +38,21 @@ def test_circuit_breaker_with_http_request_success(
     assert cb.state.value == "closed"
     assert cb.failure_count == 0
 
+    mock_sleep.assert_not_called()
 
-def test_circuit_breaker_opens_after_http_failures(mock_sleep: Mock) -> None:
+
+def test_circuit_breaker_opens_after_http_failures(
+    mock_sleep: Mock, mock_response_fail: httpx.Response
+) -> None:
     """Test that circuit breaker opens after consecutive HTTP
     failures."""
     cb = CircuitBreaker(failure_threshold=3, recovery_timeout=60.0)
 
-    # Create mock that fails with 503 three times, then exhausts retries
-    mock_response_fail = Mock(spec=httpx.Response, status_code=503)
+    # Create mock that fails with 500 three times, then exhausts retries
     mock_request_func = Mock(return_value=mock_response_fail)
 
     # Request should exhaust retries and record failures
-    with pytest.raises(Exception):  # HttpRequestError
+    with pytest.raises(HttpRequestError):  # HttpRequestError
         request_with_automatic_retry(
             url="https://example.com",
             method="GET",
@@ -55,6 +64,8 @@ def test_circuit_breaker_opens_after_http_failures(mock_sleep: Mock) -> None:
     # Circuit should be open now (3 attempts x 1 failure each = 3 failures)
     assert cb.state.value == "open"
     assert cb.failure_count == 3
+
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
 def test_circuit_breaker_fails_fast_when_open(mock_sleep: Mock) -> None:
@@ -70,7 +81,7 @@ def test_circuit_breaker_fails_fast_when_open(mock_sleep: Mock) -> None:
     mock_request_func = Mock()
 
     # Should fail fast with CircuitBreakerError
-    with pytest.raises(CircuitBreakerError, match="Circuit breaker is OPEN"):
+    with pytest.raises(CircuitBreakerError, match=r"Circuit breaker is OPEN"):
         request_with_automatic_retry(
             url="https://example.com",
             method="GET",
@@ -82,14 +93,14 @@ def test_circuit_breaker_fails_fast_when_open(mock_sleep: Mock) -> None:
     # Request func should not have been called
     mock_request_func.assert_not_called()
 
+    mock_sleep.assert_not_called()
+
 
 def test_circuit_breaker_recovers_after_timeout(
     mock_response: httpx.Response, mock_sleep: Mock
 ) -> None:
     """Test that circuit breaker recovers after timeout and successful
     request."""
-    import time as real_time
-    from unittest.mock import patch
 
     cb = CircuitBreaker(failure_threshold=2, recovery_timeout=0.1)
 
@@ -120,6 +131,8 @@ def test_circuit_breaker_recovers_after_timeout(
     assert cb.state.value == "closed"
     assert cb.failure_count == 0
 
+    mock_sleep.assert_not_called()
+
 
 def test_circuit_breaker_with_retry_if_predicate(mock_sleep: Mock) -> None:
     """Test that circuit breaker works with custom retry_if
@@ -127,7 +140,10 @@ def test_circuit_breaker_with_retry_if_predicate(mock_sleep: Mock) -> None:
     cb = CircuitBreaker(failure_threshold=3)
 
     # Custom predicate that triggers retry on specific condition
-    def should_retry(response, exception):
+    def should_retry(
+        response: httpx.Response | None,
+        exception: Exception | None,  # noqa: ARG001
+    ) -> bool:
         if response and response.status_code == 200:
             # Retry even on success if response is empty
             return not response.text
@@ -138,7 +154,10 @@ def test_circuit_breaker_with_retry_if_predicate(mock_sleep: Mock) -> None:
     mock_request_func = Mock(return_value=mock_response_empty)
 
     # Should retry and record failures
-    with pytest.raises(Exception):
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://example.com failed with status 200 after 3 attempts",
+    ):
         request_with_automatic_retry(
             url="https://example.com",
             method="GET",
@@ -152,17 +171,23 @@ def test_circuit_breaker_with_retry_if_predicate(mock_sleep: Mock) -> None:
     assert cb.failure_count >= 3
     assert cb.state.value == "open"
 
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
-def test_circuit_breaker_shared_across_requests(mock_sleep: Mock) -> None:
+
+def test_circuit_breaker_shared_across_requests(
+    mock_sleep: Mock, mock_response_fail: httpx.Response
+) -> None:
     """Test that circuit breaker state is shared across multiple
     requests."""
     cb = CircuitBreaker(failure_threshold=3, recovery_timeout=60.0)
 
-    mock_response_fail = Mock(spec=httpx.Response, status_code=503)
     mock_request_func = Mock(return_value=mock_response_fail)
 
     # Make first request - should fail and increment counter
-    with pytest.raises(Exception):
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://example.com failed with status 500 after 1 attempts",
+    ):
         request_with_automatic_retry(
             url="https://example.com",
             method="GET",
@@ -174,7 +199,10 @@ def test_circuit_breaker_shared_across_requests(mock_sleep: Mock) -> None:
     assert cb.failure_count == 1
 
     # Make second request - should fail and increment counter
-    with pytest.raises(Exception):
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://example.com failed with status 500 after 1 attempts",
+    ):
         request_with_automatic_retry(
             url="https://example.com",
             method="GET",
@@ -186,7 +214,10 @@ def test_circuit_breaker_shared_across_requests(mock_sleep: Mock) -> None:
     assert cb.failure_count == 2
 
     # Make third request - should open the circuit
-    with pytest.raises(Exception):
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to https://example.com failed with status 500 after 1 attempts",
+    ):
         request_with_automatic_retry(
             url="https://example.com",
             method="GET",
@@ -199,7 +230,9 @@ def test_circuit_breaker_shared_across_requests(mock_sleep: Mock) -> None:
     assert cb.state.value == "open"
 
     # Fourth request should fail fast
-    with pytest.raises(CircuitBreakerError):
+    with pytest.raises(
+        CircuitBreakerError, match=r"Circuit breaker is OPEN \(failed 3 times\). Retry after 60.0s"
+    ):
         request_with_automatic_retry(
             url="https://example.com",
             method="GET",
@@ -207,3 +240,5 @@ def test_circuit_breaker_shared_across_requests(mock_sleep: Mock) -> None:
             max_retries=0,
             circuit_breaker=cb,
         )
+
+    mock_sleep.assert_not_called()
