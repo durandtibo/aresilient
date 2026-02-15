@@ -8,6 +8,9 @@ error handling for various HTTP failure scenarios.
 from __future__ import annotations
 
 __all__ = [
+    "StructuredFormatter",
+    "clear_correlation_id",
+    "get_correlation_id",
     "handle_exception_with_callback",
     "handle_exception_with_retry_if",
     "handle_request_error",
@@ -17,8 +20,10 @@ __all__ = [
     "invoke_on_request",
     "invoke_on_retry",
     "invoke_on_success",
+    "log_structured",
     "parse_retry_after",
     "raise_final_error",
+    "set_correlation_id",
     "validate_retry_params",
 ]
 
@@ -39,5 +44,12 @@ from aresilient.utils.retry_after import parse_retry_after
 from aresilient.utils.retry_if_handler import (
     handle_exception_with_retry_if,
     handle_response_with_retry_if,
+)
+from aresilient.utils.structured_logging import (
+    StructuredFormatter,
+    clear_correlation_id,
+    get_correlation_id,
+    log_structured,
+    set_correlation_id,
 )
 from aresilient.utils.validation import validate_retry_params
