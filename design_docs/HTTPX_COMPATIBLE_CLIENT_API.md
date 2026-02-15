@@ -8,9 +8,12 @@
 
 ## Executive Summary
 
-This document proposes a design for extending the `aresilient` library to wrap existing `httpx.Client` and `httpx.AsyncClient` instances, making them resilient with automatic retry, backoff, circuit breaker, and other resilience features.
+This document proposes a design for extending the `aresilient` library to wrap existing
+`httpx.Client` and `httpx.AsyncClient` instances, making them resilient with automatic retry,
+backoff, circuit breaker, and other resilience features.
 
 **Current State:**
+
 - ✅ `ResilientClient` and `AsyncResilientClient` context managers exist
 - ✅ Full HTTP method support (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
 - ✅ Comprehensive retry and resilience features
@@ -18,6 +21,7 @@ This document proposes a design for extending the `aresilient` library to wrap e
 - ⚠️ Cannot wrap existing httpx.Client instances configured by users
 
 **Proposed State:**
+
 - ✅ Modify `ResilientClient` and `AsyncResilientClient` to accept existing httpx clients
 - ✅ Enable wrapping of user-configured httpx.Client instances
 - ✅ Maintain backward compatibility with existing API (auto-create if no client provided)
@@ -25,6 +29,7 @@ This document proposes a design for extending the `aresilient` library to wrap e
 - ✅ Add resilience features to any httpx client
 
 **Key Design Decisions:**
+
 1. **Client wrapping approach:** Accept httpx.Client as optional constructor parameter
 2. **Backward compatibility:** Auto-create httpx.Client if not provided (current behavior)
 3. **Lifecycle management:** User controls wrapped client lifecycle
@@ -54,30 +59,34 @@ This document proposes a design for extending the `aresilient` library to wrap e
 ### 1.1 Current Situation
 
 The `aresilient` library provides resilient HTTP request functionality with:
+
 - Context manager clients: `ResilientClient` and `AsyncResilientClient`
 - Standalone functions: `get_with_automatic_retry`, `post_with_automatic_retry`, etc.
 - Comprehensive retry logic, backoff strategies, circuit breakers, and callbacks
 
 However, the current implementation has limitations:
+
 - `ResilientClient` creates its own internal `httpx.Client` with limited configuration
 - Users cannot wrap their existing, pre-configured `httpx.Client` instances
-- Users lose custom httpx configuration (auth, headers, cookies, proxies, etc.) when using ResilientClient
+- Users lose custom httpx configuration (auth, headers, cookies, proxies, etc.) when using
+  ResilientClient
 - Cannot add resilience to existing httpx clients without recreating them
 
 ### 1.2 User Pain Points
 
 **Limited Configuration:**
+
 ```python
 # User has a carefully configured httpx client
 import httpx
 
 client = httpx.Client(
-    auth=httpx.BasicAuth('user', 'pass'),
-    headers={'User-Agent': 'MyApp/1.0'},
-    cookies={'session': 'abc123'},
-    proxy='http://proxy.example.com:8080',
+    auth=httpx.BasicAuth("user", "pass"),
+    headers={"User-Agent": "MyApp/1.0"},
+    cookies={"session": "abc123"},
+    proxy="http://proxy.example.com:8080",
     http2=True,
-    verify='/path/to/cert.pem',
+    verify="/path/to/cert.pem",
 )
 
 # Cannot add resilience to this client - must recreate with ResilientClient
@@ -86,10 +95,11 @@ from aresilient import ResilientClient
 
 with ResilientClient(max_retries=5) as resilient_client:
     # This uses a different client without the configuration above
-    response = resilient_client.get('https://api.example.com/data')
+    response = resilient_client.get("https://api.example.com/data")
 ```
 
 **Issues:**
+
 1. Users cannot preserve their httpx.Client configuration when adding resilience
 2. Must choose between custom httpx configuration OR resilience features (can't have both)
 3. Code duplication - must specify configuration in multiple places
@@ -98,17 +108,18 @@ with ResilientClient(max_retries=5) as resilient_client:
 ### 1.3 Desired State
 
 Enable wrapping of existing httpx clients:
+
 ```python
 # User has a carefully configured httpx client
 import httpx
 
 client = httpx.Client(
-    auth=httpx.BasicAuth('user', 'pass'),
-    headers={'User-Agent': 'MyApp/1.0'},
-    cookies={'session': 'abc123'},
-    proxy='http://proxy.example.com:8080',
+    auth=httpx.BasicAuth("user", "pass"),
+    headers={"User-Agent": "MyApp/1.0"},
+    cookies={"session": "abc123"},
+    proxy="http://proxy.example.com:8080",
     http2=True,
-    verify='/path/to/cert.pem',
+    verify="/path/to/cert.pem",
 )
 
 # Wrap it with ResilientClient to add resilience
@@ -116,7 +127,7 @@ from aresilient import ResilientClient
 
 with ResilientClient(client=client, max_retries=5) as resilient_client:
     # Now uses the configured client WITH resilience features
-    response = resilient_client.get('https://api.example.com/data')
+    response = resilient_client.get("https://api.example.com/data")
 ```
 
 ---
@@ -126,6 +137,7 @@ with ResilientClient(client=client, max_retries=5) as resilient_client:
 ### 2.1 Existing Client Classes
 
 **Current `ResilientClient` (385 lines):**
+
 ```python
 class ResilientClient:
     def __init__(
@@ -145,15 +157,14 @@ class ResilientClient:
         on_retry: Callable | None = None,
         on_success: Callable | None = None,
         on_failure: Callable | None = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __enter__(self) -> Self:
         """Create underlying httpx.Client"""
         self._client = httpx.Client(timeout=self._timeout)
         return self
 
-    def __exit__(self, ...) -> None:
+    def __exit__(self, *args) -> None:
         """Close underlying httpx.Client"""
         self._client.close()
 
@@ -168,6 +179,7 @@ class ResilientClient:
 ```
 
 **Strengths:**
+
 - ✅ Comprehensive resilience configuration
 - ✅ Clean API for retry/backoff/circuit breaker features
 - ✅ Context manager lifecycle management
@@ -175,6 +187,7 @@ class ResilientClient:
 - ✅ Per-request configuration overrides
 
 **Limitations:**
+
 - ❌ Creates its own internal `httpx.Client` (line 135)
 - ❌ Only accepts `timeout` parameter from httpx (loses auth, headers, cookies, proxy, etc.)
 - ❌ Cannot wrap existing user-configured `httpx.Client` instances
@@ -187,14 +200,17 @@ class ResilientClient:
 ### 3.1 Primary Goals
 
 1. **Client Wrapping:** Enable wrapping of existing httpx.Client instances with resilience features
-2. **Configuration Preservation:** Preserve all httpx.Client configuration (auth, headers, cookies, proxy, etc.)
-3. **Backward Compatibility:** Existing `ResilientClient` usage continues to work (auto-create if no client provided)
+2. **Configuration Preservation:** Preserve all httpx.Client configuration (auth, headers, cookies,
+   proxy, etc.)
+3. **Backward Compatibility:** Existing `ResilientClient` usage continues to work (auto-create if no
+   client provided)
 4. **Lifecycle Control:** User controls the lifecycle of the wrapped client
 5. **Minimal API Changes:** Add single optional `client` parameter to existing API
 
 ### 3.2 Secondary Goals
 
-1. **Gradual Migration:** Support incremental adoption - wrap existing clients without recreating them
+1. **Gradual Migration:** Support incremental adoption - wrap existing clients without recreating
+   them
 2. **Clear Documentation:** Provide migration guides and examples
 3. **Type Safety:** Maintain full type hints throughout
 4. **Performance:** Minimal overhead from wrapping layer
@@ -212,18 +228,20 @@ class ResilientClient:
 
 ### 4.1 Overview
 
-Modify existing `ResilientClient` and `AsyncResilientClient` to accept optional `httpx.Client`/`httpx.AsyncClient` instances:
+Modify existing `ResilientClient` and `AsyncResilientClient` to accept optional `httpx.Client`/
+`httpx.AsyncClient` instances:
 
 ```python
 # Current behavior (still supported)
 with ResilientClient(max_retries=5, timeout=30) as client:
-    response = client.get('https://api.example.com/data')
+    response = client.get("https://api.example.com/data")
 
 # New behavior (wrapping existing client)
 import httpx
+
 http_client = httpx.Client(auth=..., headers=..., proxy=...)
 with ResilientClient(client=http_client, max_retries=5) as resilient:
-    response = resilient.get('https://api.example.com/data')
+    response = resilient.get("https://api.example.com/data")
 ```
 
 ### 4.2 Architecture
@@ -260,53 +278,57 @@ with ResilientClient(client=http_client, max_retries=5) as resilient:
 **Two modes of operation:**
 
 **Mode 1: Auto-create client (current behavior - backward compatible)**
+
 ```python
 ResilientClient(
-    timeout=30.0,           # Used to create internal httpx.Client
-    max_retries=5,          # Resilience parameter
-    backoff_factor=0.5,     # Resilience parameter
+    timeout=30.0,  # Used to create internal httpx.Client
+    max_retries=5,  # Resilience parameter
+    backoff_factor=0.5,  # Resilience parameter
 )
 ```
 
 **Mode 2: Wrap existing client (new behavior)**
+
 ```python
 # User creates and configures httpx.Client
 client = httpx.Client(
-    auth=httpx.BasicAuth('user', 'pass'),
-    headers={'User-Agent': 'MyApp/1.0'},
+    auth=httpx.BasicAuth("user", "pass"),
+    headers={"User-Agent": "MyApp/1.0"},
     timeout=30.0,
-    proxy='http://proxy.example.com',
+    proxy="http://proxy.example.com",
 )
 
 # Wrap it with resilience
 ResilientClient(
-    client=client,          # Wrap this client
-    max_retries=5,          # Resilience parameter
-    backoff_factor=0.5,     # Resilience parameter
+    client=client,  # Wrap this client
+    max_retries=5,  # Resilience parameter
+    backoff_factor=0.5,  # Resilience parameter
 )
 ```
 
 ### 4.4 Lifecycle Management
 
-**Key Principle:** ResilientClient delegates to the wrapped httpx.Client's context manager protocol by calling `__enter__` and `__exit__`, but only closes the client if it created it.
+**Key Principle:** ResilientClient delegates to the wrapped httpx.Client's context manager protocol
+by calling `__enter__` and `__exit__`, but only closes the client if it created it.
 
 **Implementation Strategy:**
 
 1. **Client Creation:** Happens in `__init__` (not `__enter__`)
-   - If `client=None`: Create httpx.Client and set `_owns_client=True`
-   - If `client` provided: Store it and set `_owns_client=False`
+    - If `client=None`: Create httpx.Client and set `_owns_client=True`
+    - If `client` provided: Store it and set `_owns_client=False`
 
 2. **Context Manager Entry:** Call wrapped client's `__enter__`
-   - `ResilientClient.__enter__` calls `self._client.__enter__()`
-   - This allows proper nesting and connection pool initialization
+    - `ResilientClient.__enter__` calls `self._client.__enter__()`
+    - This allows proper nesting and connection pool initialization
 
 3. **Context Manager Exit:** Call wrapped client's `__exit__`, close only if owned
-   - `ResilientClient.__exit__` calls `self._client.__exit__()`
-   - Then closes client only if `_owns_client=True`
+    - `ResilientClient.__exit__` calls `self._client.__exit__()`
+    - Then closes client only if `_owns_client=True`
 
 **Supported Usage Patterns:**
 
 **Pattern 1: User manages httpx.Client lifecycle**
+
 ```python
 import httpx
 from aresilient import ResilientClient
@@ -316,13 +338,14 @@ http_client = httpx.Client(auth=..., headers=...)
 
 # Wrap with ResilientClient (doesn't close http_client on exit)
 with ResilientClient(client=http_client, max_retries=5) as resilient:
-    response = resilient.post('https://api.example.com/data', json={'key': 'value'})
+    response = resilient.post("https://api.example.com/data", json={"key": "value"})
 
 # User responsible for closing
 http_client.close()
 ```
 
 **Pattern 2: Nested context managers (RECOMMENDED)**
+
 ```python
 import httpx
 from aresilient import ResilientClient
@@ -331,30 +354,35 @@ from aresilient import ResilientClient
 with httpx.Client(auth=..., headers=...) as http_client:
     # ResilientClient calls http_client.__enter__ and __exit__
     with ResilientClient(client=http_client, max_retries=5) as resilient:
-        response = resilient.post('https://api.example.com/data', json={'key': 'value'})
+        response = resilient.post("https://api.example.com/data", json={"key": "value"})
 # httpx.Client automatically closed by its context manager
 ```
 
 **Pattern 3: Auto-create (backward compatible)**
+
 ```python
 from aresilient import ResilientClient
 
 # ResilientClient creates and manages httpx.Client
 with ResilientClient(timeout=30, max_retries=5) as client:
-    response = client.get('https://api.example.com/data')
+    response = client.get("https://api.example.com/data")
 # httpx.Client automatically created and closed by ResilientClient
 ```
 
 **Why `__enter__` and `__exit__` can be called multiple times:**
 
-httpx.Client's `__enter__` and `__exit__` are designed to be idempotent and can be called multiple times:
+httpx.Client's `__enter__` and `__exit__` are designed to be idempotent and can be called multiple
+times:
+
 - `__enter__` returns `self` and doesn't perform exclusive initialization
 - `__exit__` handles cleanup but doesn't prevent re-entry
 - Connection pools handle multiple enter/exit cycles gracefully
 
-This design allows Pattern 2 to work correctly where both the httpx.Client context manager and ResilientClient context manager call `__enter__` and `__exit__` on the same httpx.Client instance.
+This design allows Pattern 2 to work correctly where both the httpx.Client context manager and
+ResilientClient context manager call `__enter__` and `__exit__` on the same httpx.Client instance.
 
-**Recommendation:** Use Pattern 2 (nested context managers) for cleanest lifecycle management when wrapping existing clients. Pattern 1 is supported but requires manual cleanup.
+**Recommendation:** Use Pattern 2 (nested context managers) for cleanest lifecycle management when
+wrapping existing clients. Pattern 1 is supported but requires manual cleanup.
 
 ---
 
@@ -428,7 +456,9 @@ class ResilientClient:
         backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
         status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
         jitter_factor: float = 0.0,
-        retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
+        retry_if: (
+            Callable[[httpx.Response | None, Exception | None], bool] | None
+        ) = None,
         backoff_strategy: BackoffStrategy | None = None,
         max_total_time: float | None = None,
         max_wait_time: float | None = None,
@@ -533,6 +563,7 @@ class AsyncResilientClient:
 ### 6.1 Phase 1: Modify Existing Classes (Week 1-2)
 
 **Deliverables:**
+
 1. Update `src/aresilient/client.py` to accept optional `client` parameter
 2. Update `src/aresilient/client_async.py` to accept optional `client` parameter
 3. Handle lifecycle correctly (don't close wrapped clients)
@@ -545,6 +576,7 @@ class AsyncResilientClient:
 
 ```python
 # src/aresilient/client.py
+
 
 class ResilientClient:
     def __init__(
@@ -586,6 +618,7 @@ def __enter__(self) -> Self:
     self._entered = True
     return self
 
+
 def __exit__(self, exc_type, exc_val, exc_tb) -> None:
     """Exit context manager."""
     if self._entered:
@@ -613,19 +646,19 @@ Apply the same changes to `client_async.py` with async methods.
 **Test Coverage:**
 
 1. **Backward compatibility tests:**
-   - Existing usage (auto-create) still works
-   - All existing tests pass
+    - Existing usage (auto-create) still works
+    - All existing tests pass
 
 2. **New wrapper tests:**
-   - Wrap pre-configured httpx.Client
-   - Verify auth, headers, cookies preserved
-   - Verify resilience features work
-   - Verify lifecycle (wrapped client not closed)
+    - Wrap pre-configured httpx.Client
+    - Verify auth, headers, cookies preserved
+    - Verify resilience features work
+    - Verify lifecycle (wrapped client not closed)
 
 3. **Edge cases:**
-   - Wrap client with context manager
-   - Wrap client without context manager
-   - Error handling
+    - Wrap client with context manager
+    - Wrap client without context manager
+    - Error handling
 
 **Example Test:**
 
@@ -634,18 +667,18 @@ def test_wrap_configured_client():
     """Test wrapping a pre-configured httpx client."""
     # Create configured httpx client
     http_client = httpx.Client(
-        auth=httpx.BasicAuth('user', 'pass'),
-        headers={'User-Agent': 'Test/1.0'},
+        auth=httpx.BasicAuth("user", "pass"),
+        headers={"User-Agent": "Test/1.0"},
     )
 
     # Wrap it
     with ResilientClient(client=http_client, max_retries=3) as resilient:
         # Make request
-        response = resilient.get('https://httpbin.org/get')
+        response = resilient.get("https://httpbin.org/get")
 
         # Verify auth and headers were used
-        assert response.request.headers['Authorization']
-        assert response.request.headers['User-Agent'] == 'Test/1.0'
+        assert response.request.headers["Authorization"]
+        assert response.request.headers["User-Agent"] == "Test/1.0"
 
     # Verify wrapped client is NOT closed
     assert not http_client.is_closed
@@ -676,7 +709,7 @@ ResilientClient creates and manages its own httpx.Client:
 from aresilient import ResilientClient
 
 with ResilientClient(timeout=30.0, max_retries=5) as client:
-    response = client.get('https://api.example.com/data')
+    response = client.get("https://api.example.com/data")
 ```
 
 ### Mode 2: Wrap Existing Client (New)
@@ -689,14 +722,14 @@ from aresilient import ResilientClient
 
 # Configure httpx client with auth, headers, etc.
 http_client = httpx.Client(
-    auth=httpx.BasicAuth('user', 'password'),
-    headers={'User-Agent': 'MyApp/1.0'},
-    proxy='http://proxy.example.com:8080',
+    auth=httpx.BasicAuth("user", "password"),
+    headers={"User-Agent": "MyApp/1.0"},
+    proxy="http://proxy.example.com:8080",
 )
 
 # Wrap it to add resilience
 with ResilientClient(client=http_client, max_retries=5) as resilient:
-    response = resilient.get('https://api.example.com/data')
+    response = resilient.get("https://api.example.com/data")
 
 # Close the wrapped client when done
 http_client.close()
@@ -707,6 +740,7 @@ http_client.close()
 - Preserve all httpx.Client configuration (auth, headers, cookies, proxy, etc.)
 - Add resilience to existing clients without recreating them
 - Use advanced httpx features (HTTP/2, custom transports, etc.) with resilience
+
 ```
 
 ---
@@ -722,12 +756,12 @@ http_client.close()
 import httpx
 
 client = httpx.Client(
-    auth=httpx.BasicAuth('user', 'pass'),
-    headers={'User-Agent': 'MyApp/1.0'},
-    proxy='http://proxy.example.com',
+    auth=httpx.BasicAuth("user", "pass"),
+    headers={"User-Agent": "MyApp/1.0"},
+    proxy="http://proxy.example.com",
 )
 
-response = client.get('https://api.example.com/data')
+response = client.get("https://api.example.com/data")
 client.close()
 
 # After: Wrap with ResilientClient to add resilience
@@ -735,13 +769,13 @@ import httpx
 from aresilient import ResilientClient
 
 client = httpx.Client(
-    auth=httpx.BasicAuth('user', 'pass'),
-    headers={'User-Agent': 'MyApp/1.0'},
-    proxy='http://proxy.example.com',
+    auth=httpx.BasicAuth("user", "pass"),
+    headers={"User-Agent": "MyApp/1.0"},
+    proxy="http://proxy.example.com",
 )
 
 with ResilientClient(client=client, max_retries=5) as resilient:
-    response = resilient.get('https://api.example.com/data')
+    response = resilient.get("https://api.example.com/data")
 
 client.close()
 ```
@@ -753,7 +787,7 @@ client.close()
 import httpx
 
 with httpx.Client(auth=..., headers=...) as client:
-    response = client.get('https://api.example.com/data')
+    response = client.get("https://api.example.com/data")
 
 # After - wrap the configured client
 import httpx
@@ -761,7 +795,7 @@ from aresilient import ResilientClient
 
 http_client = httpx.Client(auth=..., headers=...)
 with ResilientClient(client=http_client, max_retries=5) as resilient:
-    response = resilient.get('https://api.example.com/data')
+    response = resilient.get("https://api.example.com/data")
 http_client.close()
 ```
 
@@ -774,7 +808,7 @@ http_client.close()
 from aresilient import ResilientClient
 
 with ResilientClient(max_retries=5, timeout=30) as client:
-    response = client.get('https://api.example.com/data')
+    response = client.get("https://api.example.com/data")
 ```
 
 **New usage with wrapping:**
@@ -786,7 +820,7 @@ from aresilient import ResilientClient
 
 http_client = httpx.Client(auth=..., headers=..., proxy=...)
 with ResilientClient(client=http_client, max_retries=5) as resilient:
-    response = resilient.get('https://api.example.com/data')
+    response = resilient.get("https://api.example.com/data")
 http_client.close()
 ```
 
@@ -801,7 +835,7 @@ http_client.close()
 from aresilient import ResilientClient
 
 with ResilientClient(timeout=30.0, max_retries=5) as client:
-    response = client.get('https://api.example.com/data')
+    response = client.get("https://api.example.com/data")
     print(response.json())
 ```
 
@@ -814,16 +848,18 @@ from aresilient import ResilientClient
 
 # httpx.Client managed by its own context manager
 with httpx.Client(
-    auth=httpx.BasicAuth('user', 'password'),
-    headers={'User-Agent': 'MyApp/1.0'},
-    cookies={'session': 'abc123'},
-    proxy='http://proxy.example.com:8080',
+    auth=httpx.BasicAuth("user", "password"),
+    headers={"User-Agent": "MyApp/1.0"},
+    cookies={"session": "abc123"},
+    proxy="http://proxy.example.com:8080",
     http2=True,
-    verify='/path/to/cert.pem',
+    verify="/path/to/cert.pem",
 ) as http_client:
     # Wrap with resilience - httpx.Client automatically closed on exit
-    with ResilientClient(client=http_client, max_retries=5, backoff_factor=0.5) as resilient:
-        response = resilient.get('https://api.example.com/data')
+    with ResilientClient(
+        client=http_client, max_retries=5, backoff_factor=0.5
+    ) as resilient:
+        response = resilient.get("https://api.example.com/data")
         print(response.status_code)
 # http_client automatically closed here
 ```
@@ -837,14 +873,14 @@ from aresilient import ResilientClient
 
 # Configure httpx client with all your settings
 http_client = httpx.Client(
-    auth=httpx.BasicAuth('user', 'password'),
-    headers={'User-Agent': 'MyApp/1.0'},
-    proxy='http://proxy.example.com:8080',
+    auth=httpx.BasicAuth("user", "password"),
+    headers={"User-Agent": "MyApp/1.0"},
+    proxy="http://proxy.example.com:8080",
 )
 
 # Wrap it to add resilience
 with ResilientClient(client=http_client, max_retries=5) as resilient:
-    response = resilient.get('https://api.example.com/data')
+    response = resilient.get("https://api.example.com/data")
     print(response.status_code)
 
 # User responsible for closing
@@ -866,8 +902,8 @@ with httpx.Client(auth=..., headers=...) as http_client:
         jitter_factor=0.1,
     ) as resilient:
         response = resilient.post(
-            'https://api.example.com/data',
-            json={'key': 'value'},
+            "https://api.example.com/data",
+            json={"key": "value"},
         )
 ```
 
@@ -884,14 +920,14 @@ breaker = CircuitBreaker(
 )
 
 # Nested context managers
-with httpx.Client(headers={'API-Key': 'secret'}) as http_client:
+with httpx.Client(headers={"API-Key": "secret"}) as http_client:
     with ResilientClient(
         client=http_client,
         max_retries=3,
         circuit_breaker=breaker,
     ) as resilient:
         try:
-            response = resilient.get('https://api.example.com/data')
+            response = resilient.get("https://api.example.com/data")
         except Exception as e:
             print(f"Request failed: {e}")
 ```
@@ -902,14 +938,16 @@ with httpx.Client(headers={'API-Key': 'secret'}) as http_client:
 import httpx
 from aresilient import ResilientClient
 
+
 def should_retry(response, exception):
     """Custom retry logic based on response content."""
     if response and response.status_code == 200:
         data = response.json()
         # Retry if API indicates rate limiting in response body
-        if data.get('status') == 'rate_limited':
+        if data.get("status") == "rate_limited":
             return True
     return False
+
 
 # Nested context managers
 with httpx.Client() as http_client:
@@ -918,7 +956,7 @@ with httpx.Client() as http_client:
         max_retries=5,
         retry_if=should_retry,
     ) as resilient:
-        response = resilient.get('https://api.example.com/data')
+        response = resilient.get("https://api.example.com/data")
 ```
 
 ### 8.7 With Callbacks for Monitoring
@@ -930,14 +968,18 @@ from aresilient import ResilientClient
 
 logger = logging.getLogger(__name__)
 
+
 def on_request(info):
     logger.info(f"Request: {info.method} {info.url}")
+
 
 def on_retry(info):
     logger.warning(f"Retry {info.attempt}/{info.max_retries}: {info.url}")
 
+
 def on_failure(info):
     logger.error(f"Failed after {info.attempts} attempts: {info.url}")
+
 
 # Nested context managers
 with httpx.Client() as http_client:
@@ -948,7 +990,7 @@ with httpx.Client() as http_client:
         on_retry=on_retry,
         on_failure=on_failure,
     ) as resilient:
-        response = resilient.get('https://api.example.com/data')
+        response = resilient.get("https://api.example.com/data")
 ```
 
 ### 8.8 Async Usage
@@ -958,15 +1000,17 @@ import asyncio
 import httpx
 from aresilient import AsyncResilientClient
 
+
 async def fetch_data():
     # Nested async context managers
     async with httpx.AsyncClient(
-        auth=httpx.BasicAuth('user', 'pass'),
-        headers={'User-Agent': 'MyApp/1.0'},
+        auth=httpx.BasicAuth("user", "pass"),
+        headers={"User-Agent": "MyApp/1.0"},
     ) as http_client:
         async with AsyncResilientClient(client=http_client, max_retries=5) as resilient:
-            response = await resilient.get('https://api.example.com/data')
+            response = await resilient.get("https://api.example.com/data")
             return response.json()
+
 
 # Run async function
 data = asyncio.run(fetch_data())
@@ -981,18 +1025,18 @@ from aresilient import ResilientClient
 
 # Create one httpx client with your configuration
 http_client = httpx.Client(
-    auth=httpx.BasicAuth('user', 'pass'),
-    headers={'User-Agent': 'MyApp/1.0'},
+    auth=httpx.BasicAuth("user", "pass"),
+    headers={"User-Agent": "MyApp/1.0"},
 )
 
 # Use it with different resilience settings for different operations
 # Critical API - more retries
 with ResilientClient(client=http_client, max_retries=10) as resilient:
-    critical_data = resilient.get('https://api.example.com/critical')
+    critical_data = resilient.get("https://api.example.com/critical")
 
 # Non-critical API - fewer retries
 with ResilientClient(client=http_client, max_retries=2) as resilient:
-    optional_data = resilient.get('https://api.example.com/optional')
+    optional_data = resilient.get("https://api.example.com/optional")
 
 # Close when completely done
 http_client.close()
@@ -1009,17 +1053,18 @@ http_client.close()
 ```python
 # These continue to work exactly as before
 from aresilient import (
-    ResilientClient,                    # ✅ No change
-    AsyncResilientClient,               # ✅ No change
-    get_with_automatic_retry,           # ✅ No change
-    post_with_automatic_retry,          # ✅ No change
-    get_with_automatic_retry_async,     # ✅ No change
-    request_with_automatic_retry,       # ✅ No change
+    ResilientClient,  # ✅ No change
+    AsyncResilientClient,  # ✅ No change
+    get_with_automatic_retry,  # ✅ No change
+    post_with_automatic_retry,  # ✅ No change
+    get_with_automatic_retry_async,  # ✅ No change
+    request_with_automatic_retry,  # ✅ No change
     # ... all other existing exports
 )
 ```
 
 **No breaking changes:**
+
 - All existing functions and classes remain
 - All parameter names and signatures unchanged (except adding optional `client` parameter)
 - All behaviors preserved
@@ -1038,6 +1083,7 @@ ResilientClient(client=http_client, max_retries=5)
 ```
 
 **Implementation ensures compatibility:**
+
 - `client` parameter defaults to `None`
 - When `None`, auto-creates httpx.Client (current behavior)
 - When provided, wraps the given client (new behavior)
@@ -1045,6 +1091,7 @@ ResilientClient(client=http_client, max_retries=5)
 ### 9.3 No Deprecation
 
 **No deprecation of any existing features:**
+
 - `ResilientClient` remains the primary class name
 - No new classes introduced
 - No APIs marked as deprecated
@@ -1057,6 +1104,7 @@ ResilientClient(client=http_client, max_retries=5)
 ### 10.1 Chosen Approach: Optional Client Wrapping
 
 **Pros:**
+
 - ✅ Minimal API change (single optional parameter)
 - ✅ Full backward compatibility
 - ✅ Preserves all httpx.Client configuration
@@ -1065,6 +1113,7 @@ ResilientClient(client=http_client, max_retries=5)
 - ✅ No new classes to maintain
 
 **Cons:**
+
 - ⚠️ Slightly more complex lifecycle management (track if we own the client)
 - ⚠️ User must remember to close wrapped clients themselves
 - ⚠️ Documentation needed to explain both modes
@@ -1077,10 +1126,12 @@ ResilientClient(client=http_client, max_retries=5)
 Create new `Client` and `AsyncClient` classes that accept all httpx parameters.
 
 **Pros:**
+
 - ✅ Could match httpx API exactly
 - ✅ Clear separation from existing ResilientClient
 
 **Cons:**
+
 - ❌ More code to maintain (duplicate functionality)
 - ❌ Confusing to have multiple client classes
 - ❌ Doesn't solve the core problem (still can't wrap existing clients)
@@ -1093,10 +1144,12 @@ Create new `Client` and `AsyncClient` classes that accept all httpx parameters.
 Make ResilientClient inherit from httpx.Client.
 
 **Pros:**
+
 - ✅ Automatic method inheritance
 - ✅ Fewer lines of code
 
 **Cons:**
+
 - ❌ httpx.Client may not be designed for inheritance
 - ❌ Harder to inject retry logic cleanly
 - ❌ Risk of breaking with httpx updates
@@ -1116,10 +1169,12 @@ class MyClient(httpx.Client):
 ```
 
 **Pros:**
+
 - ✅ Pythonic decorator pattern
 - ✅ Clear separation
 
 **Cons:**
+
 - ❌ Less intuitive for users
 - ❌ Harder to configure per-request
 - ❌ Doesn't work well with existing client instances
@@ -1133,6 +1188,7 @@ class MyClient(httpx.Client):
 ### 11.1 Adoption Metrics
 
 **Target Metrics (3 months post-release):**
+
 - 📊 20%+ of users with existing httpx clients adopt wrapper pattern
 - 📊 Positive feedback on ability to preserve httpx configuration
 - 📊 Examples in documentation showing both modes
@@ -1141,6 +1197,7 @@ class MyClient(httpx.Client):
 ### 11.2 Code Quality Metrics
 
 **Target:**
+
 - ✅ 95%+ test coverage for both modes (auto-create and wrap)
 - ✅ <1% performance overhead from wrapping layer
 - ✅ Zero breaking changes to existing APIs
@@ -1149,6 +1206,7 @@ class MyClient(httpx.Client):
 ### 11.3 User Satisfaction Metrics
 
 **Target:**
+
 - ⭐ Positive community feedback on wrapper pattern
 - ⭐ Low support burden (clear documentation for both modes)
 - ⭐ Adoption by users with complex httpx configurations
@@ -1161,15 +1219,16 @@ class MyClient(httpx.Client):
 
 **Total Duration:** 4 weeks
 
-| Phase | Duration | Deliverables | Status |
-|-------|----------|--------------|--------|
+| Phase                   | Duration  | Deliverables                             | Status     |
+|-------------------------|-----------|------------------------------------------|------------|
 | Phase 1: Modify Classes | 1-2 weeks | Add `client` parameter, handle lifecycle | 📋 Planned |
-| Phase 2: Testing | 1 week | Test both modes, edge cases | 📋 Planned |
-| Phase 3: Documentation | 1 week | Update docs, add examples | 📋 Planned |
+| Phase 2: Testing        | 1 week    | Test both modes, edge cases              | 📋 Planned |
+| Phase 3: Documentation  | 1 week    | Update docs, add examples                | 📋 Planned |
 
 ### 12.2 Phase Details
 
 **Phase 1: Modify Existing Classes (Week 1-2)**
+
 - [ ] Add optional `client` parameter to `ResilientClient.__init__`
 - [ ] Add optional `client` parameter to `AsyncResilientClient.__init__`
 - [ ] Update `__enter__` to handle both modes (auto-create vs wrap)
@@ -1179,6 +1238,7 @@ class MyClient(httpx.Client):
 - [ ] Basic unit tests for both modes
 
 **Phase 2: Testing (Week 3)**
+
 - [ ] Comprehensive tests for auto-create mode (ensure backward compat)
 - [ ] Comprehensive tests for wrap mode
 - [ ] Test with various httpx configurations (auth, headers, proxy, etc.)
@@ -1188,6 +1248,7 @@ class MyClient(httpx.Client):
 - [ ] Achieve 95%+ test coverage
 
 **Phase 3: Documentation (Week 4)**
+
 - [ ] Update `ResilientClient` docstring with both modes
 - [ ] Add examples to user guide
 - [ ] Create migration guide for wrapping existing clients
@@ -1197,6 +1258,7 @@ class MyClient(httpx.Client):
 ### 12.3 Release Strategy
 
 **Release (v0.x):**
+
 - Add as new feature in next version
 - Highlight in release notes
 - Provide examples and documentation
@@ -1208,7 +1270,8 @@ class MyClient(httpx.Client):
 
 ### 13.1 Summary
 
-This design proposes modifying `ResilientClient` and `AsyncResilientClient` to accept optional `httpx.Client` and `httpx.AsyncClient` instances, enabling users to:
+This design proposes modifying `ResilientClient` and `AsyncResilientClient` to accept optional
+`httpx.Client` and `httpx.AsyncClient` instances, enabling users to:
 
 1. **Wrap Existing Clients** - Add resilience to pre-configured httpx clients
 2. **Preserve Configuration** - Keep all httpx settings (auth, headers, cookies, proxy, etc.)
@@ -1219,16 +1282,19 @@ This design proposes modifying `ResilientClient` and `AsyncResilientClient` to a
 ### 13.2 Key Benefits
 
 **For Users with Existing httpx Clients:**
+
 - ✅ Can now add resilience without losing httpx configuration
 - ✅ No need to recreate clients or duplicate configuration
 - ✅ Works with advanced httpx features (HTTP/2, custom transports, etc.)
 
 **For Current aresilient Users:**
+
 - ✅ No breaking changes
 - ✅ Existing code continues to work
 - ✅ New flexibility to wrap pre-configured clients
 
 **For aresilient Library:**
+
 - ✅ Addresses user pain point
 - ✅ Minimal code changes required
 - ✅ Clean, Pythonic API
@@ -1254,7 +1320,8 @@ This design proposes modifying `ResilientClient` and `AsyncResilientClient` to a
 
 ## Appendix A: Related Design Documents
 
-- [LIBRARY_STRUCTURE_PROPOSAL.md](LIBRARY_STRUCTURE_PROPOSAL.md) - Current structure and organization
+- [LIBRARY_STRUCTURE_PROPOSAL.md](LIBRARY_STRUCTURE_PROPOSAL.md) - Current structure and
+  organization
 - [SYNC_ASYNC_ARCHITECTURE_REVIEW.md](SYNC_ASYNC_ARCHITECTURE_REVIEW.md) - Sync/async code patterns
 - [MISSING_FUNCTIONALITIES.md](MISSING_FUNCTIONALITIES.md) - Feature roadmap
 - [README.md](README.md) - Design document index
@@ -1272,19 +1339,19 @@ This design proposes modifying `ResilientClient` and `AsyncResilientClient` to a
 
 ## Appendix C: Comparison Table
 
-| Feature | httpx.Client | aresilient.ResilientClient (Current) | aresilient.ResilientClient (Proposed) |
-|---------|--------------|--------------------------------------|---------------------------------------|
-| **Basic HTTP Methods** | ✅ | ✅ | ✅ |
-| **Async Support** | ✅ (AsyncClient) | ✅ (AsyncResilientClient) | ✅ (AsyncResilientClient) |
-| **Context Manager** | ✅ | ✅ | ✅ |
-| **Automatic Retry** | ❌ | ✅ | ✅ |
-| **Exponential Backoff** | ❌ | ✅ | ✅ |
-| **Circuit Breaker** | ❌ | ✅ | ✅ |
-| **Custom Retry Logic** | ❌ | ✅ | ✅ |
-| **Callbacks** | Partial | ✅ | ✅ |
-| **Wrap Existing Client** | N/A | ❌ | ✅ **NEW** |
-| **Preserve httpx Config** | ✅ | ⚠️ (timeout only) | ✅ **IMPROVED** |
-| **User Controls Lifecycle** | ✅ | ⚠️ (auto-managed) | ✅ **FLEXIBLE** |
+| Feature                     | httpx.Client    | aresilient.ResilientClient (Current) | aresilient.ResilientClient (Proposed) |
+|-----------------------------|-----------------|--------------------------------------|---------------------------------------|
+| **Basic HTTP Methods**      | ✅               | ✅                                    | ✅                                     |
+| **Async Support**           | ✅ (AsyncClient) | ✅ (AsyncResilientClient)             | ✅ (AsyncResilientClient)              |
+| **Context Manager**         | ✅               | ✅                                    | ✅                                     |
+| **Automatic Retry**         | ❌               | ✅                                    | ✅                                     |
+| **Exponential Backoff**     | ❌               | ✅                                    | ✅                                     |
+| **Circuit Breaker**         | ❌               | ✅                                    | ✅                                     |
+| **Custom Retry Logic**      | ❌               | ✅                                    | ✅                                     |
+| **Callbacks**               | Partial         | ✅                                    | ✅                                     |
+| **Wrap Existing Client**    | N/A             | ❌                                    | ✅ **NEW**                             |
+| **Preserve httpx Config**   | ✅               | ⚠️ (timeout only)                    | ✅ **IMPROVED**                        |
+| **User Controls Lifecycle** | ✅               | ⚠️ (auto-managed)                    | ✅ **FLEXIBLE**                        |
 
 ---
 

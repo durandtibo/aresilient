@@ -186,6 +186,7 @@ def get_with_automatic_retry(
     validate_retry_params(timeout, max_retries, ...)
     # ... implementation
 
+
 # MUST also change in get_async.py
 async def get_with_automatic_retry_async(
     url: str,
@@ -248,6 +249,7 @@ def test_successful_request():
     response = get_with_automatic_retry("https://api.example.com/data")
     assert response.status_code == 200
 
+
 # test_get_async.py (nearly identical)
 async def test_successful_request():
     response = await get_with_automatic_retry_async("https://api.example.com/data")
@@ -304,6 +306,7 @@ async def test_successful_request():
 class Client:
     def get(self, url):
         return self._send(Request("GET", url))
+
 
 class AsyncClient:
     async def get(self, url):
@@ -396,14 +399,17 @@ httpx/
 ```python
 class Request:
     """HTTP Request - Used by both sync and async."""
+
     def __init__(self, method, url, headers=None, content=None):
         self.method = method
         self.url = url
         self.headers = headers or {}
         self.content = content
 
+
 class Response:
     """HTTP Response - Used by both sync and async."""
+
     def __init__(self, status_code, headers, content):
         self.status_code = status_code
         self.headers = headers
@@ -527,16 +533,13 @@ To adopt httpx's pattern, aresilient should:
    # client.py (sync)
    class ResilientClient:
        def get(self, url, **kwargs):
-           return execute_with_retry(
-               httpx.Client.get, url, **kwargs
-           )
+           return execute_with_retry(httpx.Client.get, url, **kwargs)
+
 
    # client_async.py (async)
    class AsyncResilientClient:
        async def get(self, url, **kwargs):
-           return await execute_with_retry_async(
-               httpx.AsyncClient.get, url, **kwargs
-           )
+           return await execute_with_retry_async(httpx.AsyncClient.get, url, **kwargs)
    ```
 
 3. **Shared Retry Engine:**
@@ -601,13 +604,14 @@ src/aresilient/
 **Before (Duplicated):**
 ```python
 # get.py
-def get_with_automatic_retry(url, *, timeout, max_retries, ...):
-    validate_retry_params(timeout, max_retries, ...)
+def get_with_automatic_retry(url, *, timeout, max_retries, **kwargs):
+    validate_retry_params(timeout, max_retries, **kwargs)
     # ... 100 lines of retry logic
 
+
 # get_async.py
-async def get_with_automatic_retry_async(url, *, timeout, max_retries, ...):
-    validate_retry_params(timeout, max_retries, ...)
+async def get_with_automatic_retry_async(url, *, timeout, max_retries, **kwargs):
+    validate_retry_params(timeout, max_retries, **kwargs)
     # ... 100 lines of DUPLICATED retry logic
 ```
 
@@ -616,8 +620,8 @@ async def get_with_automatic_retry_async(url, *, timeout, max_retries, ...):
 # core/http_method.py
 class HttpMethodLogic:
     @staticmethod
-    def prepare_request(url, timeout, max_retries, ...):
-        validate_retry_params(timeout, max_retries, ...)
+    def prepare_request(url, timeout, max_retries, **kwargs):
+        validate_retry_params(timeout, max_retries, **kwargs)
         # ... shared preparation logic
         return config
 
@@ -626,9 +630,10 @@ class HttpMethodLogic:
         # ... shared retry decision logic
         return bool
 
+
 # get.py (thin wrapper - ~30 lines)
-def get_with_automatic_retry(url, *, timeout, max_retries, ...):
-    config = HttpMethodLogic.prepare_request(url, timeout, max_retries, ...)
+def get_with_automatic_retry(url, *, timeout, max_retries, **kwargs):
+    config = HttpMethodLogic.prepare_request(url, timeout, max_retries, **kwargs)
     return execute_with_retry(
         method="GET",
         url=url,
@@ -636,9 +641,10 @@ def get_with_automatic_retry(url, *, timeout, max_retries, ...):
         client_func=httpx.Client,
     )
 
+
 # get_async.py (thin wrapper - ~30 lines)
-async def get_with_automatic_retry_async(url, *, timeout, max_retries, ...):
-    config = HttpMethodLogic.prepare_request(url, timeout, max_retries, ...)
+async def get_with_automatic_retry_async(url, *, timeout, max_retries, **kwargs):
+    config = HttpMethodLogic.prepare_request(url, timeout, max_retries, **kwargs)
     return await execute_with_retry_async(
         method="GET",
         url=url,
@@ -727,7 +733,8 @@ src/aresilient/
 # core/protocol.py
 from typing import Protocol, runtime_checkable, TypeVar
 
-ResponseT = TypeVar('ResponseT')
+ResponseT = TypeVar("ResponseT")
+
 
 @runtime_checkable
 class HttpClientProtocol(Protocol[ResponseT]):
@@ -737,6 +744,7 @@ class HttpClientProtocol(Protocol[ResponseT]):
         """Send HTTP request. May be sync or async."""
         ...
 
+
 # Adapter implementations
 # adapters/sync_adapter.py
 class SyncHttpClient:
@@ -745,6 +753,7 @@ class SyncHttpClient:
 
     def request(self, method: str, url: str, **kwargs) -> httpx.Response:
         return self._client.request(method, url, **kwargs)
+
 
 # adapters/async_adapter.py
 class AsyncHttpClient:
@@ -761,8 +770,9 @@ class AsyncHttpClient:
 from typing import Generic, TypeVar, Callable, Union
 import inspect
 
-ClientT = TypeVar('ClientT')
-ResponseT = TypeVar('ResponseT')
+ClientT = TypeVar("ClientT")
+ResponseT = TypeVar("ResponseT")
+
 
 class RequestEngine(Generic[ClientT, ResponseT]):
     """Generic request engine supporting both sync and async."""
@@ -772,10 +782,7 @@ class RequestEngine(Generic[ClientT, ResponseT]):
         self._config = config
 
     def execute(
-        self,
-        method: str,
-        url: str,
-        **kwargs
+        self, method: str, url: str, **kwargs
     ) -> Union[ResponseT, Awaitable[ResponseT]]:
         """Execute request, returning Response or Awaitable[Response]."""
         request_func = getattr(self._client, method.lower())
@@ -819,12 +826,14 @@ class RequestEngine(Generic[ClientT, ResponseT]):
 from core.engine import RequestEngine
 from adapters.sync_adapter import SyncHttpClient
 
+
 def get_with_automatic_retry(url, **kwargs):
     """GET request with retry."""
     config = _prepare_config(**kwargs)
     client = SyncHttpClient(httpx.Client())
     engine = RequestEngine(client, config)
     return engine.execute("GET", url, **kwargs)
+
 
 def post_with_automatic_retry(url, **kwargs):
     """POST request with retry."""
@@ -833,7 +842,9 @@ def post_with_automatic_retry(url, **kwargs):
     engine = RequestEngine(client, config)
     return engine.execute("POST", url, **kwargs)
 
+
 # ... all other methods
+
 
 # Async methods_async.py (all methods in one file)
 async def get_with_automatic_retry_async(url, **kwargs):
@@ -842,6 +853,7 @@ async def get_with_automatic_retry_async(url, **kwargs):
     client = AsyncHttpClient(httpx.AsyncClient())
     engine = RequestEngine(client, config)
     return await engine.execute("GET", url, **kwargs)
+
 
 # ... all other methods
 ```
@@ -938,6 +950,7 @@ python -m aresilient.generators.generate
 # core/decorators.py
 def http_method(method: str):
     """Decorator to generate sync and async versions."""
+
     def decorator(func):
         # Generate sync version
         def sync_wrapper(*args, **kwargs):
@@ -948,13 +961,16 @@ def http_method(method: str):
             return await func(*args, **kwargs)
 
         return sync_wrapper, async_wrapper
+
     return decorator
+
 
 # Usage
 @http_method("GET")
 def get_base(url, client, **kwargs):
     """Base GET implementation."""
     return client.request("GET", url, **kwargs)
+
 
 # Automatically creates:
 # - get_with_automatic_retry (sync)
@@ -1204,10 +1220,12 @@ Choose if:
 ```python
 # Before refactor
 from aresilient import get_with_automatic_retry
+
 response = get_with_automatic_retry("https://api.example.com")
 
 # After refactor (SAME)
 from aresilient import get_with_automatic_retry
+
 response = get_with_automatic_retry("https://api.example.com")
 ```
 
@@ -1236,7 +1254,7 @@ def _should_retry(response, status_codes):
     warnings.warn(
         "_should_retry is deprecated. Use core.retry_logic.should_retry",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     return should_retry(response, status_codes)
 ```
@@ -1469,7 +1487,9 @@ async def get_with_automatic_retry_async(
     **kwargs: Any,
 ) -> httpx.Response:
     """GET request with automatic retry."""  # Identical docstring
-    validate_retry_params(timeout, max_retries, backoff_factor, jitter_factor)  # Identical
+    validate_retry_params(
+        timeout, max_retries, backoff_factor, jitter_factor
+    )  # Identical
     return await request_with_automatic_retry_async(  # Only difference: async/await
         url,
         method="GET",
@@ -1495,6 +1515,7 @@ from aresilient.config import (
     RETRY_STATUS_CODES,
 )
 from aresilient.utils import validate_retry_params
+
 
 class HttpMethodConfig:
     """Shared configuration for HTTP methods."""
@@ -1526,6 +1547,7 @@ import httpx
 from aresilient.core.http_method import HttpMethodConfig
 from aresilient.request import request_with_automatic_retry
 
+
 def get_with_automatic_retry(
     url: str,
     *,
@@ -1547,6 +1569,7 @@ def get_with_automatic_retry(
 import httpx
 from aresilient.core.http_method import HttpMethodConfig
 from aresilient.request_async import request_with_automatic_retry_async
+
 
 async def get_with_automatic_retry_async(
     url: str,
