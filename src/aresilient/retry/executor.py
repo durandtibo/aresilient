@@ -96,14 +96,14 @@ class RetryExecutor:
         """
         self.config = retry_config
         self.strategy: RetryStrategy = RetryStrategy(
-            retry_config.backoff_factor,
-            retry_config.jitter_factor,
-            retry_config.backoff_strategy,
-            retry_config.max_wait_time,
+            backoff_factor=retry_config.backoff_factor,
+            jitter_factor=retry_config.jitter_factor,
+            backoff_strategy=retry_config.backoff_strategy,
+            max_wait_time=retry_config.max_wait_time,
         )
         self.decider: RetryDecider = RetryDecider(
-            retry_config.status_forcelist,
-            retry_config.retry_if,
+            status_forcelist=retry_config.status_forcelist,
+            retry_if=retry_config.retry_if,
         )
         self.callbacks: CallbackManager = CallbackManager(callback_config)
         self.circuit_breaker = circuit_breaker
@@ -190,12 +190,21 @@ class RetryExecutor:
         for attempt in range(self.config.max_retries + 1):
             try:
                 # Attempt request
-                self.callbacks.on_request(url, method, attempt, self.config.max_retries)
+                self.callbacks.on_request(
+                    url=url,
+                    method=method,
+                    attempt=attempt,
+                    max_retries=self.config.max_retries,
+                )
                 response = request_func(url=url, **kwargs)
 
                 # Evaluate response
                 should_retry, reason = self.decider.should_retry_response(
-                    response, attempt, self.config.max_retries, url, method
+                    response=response,
+                    attempt=attempt,
+                    max_retries=self.config.max_retries,
+                    url=url,
+                    method=method,
                 )
 
                 if not should_retry:
@@ -203,12 +212,12 @@ class RetryExecutor:
                     if self.circuit_breaker is not None:
                         self.circuit_breaker.record_success()
                     self.callbacks.on_success(
-                        url,
-                        method,
-                        attempt,
-                        self.config.max_retries,
-                        response,
-                        start_time,
+                        url=url,
+                        method=method,
+                        attempt=attempt,
+                        max_retries=self.config.max_retries,
+                        response=response,
+                        start_time=start_time,
                     )
                     return response
 
@@ -230,7 +239,7 @@ class RetryExecutor:
 
                 # Evaluate exception
                 should_retry, reason = self.decider.should_retry_exception(
-                    exc, attempt, self.config.max_retries
+                    exception=exc, attempt=attempt, max_retries=self.config.max_retries
                 )
 
                 if not should_retry:
@@ -250,13 +259,13 @@ class RetryExecutor:
                             cause=exc,
                         )
                     self.callbacks.on_failure(
-                        url,
-                        method,
-                        attempt,
-                        self.config.max_retries,
-                        error,
-                        None,
-                        start_time,
+                        url=url,
+                        method=method,
+                        attempt=attempt,
+                        max_retries=self.config.max_retries,
+                        error=error,
+                        status_code=None,
+                        start_time=start_time,
                     )
                     raise error from exc
 
@@ -292,25 +301,25 @@ class RetryExecutor:
                                 ),
                             )
                             self.callbacks.on_failure(
-                                url,
-                                method,
-                                attempt,
-                                self.config.max_retries,
-                                error,
-                                None,
-                                start_time,
+                                url=url,
+                                method=method,
+                                attempt=attempt,
+                                max_retries=self.config.max_retries,
+                                error=error,
+                                status_code=None,
+                                start_time=start_time,
                             )
                             raise error
 
                 sleep_time = self.strategy.calculate_delay(attempt, response)
                 self.callbacks.on_retry(
-                    url,
-                    method,
-                    attempt,
-                    self.config.max_retries,
-                    sleep_time,
-                    last_error,
-                    last_status_code,
+                    url=url,
+                    method=method,
+                    attempt=attempt,
+                    max_retries=self.config.max_retries,
+                    sleep_time=sleep_time,
+                    error=last_error,
+                    status_code=last_status_code,
                 )
                 time.sleep(sleep_time)
 
