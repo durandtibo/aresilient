@@ -118,6 +118,31 @@ class RetryExecutor:
         if self.circuit_breaker is not None:
             self.circuit_breaker.record_failure(error)
 
+    def _record_response_failure(
+        self,
+        response: httpx.Response,
+        url: str,
+        method: str,
+    ) -> None:
+        """Record response failure in circuit breaker if present.
+
+        Args:
+            response: The response that failed.
+            url: The URL being requested.
+            method: The HTTP method being used.
+        """
+        if self.circuit_breaker is None:
+            return
+
+        error = HttpRequestError(
+            method=method,
+            url=url,
+            message=f"{method} request to {url} failed with status {response.status_code}",
+            status_code=response.status_code,
+            response=response,
+        )
+        self.circuit_breaker.record_failure(error)
+
     def _create_exception_error(
         self,
         exc: Exception,
@@ -322,14 +347,7 @@ class RetryExecutor:
 
                 # Mark for retry - record circuit breaker failure
                 last_status_code = response.status_code
-                error = HttpRequestError(
-                    method=method,
-                    url=url,
-                    message=f"{method} request to {url} failed with status {response.status_code}",
-                    status_code=response.status_code,
-                    response=response,
-                )
-                self._record_failure(error)
+                self._record_response_failure(response, url, method)
                 logger.debug(f"{method} to {url}: will retry ({reason})")
 
             except (httpx.TimeoutException, httpx.RequestError) as exc:
