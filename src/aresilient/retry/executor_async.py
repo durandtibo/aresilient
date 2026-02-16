@@ -115,6 +115,131 @@ class AsyncRetryExecutor:
         self.callbacks: CallbackManager = CallbackManager(callback_config)
         self.circuit_breaker = circuit_breaker
 
+    def _record_success(self) -> None:
+        """Record success in circuit breaker if present."""
+        if self.circuit_breaker is not None:
+            self.circuit_breaker.record_success()
+
+    def _record_failure(self, error: Exception) -> None:
+        """Record failure in circuit breaker if present."""
+        if self.circuit_breaker is not None:
+            self.circuit_breaker.record_failure(error)
+
+    def _record_response_failure(
+        self,
+        response: httpx.Response,
+        url: str,
+        method: str,
+    ) -> None:
+        """Record response failure in circuit breaker if present.
+
+        Args:
+            response: The response that failed.
+            url: The URL being requested.
+            method: The HTTP method being used.
+        """
+        if self.circuit_breaker is None:
+            return
+
+        error = HttpRequestError(
+            method=method,
+            url=url,
+            message=f"{method} request to {url} failed with status {response.status_code}",
+            status_code=response.status_code,
+            response=response,
+        )
+        self.circuit_breaker.record_failure(error)
+
+    def _create_exception_error(
+        self,
+        exc: Exception,
+        url: str,
+        method: str,
+        attempt: int,
+    ) -> HttpRequestError:
+        """Create HttpRequestError from exception.
+
+        Args:
+            exc: The exception that occurred.
+            url: The URL being requested.
+            method: The HTTP method being used.
+            attempt: Current attempt number (0-indexed).
+
+        Returns:
+            HttpRequestError with appropriate message.
+        """
+        if isinstance(exc, httpx.TimeoutException):
+            return HttpRequestError(
+                method=method,
+                url=url,
+                message=f"{method} request to {url} timed out ({attempt + 1} attempts)",
+                cause=exc,
+            )
+        return HttpRequestError(
+            method=method,
+            url=url,
+            message=f"{method} request to {url} failed after {attempt + 1} attempts: {exc}",
+            cause=exc,
+        )
+
+    def _check_time_budget_exceeded(
+        self,
+        start_time: float,
+        url: str,
+        method: str,
+        attempt: int,
+        response: httpx.Response | None,
+    ) -> None:
+        """Check if time budget is exceeded and raise error if so.
+
+        Args:
+            start_time: When the request started.
+            url: The URL being requested.
+            method: The HTTP method being used.
+            attempt: Current attempt number (0-indexed).
+            response: The response if available.
+
+        Raises:
+            HttpRequestError: If time budget is exceeded.
+        """
+        if self.config.max_total_time is None:
+            return
+
+        elapsed_time = time.time() - start_time
+        if elapsed_time < self.config.max_total_time:
+            return
+
+        # Time budget exceeded - raise error immediately
+        if response is not None:
+            raise_final_error(
+                url=url,
+                method=method,
+                max_retries=self.config.max_retries,
+                response=response,
+                on_failure=self.callbacks.callbacks.on_failure,
+                start_time=start_time,
+            )
+
+        # We have an exception but no response
+        error = HttpRequestError(
+            method=method,
+            url=url,
+            message=(
+                f"{method} request to {url} failed after {attempt + 1} attempts "
+                f"(max_total_time exceeded)"
+            ),
+        )
+        self.callbacks.on_failure(
+            url=url,
+            method=method,
+            attempt=attempt,
+            max_retries=self.config.max_retries,
+            error=error,
+            status_code=None,
+            start_time=start_time,
+        )
+        raise error
+
     async def execute(
         self,
         url: str,
@@ -226,8 +351,7 @@ class AsyncRetryExecutor:
 
                 if not should_retry:
                     # Success!
-                    if self.circuit_breaker is not None:
-                        self.circuit_breaker.record_success()
+                    self._record_success()
                     self.callbacks.on_success(
                         url=url,
                         method=method,
@@ -240,15 +364,7 @@ class AsyncRetryExecutor:
 
                 # Mark for retry - record circuit breaker failure
                 last_status_code = response.status_code
-                if self.circuit_breaker is not None:
-                    error = HttpRequestError(
-                        method=method,
-                        url=url,
-                        message=f"{method} request to {url} failed with status {response.status_code}",
-                        status_code=response.status_code,
-                        response=response,
-                    )
-                    self.circuit_breaker.record_failure(error)
+                self._record_response_failure(response, url, method)
                 logger.debug(f"{method} to {url}: will retry ({reason})")
 
             except (httpx.TimeoutException, httpx.RequestError) as exc:
@@ -261,20 +377,7 @@ class AsyncRetryExecutor:
 
                 if not should_retry:
                     # Create and raise error immediately
-                    if isinstance(exc, httpx.TimeoutException):
-                        error = HttpRequestError(
-                            method=method,
-                            url=url,
-                            message=f"{method} request to {url} timed out ({attempt + 1} attempts)",
-                            cause=exc,
-                        )
-                    else:
-                        error = HttpRequestError(
-                            method=method,
-                            url=url,
-                            message=f"{method} request to {url} failed after {attempt + 1} attempts: {exc}",
-                            cause=exc,
-                        )
+                    error = self._create_exception_error(exc, url, method, attempt)
                     self.callbacks.on_failure(
                         url=url,
                         method=method,
@@ -287,46 +390,13 @@ class AsyncRetryExecutor:
                     raise error from exc
 
                 # Record circuit breaker failure for retryable exception
-                if self.circuit_breaker is not None:
-                    self.circuit_breaker.record_failure(exc)
+                self._record_failure(exc)
                 logger.debug(f"{method} to {url}: will retry ({reason})")
 
             # Sleep before retry (if not last attempt)
             if attempt < self.config.max_retries:
                 # Check max_total_time BEFORE sleeping
-                if self.config.max_total_time is not None:
-                    elapsed_time = time.time() - start_time
-                    if elapsed_time >= self.config.max_total_time:
-                        # Time budget exceeded - raise error immediately
-                        if response is not None:
-                            raise_final_error(
-                                url=url,
-                                method=method,
-                                max_retries=self.config.max_retries,
-                                response=response,
-                                on_failure=self.callbacks.callbacks.on_failure,
-                                start_time=start_time,
-                            )
-                        else:
-                            # We have an exception but no response
-                            error = HttpRequestError(
-                                method=method,
-                                url=url,
-                                message=(
-                                    f"{method} request to {url} failed after {attempt + 1} attempts "
-                                    f"(max_total_time exceeded)"
-                                ),
-                            )
-                            self.callbacks.on_failure(
-                                url=url,
-                                method=method,
-                                attempt=attempt,
-                                max_retries=self.config.max_retries,
-                                error=error,
-                                status_code=None,
-                                start_time=start_time,
-                            )
-                            raise error
+                self._check_time_budget_exceeded(start_time, url, method, attempt, response)
 
                 sleep_time = self.strategy.calculate_delay(attempt, response)
                 self.callbacks.on_retry(
