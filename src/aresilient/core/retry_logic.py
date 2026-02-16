@@ -9,8 +9,8 @@ exceptions.
 from __future__ import annotations
 
 __all__ = [
-    "should_retry_response",
     "should_retry_exception",
+    "should_retry_response",
 ]
 
 import logging
@@ -28,8 +28,6 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 def should_retry_response(
     response: httpx.Response,
-    attempt: int,
-    max_retries: int,
     url: str,
     method: str,
     status_forcelist: tuple[int, ...],
@@ -43,8 +41,6 @@ def should_retry_response(
 
     Args:
         response: The HTTP response to evaluate.
-        attempt: Current attempt number (0-indexed).
-        max_retries: Maximum number of retries.
         url: The URL being requested.
         method: The HTTP method being used.
         status_forcelist: Tuple of retryable HTTP status codes.

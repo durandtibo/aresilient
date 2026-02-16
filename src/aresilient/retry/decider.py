@@ -54,8 +54,8 @@ class RetryDecider:
     def should_retry_response(
         self,
         response: httpx.Response,
-        attempt: int,
-        max_retries: int,
+        attempt: int,  # noqa: ARG002
+        max_retries: int,  # noqa: ARG002
         url: str,
         method: str,
     ) -> tuple[bool, str]:
@@ -76,8 +76,6 @@ class RetryDecider:
         """
         return _should_retry_response(
             response=response,
-            attempt=attempt,
-            max_retries=max_retries,
             url=url,
             method=method,
             status_forcelist=self.status_forcelist,
