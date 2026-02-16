@@ -12,7 +12,10 @@ __all__ = ["RetryDecider"]
 import logging
 from typing import TYPE_CHECKING
 
-from aresilient.exceptions import HttpRequestError
+from aresilient.core.retry_logic import (
+    should_retry_exception as _should_retry_exception,
+    should_retry_response as _should_retry_response,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -71,45 +74,15 @@ class RetryDecider:
         Raises:
             HttpRequestError: For non-retryable error responses.
         """
-        # Success case (status < 400)
-        if response.status_code < 400:
-            if self.retry_if is not None and self.retry_if(response, None):
-                return (True, "retry_if predicate")
-            return (False, "success")
-
-        # Error case (status >= 400)
-        if self.retry_if is not None:
-            should_retry = self.retry_if(response, None)
-            if not should_retry:
-                # retry_if returned False for an error response
-                logger.debug(
-                    f"{method} request to {url} failed with status {response.status_code} "
-                    f"(retry_if returned False)"
-                )
-                raise HttpRequestError(
-                    method=method,
-                    url=url,
-                    message=f"{method} request to {url} failed with status {response.status_code}",
-                    status_code=response.status_code,
-                    response=response,
-                )
-            return (should_retry, "retry_if predicate")
-
-        # Check status_forcelist
-        is_retryable = response.status_code in self.status_forcelist
-        if not is_retryable:
-            # Non-retryable status code
-            logger.debug(
-                f"{method} request to {url} failed with non-retryable status {response.status_code}"
-            )
-            raise HttpRequestError(
-                method=method,
-                url=url,
-                message=f"{method} request to {url} failed with status {response.status_code}",
-                status_code=response.status_code,
-                response=response,
-            )
-        return (is_retryable, f"status {response.status_code}")
+        return _should_retry_response(
+            response=response,
+            attempt=attempt,
+            max_retries=max_retries,
+            url=url,
+            method=method,
+            status_forcelist=self.status_forcelist,
+            retry_if=self.retry_if,
+        )
 
     def should_retry_exception(
         self,
@@ -127,13 +100,9 @@ class RetryDecider:
         Returns:
             Tuple of (should_retry, reason).
         """
-        if self.retry_if is not None:
-            should_retry = self.retry_if(None, exception)
-            if not should_retry or attempt >= max_retries:
-                return (False, "retry_if returned False or max retries")
-            return (True, "retry_if predicate")
-
-        # Default: retry timeout and request errors
-        if attempt >= max_retries:
-            return (False, "max retries exhausted")
-        return (True, f"{type(exception).__name__}")
+        return _should_retry_exception(
+            exception=exception,
+            attempt=attempt,
+            max_retries=max_retries,
+            retry_if=self.retry_if,
+        )

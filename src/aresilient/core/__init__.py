@@ -7,6 +7,14 @@ logic, and HTTP method handling.
 
 from __future__ import annotations
 
-__all__ = ["validate_retry_params"]
+__all__ = [
+    "should_retry_exception",
+    "should_retry_response",
+    "validate_retry_params",
+]
 
+from aresilient.core.retry_logic import (
+    should_retry_exception,
+    should_retry_response,
+)
 from aresilient.core.validation import validate_retry_params
