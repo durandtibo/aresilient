@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING
 
 from aresilient.core.retry_logic import (
     should_retry_exception as _should_retry_exception,
-    should_retry_response as _should_retry_response,
 )
+from aresilient.core.retry_logic import should_retry_response as _should_retry_response
 
 if TYPE_CHECKING:
     from collections.abc import Callable

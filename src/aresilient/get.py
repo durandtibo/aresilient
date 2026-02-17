@@ -6,8 +6,6 @@ __all__ = ["get_with_automatic_retry"]
 
 from typing import TYPE_CHECKING, Any
 
-import httpx
-
 from aresilient.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
@@ -18,6 +16,8 @@ from aresilient.core.http_logic import execute_http_method
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    import httpx
 
     from aresilient.backoff import BackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
