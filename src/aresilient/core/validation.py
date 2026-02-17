@@ -47,7 +47,7 @@ def validate_retry_params(
 
     Example:
         ```pycon
-        >>> from aresilient.utils import validate_retry_params
+        >>> from aresilient.core import validate_retry_params
         >>> validate_retry_params(max_retries=3, backoff_factor=0.5)
         >>> validate_retry_params(max_retries=3, backoff_factor=0.5, jitter_factor=0.1)
         >>> validate_retry_params(max_retries=3, backoff_factor=0.5, timeout=10.0)

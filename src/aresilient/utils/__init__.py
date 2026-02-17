@@ -23,6 +23,7 @@ __all__ = [
 ]
 
 
+from aresilient.core.validation import validate_retry_params
 from aresilient.utils.callbacks import (
     invoke_on_request,
     invoke_on_retry,
@@ -40,4 +41,3 @@ from aresilient.utils.retry_if_handler import (
     handle_exception_with_retry_if,
     handle_response_with_retry_if,
 )
-from aresilient.utils.validation import validate_retry_params
