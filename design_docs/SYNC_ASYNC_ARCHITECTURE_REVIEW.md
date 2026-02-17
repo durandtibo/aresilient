@@ -1199,6 +1199,114 @@ Choose if:
    - Update client.py and client_async.py
    - Verify context manager tests pass
 
+##### Phase 4 Design Considerations: Configuration Object vs. Direct Attribute Access
+
+**Context:**
+The initial Phase 4 implementation extracted shared client logic into helper functions that directly accessed protected attributes (`client_instance._max_retries`, etc.). This approach raised concerns about encapsulation violations.
+
+**Alternative Approaches:**
+
+**Approach A: Current Implementation (Direct Attribute Access)**
+```python
+def store_client_config(client_instance: Any, *, timeout, max_retries, ...):
+    client_instance._timeout = timeout
+    client_instance._max_retries = max_retries
+    # ...
+
+def merge_request_params(client_instance: Any, *, max_retries=None, ...):
+    return {
+        "max_retries": max_retries if max_retries is not None else client_instance._max_retries,
+        # ...
+    }
+```
+
+**Approach B: Configuration Dataclass (Recommended)**
+```python
+@dataclass
+class ClientConfig:
+    """Configuration for ResilientClient."""
+    timeout: float | httpx.Timeout = DEFAULT_TIMEOUT
+    max_retries: int = DEFAULT_MAX_RETRIES
+    backoff_factor: float = DEFAULT_BACKOFF_FACTOR
+    status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES
+    jitter_factor: float = 0.0
+    retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None
+    backoff_strategy: BackoffStrategy | None = None
+    max_total_time: float | None = None
+    max_wait_time: float | None = None
+    circuit_breaker: CircuitBreaker | None = None
+    on_request: Callable[[RequestInfo], None] | None = None
+    on_retry: Callable[[RetryInfo], None] | None = None
+    on_success: Callable[[ResponseInfo], None] | None = None
+    on_failure: Callable[[FailureInfo], None] | None = None
+
+class ResilientClient:
+    def __init__(self, *, timeout=..., max_retries=..., ...):
+        validate_retry_params(...)
+        self._config = ClientConfig(
+            timeout=timeout,
+            max_retries=max_retries,
+            # ...
+        )
+        self._client: httpx.Client | None = None
+        self._entered = False
+
+    def request(self, method, url, *, max_retries=None, ...):
+        client = self._ensure_client()
+        # Merge config with request-specific overrides
+        config = self._config.merge(
+            max_retries=max_retries,
+            # ...
+        )
+        return request_with_automatic_retry(
+            url=url, method=method, request_func=getattr(client, method.lower()),
+            **config.to_dict(), **kwargs
+        )
+```
+
+**Trade-offs Comparison:**
+
+| Aspect | Approach A (Direct Access) | Approach B (Dataclass Config) |
+|--------|---------------------------|-------------------------------|
+| **Encapsulation** | ❌ Poor - External functions access protected attributes | ✅ Good - Config is a public object with defined interface |
+| **Type Safety** | ⚠️ Moderate - Parameters typed but instance attributes use `Any` | ✅ Strong - Dataclass provides full type information |
+| **IDE Support** | ⚠️ Limited - No autocomplete for attributes on `Any` type | ✅ Excellent - Full autocomplete and type hints |
+| **Maintainability** | ⚠️ Fragile - Adding/removing params requires updating multiple functions | ✅ Robust - Changes centralized in dataclass definition |
+| **Code Duplication** | ✅ Reduced - Shared helper functions | ✅ Reduced - Config object shared |
+| **Testability** | ⚠️ Moderate - Must mock entire client instance | ✅ Easy - Can test config object independently |
+| **Backward Compatibility** | ✅ Full - Client API unchanged | ✅ Full - Client API unchanged (internal change only) |
+| **Implementation Complexity** | ✅ Simple - Direct attribute assignment | ⚠️ Moderate - Requires dataclass + merge logic |
+| **Memory Overhead** | ✅ Minimal - Direct attributes | ⚠️ Small - Additional dataclass instance |
+| **Parameter Validation** | ✅ Current - validate_retry_params() | ✅ Can be integrated - __post_init__ or property setters |
+| **Debugging** | ⚠️ Harder - Configuration spread across attributes | ✅ Easier - Single config object to inspect |
+
+**Recommendation: Approach B (Configuration Dataclass)**
+
+**Rationale:**
+1. **Better Encapsulation**: The dataclass approach doesn't violate encapsulation by accessing protected attributes from external functions
+2. **Type Safety**: Provides better IDE support and type checking
+3. **Maintainability**: Centralizes configuration in a single, well-defined structure
+4. **Extensibility**: Makes it easier to add features like config serialization, validation, or immutability
+5. **Consistency**: Aligns with Python best practices for configuration management
+
+**Implementation Details for Approach B:**
+
+1. Create `ClientConfig` dataclass in `core/client_logic.py`
+2. Add `merge()` method to create new config with overrides
+3. Add `to_dict()` method to convert to kwargs for retry functions
+4. Update `ResilientClient` and `AsyncResilientClient` to use `_config` attribute
+5. Remove `store_client_config()` and `merge_request_params()` functions
+
+**Migration Impact:**
+- Internal only - no public API changes
+- All existing tests should pass without modification
+- Slightly more code but significantly better design
+
+**Code Size Comparison:**
+- Approach A: ~150 lines (current implementation)
+- Approach B: ~200 lines (dataclass + methods)
+- Trade-off: 50 extra lines for better design and maintainability
+
 #### Phase 5: Testing and Documentation (Week 5)
 
 8. **Comprehensive testing:**
