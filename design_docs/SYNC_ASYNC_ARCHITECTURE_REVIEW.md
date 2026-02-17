@@ -1289,13 +1289,100 @@ class ResilientClient:
 4. **Extensibility**: Makes it easier to add features like config serialization, validation, or immutability
 5. **Consistency**: Aligns with Python best practices for configuration management
 
+##### Design Decision: Per-Request Parameter Overrides
+
+**Question:** Should the client allow per-request overrides of retry parameters (e.g., different `max_retries` for different requests)?
+
+**Current Behavior (Before Refactor):**
+```python
+with ResilientClient(max_retries=3) as client:
+    # Uses client default (3 retries)
+    response1 = client.get("https://api.example.com/data")
+    
+    # Override for this specific request (5 retries)
+    response2 = client.get("https://api.example.com/critical", max_retries=5)
+```
+
+**Option 1: Allow Per-Request Overrides (Current)**
+
+Pros:
+- ✅ **Flexibility**: Different endpoints may need different retry strategies
+- ✅ **Backward Compatibility**: Existing public API supports this pattern
+- ✅ **Use Case Support**: Critical operations can have more aggressive retry logic
+- ✅ **Gradual Migration**: Can start with conservative defaults and override as needed
+
+Cons:
+- ❌ **Complexity**: More code to merge configs per request
+- ❌ **Inconsistency**: Same client may behave differently for different requests
+- ❌ **Harder to Reason About**: Need to check both client config and request params
+- ❌ **Testing Complexity**: Must test both default and override scenarios
+
+**Option 2: Fixed Configuration Per Client (Simplified)**
+
+Pros:
+- ✅ **Simplicity**: Client configuration is immutable and predictable
+- ✅ **Consistency**: All requests through a client use the same retry strategy
+- ✅ **Easier to Reason About**: Single source of truth for retry behavior
+- ✅ **Reduced Code**: No need for merge logic
+
+Cons:
+- ❌ **Less Flexibility**: Cannot adjust retry strategy per endpoint
+- ❌ **Breaking Change**: Would require API change (removing override parameters)
+- ❌ **Workaround Required**: Need multiple client instances for different strategies
+- ❌ **Resource Usage**: Multiple clients = multiple httpx.Client instances
+
+**Recommendation: Option 1 (Allow Per-Request Overrides)**
+
+**Rationale:**
+1. **Backward Compatibility**: The current public API already supports per-request overrides. Removing this would be a breaking change.
+2. **Real-World Use Cases**: Different endpoints often have different reliability requirements (e.g., critical vs. best-effort operations).
+3. **Implementation Cost**: The merge logic is straightforward with a dataclass approach.
+4. **User Flexibility**: Users can choose to use only defaults or override as needed.
+
+**Example Use Case:**
+```python
+with ResilientClient(max_retries=3, timeout=10) as client:
+    # Standard operation - use defaults
+    user_data = client.get("https://api.example.com/users/123")
+    
+    # Critical payment - needs more retries and longer timeout
+    payment = client.post(
+        "https://api.example.com/payments",
+        max_retries=10,
+        timeout=30,
+        json=payment_data
+    )
+    
+    # Best-effort analytics - fail fast
+    client.post(
+        "https://analytics.example.com/events",
+        max_retries=0,
+        timeout=5,
+        json=event_data
+    )
+```
+
+**Implementation with ClientConfig:**
+```python
+@dataclass
+class ClientConfig:
+    # ... fields ...
+    
+    def merge(self, **overrides) -> ClientConfig:
+        """Create a new config with overrides applied."""
+        return replace(self, **{k: v for k, v in overrides.items() if v is not None})
+```
+
 **Implementation Details for Approach B:**
 
 1. Create `ClientConfig` dataclass in `core/client_logic.py`
-2. Add `merge()` method to create new config with overrides
-3. Add `to_dict()` method to convert to kwargs for retry functions
-4. Update `ResilientClient` and `AsyncResilientClient` to use `_config` attribute
-5. Remove `store_client_config()` and `merge_request_params()` functions
+2. Implement validation in `__post_init__` method
+3. Add `merge()` method to create new config with per-request overrides
+4. Add `to_dict()` method to convert to kwargs for retry functions
+5. Update `ResilientClient` and `AsyncResilientClient` to:
+   - Accept `ClientConfig` directly OR individual parameters (for backward compatibility)
+   - Use `_config.merge()` in request methods to handle overrides
+6. Remove `store_client_config()` and `merge_request_params()` functions
 
 **Migration Impact:**
 - Internal only - no public API changes
