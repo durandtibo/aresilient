@@ -21,7 +21,7 @@ from aresilient.config import (
     DEFAULT_TIMEOUT,
     RETRY_STATUS_CODES,
 )
-from aresilient.core.client_logic import ClientConfig
+from aresilient.core.config import ClientConfig
 from aresilient.request_async import request_with_automatic_retry_async
 
 if TYPE_CHECKING:
@@ -102,9 +102,16 @@ class AsyncResilientClient:
     ) -> None:
         """Initialize the async resilient client with retry
         configuration."""
-        # Store configuration in ClientConfig dataclass
+        # Validate timeout separately (used for httpx.AsyncClient creation, not retry logic)
+        if isinstance(timeout, (int, float)) and timeout <= 0:
+            msg = f"timeout must be > 0, got {timeout}"
+            raise ValueError(msg)
+        
+        # Store timeout separately (used for httpx.AsyncClient creation)
+        self._timeout = timeout
+        
+        # Store retry configuration in ClientConfig dataclass
         self._config = ClientConfig(
-            timeout=timeout,
             max_retries=max_retries,
             backoff_factor=backoff_factor,
             status_forcelist=status_forcelist,
@@ -131,7 +138,7 @@ class AsyncResilientClient:
         Returns:
             The AsyncResilientClient instance for making requests.
         """
-        self._client = httpx.AsyncClient(timeout=self._config.timeout)
+        self._client = httpx.AsyncClient(timeout=self._timeout)
         self._entered = True
         return self
 

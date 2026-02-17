@@ -1,8 +1,8 @@
-r"""Shared client configuration for both sync and async ResilientClient classes.
+r"""Configuration dataclass for ResilientClient.
 
 This module provides a dataclass-based configuration object for the
 ResilientClient and AsyncResilientClient context manager classes to reduce
-code duplication while maintaining backward compatibility.
+code duplication while maintaining a clean interface.
 """
 
 from __future__ import annotations
@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, Any
 from aresilient.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
-    DEFAULT_TIMEOUT,
     RETRY_STATUS_CODES,
 )
 from aresilient.core.validation import validate_retry_params
@@ -34,12 +33,15 @@ if TYPE_CHECKING:
 class ClientConfig:
     """Configuration for ResilientClient retry behavior.
 
-    This dataclass encapsulates all retry-related configuration parameters
+    This dataclass encapsulates retry-related configuration parameters
     for a ResilientClient or AsyncResilientClient instance. It provides
     validation, merging, and conversion to dictionary format.
 
+    Note:
+        The timeout parameter is NOT included in this config as it is used
+        directly by httpx.Client/AsyncClient, not by aresilient's retry logic.
+
     Args:
-        timeout: Maximum seconds to wait for server responses. Must be > 0.
         max_retries: Maximum number of retry attempts for failed requests. Must be >= 0.
         backoff_factor: Factor for exponential backoff between retries. Must be >= 0.
         status_forcelist: Tuple of HTTP status codes that should trigger a retry.
@@ -57,11 +59,11 @@ class ClientConfig:
 
     Example:
         ```pycon
-        >>> from aresilient.core.client_logic import ClientConfig
+        >>> from aresilient.core.config import ClientConfig
         >>> config = ClientConfig()  # Use defaults
         >>> config.max_retries
         3
-        >>> config = ClientConfig(max_retries=5, timeout=30.0)
+        >>> config = ClientConfig(max_retries=5)
         >>> config.max_retries
         5
         >>> merged = config.merge(max_retries=10)  # Override specific parameters
@@ -73,7 +75,6 @@ class ClientConfig:
         ```
     """
 
-    timeout: float | httpx.Timeout = DEFAULT_TIMEOUT
     max_retries: int = DEFAULT_MAX_RETRIES
     backoff_factor: float = DEFAULT_BACKOFF_FACTOR
     status_forcelist: tuple[int, ...] = field(default_factory=lambda: RETRY_STATUS_CODES)
@@ -94,11 +95,12 @@ class ClientConfig:
         Raises:
             ValueError: If any parameter fails validation.
         """
+        # Note: timeout validation is not needed here as it's handled separately
+        # by the client when creating httpx.Client/AsyncClient
         validate_retry_params(
             max_retries=self.max_retries,
             backoff_factor=self.backoff_factor,
             jitter_factor=self.jitter_factor,
-            timeout=self.timeout,
             max_total_time=self.max_total_time,
             max_wait_time=self.max_wait_time,
         )
@@ -119,13 +121,11 @@ class ClientConfig:
 
         Example:
             ```pycon
-            >>> from aresilient.core.client_logic import ClientConfig
-            >>> config = ClientConfig(max_retries=3, timeout=10.0)
+            >>> from aresilient.core.config import ClientConfig
+            >>> config = ClientConfig(max_retries=3)
             >>> new_config = config.merge(max_retries=5)
             >>> new_config.max_retries
             5
-            >>> new_config.timeout
-            10.0
             >>> config.max_retries  # Original unchanged
             3
 
@@ -139,22 +139,18 @@ class ClientConfig:
         """Convert configuration to dictionary format.
 
         This method converts the ClientConfig to a dictionary suitable for
-        passing as keyword arguments to retry functions. Note that 'timeout'
-        is not included in the output as it's used separately for httpx client
-        creation, not for retry logic.
+        passing as keyword arguments to retry functions.
 
         Returns:
-            Dictionary with retry configuration parameters (excludes timeout).
+            Dictionary with retry configuration parameters.
 
         Example:
             ```pycon
-            >>> from aresilient.core.client_logic import ClientConfig
-            >>> config = ClientConfig(max_retries=5, timeout=30.0)
+            >>> from aresilient.core.config import ClientConfig
+            >>> config = ClientConfig(max_retries=5)
             >>> params = config.to_dict()
             >>> params["max_retries"]
             5
-            >>> "timeout" in params  # timeout is not included
-            False
 
             ```
         """
@@ -173,4 +169,3 @@ class ClientConfig:
             "on_success": self.on_success,
             "on_failure": self.on_failure,
         }
-

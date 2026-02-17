@@ -1,14 +1,15 @@
 r"""Unit tests for ClientConfig dataclass.
 
-This file contains tests for the ClientConfig dataclass in core/client_logic.py.
+This file contains tests for the ClientConfig dataclass in core/config.py.
 """
 
 from __future__ import annotations
 
 import pytest
+from coola.equality import objects_are_equal
 
-from aresilient.config import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT
-from aresilient.core.client_logic import ClientConfig
+from aresilient.config import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, RETRY_STATUS_CODES
+from aresilient.core.config import ClientConfig
 
 
 #######################################
@@ -20,9 +21,9 @@ def test_client_config_defaults() -> None:
     """Test that ClientConfig uses correct default values."""
     config = ClientConfig()
 
-    assert config.timeout == DEFAULT_TIMEOUT
     assert config.max_retries == DEFAULT_MAX_RETRIES
     assert config.backoff_factor == DEFAULT_BACKOFF_FACTOR
+    assert config.status_forcelist == RETRY_STATUS_CODES
     assert config.jitter_factor == 0.0
     assert config.retry_if is None
     assert config.backoff_strategy is None
@@ -35,23 +36,139 @@ def test_client_config_defaults() -> None:
     assert config.on_failure is None
 
 
-def test_client_config_custom_values() -> None:
-    """Test that ClientConfig accepts custom values."""
-    config = ClientConfig(
-        timeout=30.0,
-        max_retries=5,
-        backoff_factor=1.0,
-        jitter_factor=0.1,
-        max_total_time=60.0,
-        max_wait_time=10.0,
-    )
+@pytest.mark.parametrize(
+    ("param_name", "param_value"),
+    [
+        ("max_retries", 5),
+        ("max_retries", 0),
+        ("max_retries", 10),
+    ],
+)
+def test_client_config_max_retries(param_name: str, param_value: int) -> None:
+    """Test that ClientConfig accepts custom max_retries values."""
+    config = ClientConfig(**{param_name: param_value})
+    assert getattr(config, param_name) == param_value
 
-    assert config.timeout == 30.0
-    assert config.max_retries == 5
-    assert config.backoff_factor == 1.0
-    assert config.jitter_factor == 0.1
-    assert config.max_total_time == 60.0
-    assert config.max_wait_time == 10.0
+
+@pytest.mark.parametrize(
+    ("param_name", "param_value"),
+    [
+        ("backoff_factor", 0.5),
+        ("backoff_factor", 1.0),
+        ("backoff_factor", 2.0),
+        ("backoff_factor", 0.0),
+    ],
+)
+def test_client_config_backoff_factor(param_name: str, param_value: float) -> None:
+    """Test that ClientConfig accepts custom backoff_factor values."""
+    config = ClientConfig(**{param_name: param_value})
+    assert getattr(config, param_name) == param_value
+
+
+@pytest.mark.parametrize(
+    ("param_name", "param_value"),
+    [
+        ("jitter_factor", 0.1),
+        ("jitter_factor", 0.0),
+        ("jitter_factor", 0.5),
+    ],
+)
+def test_client_config_jitter_factor(param_name: str, param_value: float) -> None:
+    """Test that ClientConfig accepts custom jitter_factor values."""
+    config = ClientConfig(**{param_name: param_value})
+    assert getattr(config, param_name) == param_value
+
+
+@pytest.mark.parametrize(
+    ("param_name", "param_value"),
+    [
+        ("max_total_time", 30.0),
+        ("max_total_time", 60.0),
+        ("max_total_time", 120.0),
+    ],
+)
+def test_client_config_max_total_time(param_name: str, param_value: float) -> None:
+    """Test that ClientConfig accepts custom max_total_time values."""
+    config = ClientConfig(**{param_name: param_value})
+    assert getattr(config, param_name) == param_value
+
+
+@pytest.mark.parametrize(
+    ("param_name", "param_value"),
+    [
+        ("max_wait_time", 5.0),
+        ("max_wait_time", 10.0),
+        ("max_wait_time", 20.0),
+    ],
+)
+def test_client_config_max_wait_time(param_name: str, param_value: float) -> None:
+    """Test that ClientConfig accepts custom max_wait_time values."""
+    config = ClientConfig(**{param_name: param_value})
+    assert getattr(config, param_name) == param_value
+
+
+@pytest.mark.parametrize(
+    ("param_name", "param_value"),
+    [
+        ("status_forcelist", (500, 502, 503)),
+        ("status_forcelist", (429, 500)),
+        ("status_forcelist", (503,)),
+    ],
+)
+def test_client_config_status_forcelist(param_name: str, param_value: tuple) -> None:
+    """Test that ClientConfig accepts custom status_forcelist values."""
+    config = ClientConfig(**{param_name: param_value})
+    assert getattr(config, param_name) == param_value
+
+
+def test_client_config_retry_if() -> None:
+    """Test that ClientConfig accepts custom retry_if callback."""
+
+    def custom_retry_if(response, exception):
+        return response is not None and response.status_code == 503
+
+    config = ClientConfig(retry_if=custom_retry_if)
+    assert config.retry_if is custom_retry_if
+
+
+def test_client_config_on_request() -> None:
+    """Test that ClientConfig accepts on_request callback."""
+
+    def on_request_callback(request_info):
+        pass
+
+    config = ClientConfig(on_request=on_request_callback)
+    assert config.on_request is on_request_callback
+
+
+def test_client_config_on_retry() -> None:
+    """Test that ClientConfig accepts on_retry callback."""
+
+    def on_retry_callback(retry_info):
+        pass
+
+    config = ClientConfig(on_retry=on_retry_callback)
+    assert config.on_retry is on_retry_callback
+
+
+def test_client_config_on_success() -> None:
+    """Test that ClientConfig accepts on_success callback."""
+
+    def on_success_callback(response_info):
+        pass
+
+    config = ClientConfig(on_success=on_success_callback)
+    assert config.on_success is on_success_callback
+
+
+def test_client_config_on_failure() -> None:
+    """Test that ClientConfig accepts on_failure callback."""
+
+    def on_failure_callback(failure_info):
+        pass
+
+    config = ClientConfig(on_failure=on_failure_callback)
+    assert config.on_failure is on_failure_callback
 
 
 def test_client_config_validation_max_retries_negative() -> None:
@@ -70,18 +187,6 @@ def test_client_config_validation_jitter_factor_negative() -> None:
     """Test that ClientConfig validates jitter_factor >= 0."""
     with pytest.raises(ValueError, match=r"jitter_factor must be >= 0"):
         ClientConfig(jitter_factor=-0.1)
-
-
-def test_client_config_validation_timeout_zero() -> None:
-    """Test that ClientConfig validates timeout > 0."""
-    with pytest.raises(ValueError, match=r"timeout must be > 0"):
-        ClientConfig(timeout=0)
-
-
-def test_client_config_validation_timeout_negative() -> None:
-    """Test that ClientConfig validates timeout > 0 (negative)."""
-    with pytest.raises(ValueError, match=r"timeout must be > 0"):
-        ClientConfig(timeout=-10.0)
 
 
 def test_client_config_validation_max_total_time_zero() -> None:
@@ -110,38 +215,35 @@ def test_client_config_validation_max_wait_time_negative() -> None:
 
 def test_client_config_merge_no_overrides() -> None:
     """Test that merge() with no overrides returns equivalent config."""
-    config = ClientConfig(max_retries=3, timeout=10.0)
+    config = ClientConfig(max_retries=3)
     merged = config.merge()
 
     assert merged.max_retries == 3
-    assert merged.timeout == 10.0
     assert merged is not config  # Should be a new instance
 
 
 def test_client_config_merge_with_overrides() -> None:
     """Test that merge() applies non-None overrides."""
-    config = ClientConfig(max_retries=3, timeout=10.0, backoff_factor=0.5)
-    merged = config.merge(max_retries=5, timeout=30.0)
+    config = ClientConfig(max_retries=3, backoff_factor=0.5)
+    merged = config.merge(max_retries=5)
 
     assert merged.max_retries == 5
-    assert merged.timeout == 30.0
     assert merged.backoff_factor == 0.5  # Unchanged
     assert config.max_retries == 3  # Original unchanged
-    assert config.timeout == 10.0  # Original unchanged
 
 
 def test_client_config_merge_with_none_values() -> None:
     """Test that merge() ignores None values."""
-    config = ClientConfig(max_retries=3, timeout=10.0)
-    merged = config.merge(max_retries=None, timeout=30.0)
+    config = ClientConfig(max_retries=3)
+    merged = config.merge(max_retries=None, backoff_factor=1.0)
 
     assert merged.max_retries == 3  # Not overridden (was None)
-    assert merged.timeout == 30.0  # Overridden
+    assert merged.backoff_factor == 1.0  # Overridden
 
 
 def test_client_config_merge_preserves_original() -> None:
     """Test that merge() does not modify original config."""
-    config = ClientConfig(max_retries=3, timeout=10.0)
+    config = ClientConfig(max_retries=3)
     merged = config.merge(max_retries=5)
 
     assert config.max_retries == 3  # Original unchanged
@@ -152,7 +254,6 @@ def test_client_config_to_dict() -> None:
     """Test that to_dict() returns all configuration parameters."""
     config = ClientConfig(
         max_retries=5,
-        timeout=30.0,
         backoff_factor=1.0,
         jitter_factor=0.1,
         max_total_time=60.0,
@@ -160,21 +261,23 @@ def test_client_config_to_dict() -> None:
     )
     params = config.to_dict()
 
-    # Note: timeout is not included in to_dict() because it's not passed to retry functions
-    # It's only used when creating the httpx client
-    assert params["max_retries"] == 5
-    assert params["backoff_factor"] == 1.0
-    assert params["jitter_factor"] == 0.1
-    assert params["max_total_time"] == 60.0
-    assert params["max_wait_time"] == 10.0
-    assert params["retry_if"] is None
-    assert params["backoff_strategy"] is None
-    assert params["circuit_breaker"] is None
-    assert params["on_request"] is None
-    assert params["on_retry"] is None
-    assert params["on_success"] is None
-    assert params["on_failure"] is None
-    assert "timeout" not in params  # timeout is used separately for httpx client creation
+    expected = {
+        "max_retries": 5,
+        "backoff_factor": 1.0,
+        "jitter_factor": 0.1,
+        "max_total_time": 60.0,
+        "max_wait_time": 10.0,
+        "status_forcelist": RETRY_STATUS_CODES,
+        "retry_if": None,
+        "backoff_strategy": None,
+        "circuit_breaker": None,
+        "on_request": None,
+        "on_retry": None,
+        "on_success": None,
+        "on_failure": None,
+    }
+    
+    assert objects_are_equal(params, expected)
 
 
 def test_client_config_to_dict_with_callbacks() -> None:
@@ -199,17 +302,7 @@ def test_client_config_to_dict_with_callbacks() -> None:
 def test_client_config_status_forcelist_default() -> None:
     """Test that status_forcelist has correct default value."""
     config = ClientConfig()
-    # Default from RETRY_STATUS_CODES
-    assert isinstance(config.status_forcelist, tuple)
-    assert len(config.status_forcelist) > 0
-
-
-def test_client_config_status_forcelist_custom() -> None:
-    """Test that custom status_forcelist can be set."""
-    custom_codes = (500, 502, 503)
-    config = ClientConfig(status_forcelist=custom_codes)
-
-    assert config.status_forcelist == custom_codes
+    assert config.status_forcelist == RETRY_STATUS_CODES
 
 
 def test_client_config_merge_validation() -> None:
@@ -230,3 +323,4 @@ def test_client_config_immutability_after_merge() -> None:
     assert config1.max_retries == 3
     assert config2.max_retries == 5
     assert config3.max_retries == 7
+

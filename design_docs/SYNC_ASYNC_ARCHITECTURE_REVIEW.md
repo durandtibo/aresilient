@@ -1201,6 +1201,9 @@ Choose if:
 
 ##### Phase 4 Design Considerations: Configuration Object vs. Direct Attribute Access
 
+**Design Philosophy:**
+While backward compatibility is important, it should not prevent us from making necessary improvements to the library's design and user experience. Breaking changes are acceptable when they result in a cleaner API, better maintainability, and improved code quality. Users can adapt to well-documented changes, especially when they provide clear benefits.
+
 **Context:**
 The initial Phase 4 implementation extracted shared client logic into helper functions that directly accessed protected attributes (`client_instance._max_retries`, etc.). This approach raised concerns about encapsulation violations.
 
