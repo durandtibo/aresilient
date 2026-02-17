@@ -180,10 +180,10 @@ def test_client_config_to_dict() -> None:
 def test_client_config_to_dict_with_callbacks() -> None:
     """Test that to_dict() includes callback functions."""
 
-    def on_request_callback(info):
+    def on_request_callback(request_info):
         pass
 
-    def on_retry_callback(info):
+    def on_retry_callback(retry_info):
         pass
 
     config = ClientConfig(

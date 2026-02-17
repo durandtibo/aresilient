@@ -139,10 +139,12 @@ class ClientConfig:
         """Convert configuration to dictionary format.
 
         This method converts the ClientConfig to a dictionary suitable for
-        passing as keyword arguments to retry functions.
+        passing as keyword arguments to retry functions. Note that 'timeout'
+        is not included in the output as it's used separately for httpx client
+        creation, not for retry logic.
 
         Returns:
-            Dictionary with all configuration parameters.
+            Dictionary with retry configuration parameters (excludes timeout).
 
         Example:
             ```pycon
@@ -151,8 +153,8 @@ class ClientConfig:
             >>> params = config.to_dict()
             >>> params["max_retries"]
             5
-            >>> params["timeout"]
-            30.0
+            >>> "timeout" in params  # timeout is not included
+            False
 
             ```
         """
