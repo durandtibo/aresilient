@@ -108,8 +108,6 @@ class RetryExecutor:
         self.callbacks: CallbackManager = CallbackManager(callback_config)
         self.circuit_breaker = circuit_breaker
 
-
-
     def execute(
         self,
         url: str,
@@ -224,9 +222,7 @@ class RetryExecutor:
 
                 # Mark for retry - record circuit breaker failure
                 last_status_code = response.status_code
-                executor_core.record_response_failure(
-                    self.circuit_breaker, response, url, method
-                )
+                executor_core.record_response_failure(self.circuit_breaker, response, url, method)
                 logger.debug(f"{method} to {url}: will retry ({reason})")
 
             except (httpx.TimeoutException, httpx.RequestError) as exc:
