@@ -15,8 +15,7 @@ from aresilient.config import (
     DEFAULT_TIMEOUT,
     RETRY_STATUS_CODES,
 )
-from aresilient.request_async import request_with_automatic_retry_async
-from aresilient.utils import validate_retry_params
+from aresilient.core.http_logic import execute_http_method_async
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -124,37 +123,22 @@ async def delete_with_automatic_retry_async(
 
         ```
     """
-    # Input validation
-    validate_retry_params(
+    return await execute_http_method_async(
+        url=url,
+        method="DELETE",
+        client=client,
+        timeout=timeout,
         max_retries=max_retries,
         backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist,
         jitter_factor=jitter_factor,
-        timeout=timeout,
+        retry_if=retry_if,
+        backoff_strategy=backoff_strategy,
         max_total_time=max_total_time,
         max_wait_time=max_wait_time,
+        on_request=on_request,
+        on_retry=on_retry,
+        on_success=on_success,
+        on_failure=on_failure,
+        **kwargs,
     )
-
-    owns_client = client is None
-    client = client or httpx.AsyncClient(timeout=timeout)
-    try:
-        return await request_with_automatic_retry_async(
-            url=url,
-            method="DELETE",
-            request_func=client.delete,
-            max_retries=max_retries,
-            backoff_factor=backoff_factor,
-            status_forcelist=status_forcelist,
-            jitter_factor=jitter_factor,
-            retry_if=retry_if,
-            backoff_strategy=backoff_strategy,
-            max_total_time=max_total_time,
-            max_wait_time=max_wait_time,
-            on_request=on_request,
-            on_retry=on_retry,
-            on_success=on_success,
-            on_failure=on_failure,
-            **kwargs,
-        )
-    finally:
-        if owns_client:
-            await client.aclose()
