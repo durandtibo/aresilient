@@ -106,10 +106,10 @@ class AsyncResilientClient:
         if isinstance(timeout, (int, float)) and timeout <= 0:
             msg = f"timeout must be > 0, got {timeout}"
             raise ValueError(msg)
-        
+
         # Store timeout separately (used for httpx.AsyncClient creation)
         self._timeout = timeout
-        
+
         # Store retry configuration in ClientConfig dataclass
         self._config = ClientConfig(
             max_retries=max_retries,

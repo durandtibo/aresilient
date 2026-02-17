@@ -276,7 +276,7 @@ def test_client_config_to_dict() -> None:
         "on_success": None,
         "on_failure": None,
     }
-    
+
     assert objects_are_equal(params, expected)
 
 
