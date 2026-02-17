@@ -1,8 +1,9 @@
 r"""Shared core logic for retry executors.
 
-This module provides shared helper functions used by both synchronous and
-asynchronous retry executors. These functions encapsulate common logic for
-circuit breaker recording, error creation, and time budget validation.
+This module provides shared helper functions used by both synchronous
+and asynchronous retry executors. These functions encapsulate common
+logic for circuit breaker recording, error creation, and time budget
+validation.
 """
 
 from __future__ import annotations
