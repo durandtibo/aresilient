@@ -20,9 +20,8 @@ from aresilient.config import (
     DEFAULT_TIMEOUT,
     RETRY_STATUS_CODES,
 )
-from aresilient.core.client_logic import merge_request_params, store_client_config
+from aresilient.core.client_logic import ClientConfig
 from aresilient.request import request_with_automatic_retry
-from aresilient.utils import validate_retry_params
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -96,19 +95,8 @@ class ResilientClient:
         on_failure: Callable[[FailureInfo], None] | None = None,
     ) -> None:
         """Initialize the resilient client with retry configuration."""
-        # Validate parameters
-        validate_retry_params(
-            max_retries=max_retries,
-            backoff_factor=backoff_factor,
-            jitter_factor=jitter_factor,
-            timeout=timeout,
-            max_total_time=max_total_time,
-            max_wait_time=max_wait_time,
-        )
-
-        # Store configuration using shared logic
-        store_client_config(
-            self,
+        # Store configuration in ClientConfig dataclass
+        self._config = ClientConfig(
             timeout=timeout,
             max_retries=max_retries,
             backoff_factor=backoff_factor,
@@ -136,7 +124,7 @@ class ResilientClient:
         Returns:
             The ResilientClient instance for making requests.
         """
-        self._client = httpx.Client(timeout=self._timeout)
+        self._client = httpx.Client(timeout=self._config.timeout)
         self._entered = True
         return self
 
@@ -231,9 +219,8 @@ class ResilientClient:
         """
         client = self._ensure_client()
 
-        # Use client defaults if not overridden (merge using shared logic)
-        merged_params = merge_request_params(
-            self,
+        # Merge config with request-specific overrides
+        request_config = self._config.merge(
             max_retries=max_retries,
             backoff_factor=backoff_factor,
             status_forcelist=status_forcelist,
@@ -253,7 +240,7 @@ class ResilientClient:
             url=url,
             method=method,
             request_func=getattr(client, method.lower()),
-            **merged_params,
+            **request_config.to_dict(),
             **kwargs,
         )
 

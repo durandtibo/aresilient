@@ -1,13 +1,24 @@
-r"""Shared client logic for both sync and async ResilientClient classes.
+r"""Shared client configuration for both sync and async ResilientClient classes.
 
-This module provides shared logic for the ResilientClient and
-AsyncResilientClient context manager classes to reduce code duplication
-while maintaining backward compatibility.
+This module provides a dataclass-based configuration object for the
+ResilientClient and AsyncResilientClient context manager classes to reduce
+code duplication while maintaining backward compatibility.
 """
 
 from __future__ import annotations
 
+__all__ = ["ClientConfig"]
+
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
+
+from aresilient.config import (
+    DEFAULT_BACKOFF_FACTOR,
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_TIMEOUT,
+    RETRY_STATUS_CODES,
+)
+from aresilient.core.validation import validate_retry_params
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -19,130 +30,145 @@ if TYPE_CHECKING:
     from aresilient.circuit_breaker import CircuitBreaker
 
 
-def store_client_config(
-    client_instance: Any,
-    *,
-    timeout: float | httpx.Timeout,
-    max_retries: int,
-    backoff_factor: float,
-    status_forcelist: tuple[int, ...],
-    jitter_factor: float,
-    retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None,
-    backoff_strategy: BackoffStrategy | None,
-    max_total_time: float | None,
-    max_wait_time: float | None,
-    circuit_breaker: CircuitBreaker | None,
-    on_request: Callable[[RequestInfo], None] | None,
-    on_retry: Callable[[RetryInfo], None] | None,
-    on_success: Callable[[ResponseInfo], None] | None,
-    on_failure: Callable[[FailureInfo], None] | None,
-) -> None:
-    """Store configuration on client instance.
+@dataclass
+class ClientConfig:
+    """Configuration for ResilientClient retry behavior.
 
-    This function stores all retry configuration parameters on the client
-    instance as private attributes, following the naming convention _<param>.
+    This dataclass encapsulates all retry-related configuration parameters
+    for a ResilientClient or AsyncResilientClient instance. It provides
+    validation, merging, and conversion to dictionary format.
 
     Args:
-        client_instance: The client instance to store config on.
-        timeout: Maximum seconds to wait for server responses.
-        max_retries: Maximum number of retry attempts.
-        backoff_factor: Factor for exponential backoff.
-        status_forcelist: Tuple of HTTP status codes that should trigger retry.
-        jitter_factor: Factor for adding random jitter to backoff delays.
-        retry_if: Optional custom predicate function to determine retry.
+        timeout: Maximum seconds to wait for server responses. Must be > 0.
+        max_retries: Maximum number of retry attempts for failed requests. Must be >= 0.
+        backoff_factor: Factor for exponential backoff between retries. Must be >= 0.
+        status_forcelist: Tuple of HTTP status codes that should trigger a retry.
+        jitter_factor: Factor for adding random jitter to backoff delays. Must be >= 0.
+        retry_if: Optional custom predicate function to determine whether to retry.
         backoff_strategy: Optional custom backoff strategy instance.
-        max_total_time: Optional maximum total time budget in seconds.
-        max_wait_time: Optional maximum backoff delay cap in seconds.
-        circuit_breaker: Optional circuit breaker instance.
+        max_total_time: Optional maximum total time budget in seconds for all retry
+            attempts. Must be > 0 if provided.
+        max_wait_time: Optional maximum backoff delay cap in seconds. Must be > 0 if provided.
+        circuit_breaker: Optional circuit breaker instance for advanced failure handling.
         on_request: Optional callback called before each request attempt.
-        on_retry: Optional callback called before each retry.
+        on_retry: Optional callback called before each retry (after backoff).
         on_success: Optional callback called when request succeeds.
-        on_failure: Optional callback called when all retries exhausted.
+        on_failure: Optional callback called when all retries are exhausted.
+
+    Example:
+        ```pycon
+        >>> from aresilient.core.client_logic import ClientConfig
+        >>> config = ClientConfig()  # Use defaults
+        >>> config.max_retries
+        3
+        >>> config = ClientConfig(max_retries=5, timeout=30.0)
+        >>> config.max_retries
+        5
+        >>> merged = config.merge(max_retries=10)  # Override specific parameters
+        >>> merged.max_retries
+        10
+        >>> config.max_retries  # Original unchanged
+        5
+
+        ```
     """
-    client_instance._timeout = timeout
-    client_instance._max_retries = max_retries
-    client_instance._backoff_factor = backoff_factor
-    client_instance._status_forcelist = status_forcelist
-    client_instance._jitter_factor = jitter_factor
-    client_instance._retry_if = retry_if
-    client_instance._backoff_strategy = backoff_strategy
-    client_instance._max_total_time = max_total_time
-    client_instance._max_wait_time = max_wait_time
-    client_instance._circuit_breaker = circuit_breaker
-    client_instance._on_request = on_request
-    client_instance._on_retry = on_retry
-    client_instance._on_success = on_success
-    client_instance._on_failure = on_failure
 
+    timeout: float | httpx.Timeout = DEFAULT_TIMEOUT
+    max_retries: int = DEFAULT_MAX_RETRIES
+    backoff_factor: float = DEFAULT_BACKOFF_FACTOR
+    status_forcelist: tuple[int, ...] = field(default_factory=lambda: RETRY_STATUS_CODES)
+    jitter_factor: float = 0.0
+    retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None
+    backoff_strategy: BackoffStrategy | None = None
+    max_total_time: float | None = None
+    max_wait_time: float | None = None
+    circuit_breaker: CircuitBreaker | None = None
+    on_request: Callable[[RequestInfo], None] | None = None
+    on_retry: Callable[[RetryInfo], None] | None = None
+    on_success: Callable[[ResponseInfo], None] | None = None
+    on_failure: Callable[[FailureInfo], None] | None = None
 
-def merge_request_params(
-    client_instance: Any,
-    *,
-    max_retries: int | None = None,
-    backoff_factor: float | None = None,
-    status_forcelist: tuple[int, ...] | None = None,
-    jitter_factor: float | None = None,
-    retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
-    backoff_strategy: BackoffStrategy | None = None,
-    max_total_time: float | None = None,
-    max_wait_time: float | None = None,
-    circuit_breaker: CircuitBreaker | None = None,
-    on_request: Callable[[RequestInfo], None] | None = None,
-    on_retry: Callable[[RetryInfo], None] | None = None,
-    on_success: Callable[[ResponseInfo], None] | None = None,
-    on_failure: Callable[[FailureInfo], None] | None = None,
-) -> dict[str, Any]:
-    """Merge request-specific parameters with client defaults.
+    def __post_init__(self) -> None:
+        """Validate configuration parameters after initialization.
 
-    This function takes optional request-specific parameters and returns a
-    dictionary with either the request parameter (if provided) or the client's
-    default value.
+        Raises:
+            ValueError: If any parameter fails validation.
+        """
+        validate_retry_params(
+            max_retries=self.max_retries,
+            backoff_factor=self.backoff_factor,
+            jitter_factor=self.jitter_factor,
+            timeout=self.timeout,
+            max_total_time=self.max_total_time,
+            max_wait_time=self.max_wait_time,
+        )
 
-    Args:
-        client_instance: The client instance with default config.
-        max_retries: Override client's max_retries for this request.
-        backoff_factor: Override client's backoff_factor for this request.
-        status_forcelist: Override client's status_forcelist for this request.
-        jitter_factor: Override client's jitter_factor for this request.
-        retry_if: Override client's retry_if for this request.
-        backoff_strategy: Override client's backoff_strategy for this request.
-        max_total_time: Override client's max_total_time for this request.
-        max_wait_time: Override client's max_wait_time for this request.
-        circuit_breaker: Override client's circuit_breaker for this request.
-        on_request: Override client's on_request callback for this request.
-        on_retry: Override client's on_retry callback for this request.
-        on_success: Override client's on_success callback for this request.
-        on_failure: Override client's on_failure callback for this request.
+    def merge(self, **overrides: Any) -> ClientConfig:
+        """Create a new config with specified parameters overridden.
 
-    Returns:
-        Dictionary with merged parameters suitable for passing to retry functions.
-    """
-    return {
-        "max_retries": max_retries if max_retries is not None else client_instance._max_retries,
-        "backoff_factor": (
-            backoff_factor if backoff_factor is not None else client_instance._backoff_factor
-        ),
-        "status_forcelist": (
-            status_forcelist if status_forcelist is not None else client_instance._status_forcelist
-        ),
-        "jitter_factor": (
-            jitter_factor if jitter_factor is not None else client_instance._jitter_factor
-        ),
-        "retry_if": retry_if if retry_if is not None else client_instance._retry_if,
-        "backoff_strategy": (
-            backoff_strategy if backoff_strategy is not None else client_instance._backoff_strategy
-        ),
-        "max_total_time": (
-            max_total_time if max_total_time is not None else client_instance._max_total_time
-        ),
-        "max_wait_time": (
-            max_wait_time if max_wait_time is not None else client_instance._max_wait_time
-        ),
-        "circuit_breaker": (
-            circuit_breaker if circuit_breaker is not None else client_instance._circuit_breaker
-        ),
-        "on_request": on_request if on_request is not None else client_instance._on_request,
-        "on_retry": on_retry if on_retry is not None else client_instance._on_retry,
-        "on_success": on_success if on_success is not None else client_instance._on_success,
-        "on_failure": on_failure if on_failure is not None else client_instance._on_failure,
-    }
+        This method creates a new ClientConfig instance with the same values
+        as the current instance, except for the parameters specified in
+        overrides. Only non-None override values are applied.
+
+        Args:
+            **overrides: Keyword arguments for parameters to override.
+                Only non-None values will override the current config.
+
+        Returns:
+            A new ClientConfig instance with overrides applied.
+
+        Example:
+            ```pycon
+            >>> from aresilient.core.client_logic import ClientConfig
+            >>> config = ClientConfig(max_retries=3, timeout=10.0)
+            >>> new_config = config.merge(max_retries=5)
+            >>> new_config.max_retries
+            5
+            >>> new_config.timeout
+            10.0
+            >>> config.max_retries  # Original unchanged
+            3
+
+            ```
+        """
+        # Filter out None values to preserve original config values
+        filtered_overrides = {k: v for k, v in overrides.items() if v is not None}
+        return replace(self, **filtered_overrides)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert configuration to dictionary format.
+
+        This method converts the ClientConfig to a dictionary suitable for
+        passing as keyword arguments to retry functions.
+
+        Returns:
+            Dictionary with all configuration parameters.
+
+        Example:
+            ```pycon
+            >>> from aresilient.core.client_logic import ClientConfig
+            >>> config = ClientConfig(max_retries=5, timeout=30.0)
+            >>> params = config.to_dict()
+            >>> params["max_retries"]
+            5
+            >>> params["timeout"]
+            30.0
+
+            ```
+        """
+        return {
+            "max_retries": self.max_retries,
+            "backoff_factor": self.backoff_factor,
+            "status_forcelist": self.status_forcelist,
+            "jitter_factor": self.jitter_factor,
+            "retry_if": self.retry_if,
+            "backoff_strategy": self.backoff_strategy,
+            "max_total_time": self.max_total_time,
+            "max_wait_time": self.max_wait_time,
+            "circuit_breaker": self.circuit_breaker,
+            "on_request": self.on_request,
+            "on_retry": self.on_retry,
+            "on_success": self.on_success,
+            "on_failure": self.on_failure,
+        }
+
