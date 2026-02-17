@@ -1,9 +1,9 @@
 r"""Shared retry decision logic for sync and async operations.
 
-This module contains the core retry decision logic that is shared between
-synchronous and asynchronous retry executors. These functions encapsulate
-the logic for determining whether to retry based on HTTP responses and
-exceptions.
+This module contains the core retry decision logic that is shared
+between synchronous and asynchronous retry executors. These functions
+encapsulate the logic for determining whether to retry based on HTTP
+responses and exceptions.
 """
 
 from __future__ import annotations
