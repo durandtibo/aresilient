@@ -118,7 +118,11 @@ def check_time_budget_exceeded(
     attempt: int,
     response: httpx.Response | None,
 ) -> None:
-    """Check if time budget is exceeded and raise error if so.
+    """Check if time budget is exceeded and raise error if exceeded.
+
+    This function checks if the total elapsed time has exceeded the configured
+    max_total_time limit. If the limit is not set or not exceeded, the function
+    returns normally. If the limit is exceeded, it raises an HttpRequestError.
 
     Args:
         config: Retry configuration containing max_total_time.
