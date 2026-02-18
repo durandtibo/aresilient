@@ -12,10 +12,7 @@ from typing import Any
 
 import httpx
 
-from aresilient.core.config import (
-    DEFAULT_TIMEOUT,
-    ClientConfig,
-)
+from aresilient.core.config import DEFAULT_TIMEOUT, ClientConfig
 from aresilient.core.validation import validate_timeout
 from aresilient.request import request
 from aresilient.request_async import request_async
