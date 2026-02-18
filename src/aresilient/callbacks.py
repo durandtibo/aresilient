@@ -179,13 +179,14 @@ def invoke_on_request(
         max_retries: Maximum number of retry attempts.
     """
     if on_request is not None:
-        request_info = RequestInfo(
-            url=url,
-            method=method,
-            attempt=attempt + 1,
-            max_retries=max_retries,
+        on_request(
+            RequestInfo(
+                url=url,
+                method=method,
+                attempt=attempt + 1,
+                max_retries=max_retries,
+            )
         )
-        on_request(request_info)
 
 
 def invoke_on_success(
@@ -211,15 +212,16 @@ def invoke_on_success(
         start_time: The timestamp when the request started.
     """
     if on_success is not None:
-        response_info = ResponseInfo(
-            url=url,
-            method=method,
-            attempt=attempt + 1,
-            max_retries=max_retries,
-            response=response,
-            total_time=time.time() - start_time,
+        on_success(
+            ResponseInfo(
+                url=url,
+                method=method,
+                attempt=attempt + 1,
+                max_retries=max_retries,
+                response=response,
+                total_time=time.time() - start_time,
+            )
         )
-        on_success(response_info)
 
 
 def invoke_on_retry(
@@ -249,13 +251,14 @@ def invoke_on_retry(
         last_status_code: The HTTP status code that triggered the retry (if any).
     """
     if on_retry is not None:
-        retry_info = RetryInfo(
-            url=url,
-            method=method,
-            attempt=attempt + 2,  # Next attempt number
-            max_retries=max_retries,
-            wait_time=sleep_time,
-            error=last_error,
-            status_code=last_status_code,
+        on_retry(
+            RetryInfo(
+                url=url,
+                method=method,
+                attempt=attempt + 2,  # Next attempt number
+                max_retries=max_retries,
+                wait_time=sleep_time,
+                error=last_error,
+                status_code=last_status_code,
+            )
         )
-        on_retry(retry_info)

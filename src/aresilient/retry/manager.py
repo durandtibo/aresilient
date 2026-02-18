@@ -146,13 +146,14 @@ class CallbackManager:
             start_time: Timestamp when request started.
         """
         if self.callbacks.on_failure:
-            failure_info: FailureInfo = FailureInfo(
-                url=url,
-                method=method,
-                attempt=attempt + 1,
-                max_retries=max_retries,
-                error=error,
-                status_code=status_code,
-                total_time=time.time() - start_time,
+            self.callbacks.on_failure(
+                FailureInfo(
+                    url=url,
+                    method=method,
+                    attempt=attempt + 1,
+                    max_retries=max_retries,
+                    error=error,
+                    status_code=status_code,
+                    total_time=time.time() - start_time,
+                )
             )
-            self.callbacks.on_failure(failure_info)
