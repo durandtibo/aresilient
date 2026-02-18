@@ -9,6 +9,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError, request
+from aresilient.core import ClientConfig
 from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 ##############################################
@@ -26,8 +27,7 @@ def test_circuit_breaker_with_http_request_success(
         url="https://example.com",
         method="GET",
         request_func=mock_request_func,
-        max_retries=3,
-        circuit_breaker=cb,
+        config=ClientConfig(max_retries=3, circuit_breaker=cb),
     )
 
     assert result == mock_response
@@ -53,8 +53,7 @@ def test_circuit_breaker_opens_after_http_failures(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=2,
-            circuit_breaker=cb,
+            config=ClientConfig(max_retries=2, circuit_breaker=cb),
         )
 
     # Circuit should be open now (3 attempts x 1 failure each = 3 failures)
@@ -82,8 +81,7 @@ def test_circuit_breaker_fails_fast_when_open(mock_sleep: Mock) -> None:
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=3,
-            circuit_breaker=cb,
+            config=ClientConfig(max_retries=3, circuit_breaker=cb),
         )
 
     # Request func should not have been called
@@ -119,8 +117,7 @@ def test_circuit_breaker_recovers_after_timeout(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=3,
-            circuit_breaker=cb,
+            config=ClientConfig(max_retries=3, circuit_breaker=cb),
         )
 
     assert result == mock_response
@@ -158,9 +155,7 @@ def test_circuit_breaker_with_retry_if_predicate(mock_sleep: Mock) -> None:
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=2,
-            retry_if=should_retry,
-            circuit_breaker=cb,
+            config=ClientConfig(max_retries=2, retry_if=should_retry, circuit_breaker=cb),
         )
 
     # Circuit breaker should have recorded failures (3 attempts = 3 failures)
@@ -188,8 +183,7 @@ def test_circuit_breaker_shared_across_requests(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=0,  # Only 1 attempt
-            circuit_breaker=cb,
+            config=ClientConfig(max_retries=0, circuit_breaker=cb),
         )
 
     assert cb.failure_count == 1
@@ -203,8 +197,7 @@ def test_circuit_breaker_shared_across_requests(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=0,
-            circuit_breaker=cb,
+            config=ClientConfig(max_retries=0, circuit_breaker=cb),
         )
 
     assert cb.failure_count == 2
@@ -218,8 +211,7 @@ def test_circuit_breaker_shared_across_requests(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=0,
-            circuit_breaker=cb,
+            config=ClientConfig(max_retries=0, circuit_breaker=cb),
         )
 
     assert cb.failure_count == 3
@@ -233,8 +225,7 @@ def test_circuit_breaker_shared_across_requests(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=0,
-            circuit_breaker=cb,
+            config=ClientConfig(max_retries=0, circuit_breaker=cb),
         )
 
     mock_sleep.assert_not_called()

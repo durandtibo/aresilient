@@ -14,6 +14,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
+from aresilient.core import ClientConfig
 from tests.helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
 
 TEST_URL = "https://api.example.com/data"
@@ -38,7 +39,7 @@ async def test_recovery_after_multiple_failures(
     )
     setattr(mock_client, test_case.client_method, client_method)
 
-    response = await test_case.method_func(TEST_URL, client=mock_client, max_retries=5)
+    response = await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=5))
 
     assert response.status_code == test_case.status_code
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
@@ -63,7 +64,7 @@ async def test_mixed_error_and_status_failures(
     )
     setattr(mock_client, test_case.client_method, client_method)
 
-    response = await test_case.method_func(TEST_URL, client=mock_client, max_retries=5)
+    response = await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=5))
 
     assert response.status_code == test_case.status_code
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
@@ -84,7 +85,7 @@ async def test_network_error(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -104,7 +105,7 @@ async def test_read_error(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -124,7 +125,7 @@ async def test_write_error(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -144,7 +145,7 @@ async def test_connect_timeout(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(4 attempts\)",
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -164,7 +165,7 @@ async def test_read_timeout(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(4 attempts\)",
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -184,7 +185,7 @@ async def test_pool_timeout(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(4 attempts\)",
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -204,6 +205,6 @@ async def test_proxy_error(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]

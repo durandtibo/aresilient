@@ -14,7 +14,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
-from aresilient.core import RETRY_STATUS_CODES
+from aresilient.core import RETRY_STATUS_CODES, ClientConfig
 from tests.helpers import (
     HTTP_METHODS_ASYNC,
     AsyncHttpMethodTestCase,
@@ -74,7 +74,7 @@ async def test_max_retries_exceeded(
     mock_client, _ = setup_mock_async_client_for_method(test_case.client_method, 503)
 
     with pytest.raises(HttpRequestError) as exc_info:
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=2))
 
     assert exc_info.value.status_code == 503
     assert "failed with status 503 after 3 attempts" in str(exc_info.value)
@@ -116,7 +116,7 @@ async def test_zero_max_retries(
         HttpRequestError,
         match=rf"{test_case.method_name} request to {TEST_URL} failed with status 503 after 1 attempts",
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=0)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=0))
 
     mock_asleep.assert_not_called()
 
@@ -134,7 +134,7 @@ async def test_custom_status_forcelist(
     client_method = AsyncMock(side_effect=[mock_response_fail, mock_response])
     setattr(mock_client, test_case.client_method, client_method)
 
-    response = await test_case.method_func(TEST_URL, client=mock_client, status_forcelist=(404,))
+    response = await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(status_forcelist=(404,)))
 
     assert response.status_code == test_case.status_code
     mock_asleep.assert_called_once_with(0.3)
@@ -173,7 +173,7 @@ async def test_all_retries_with_429(
     setattr(mock_client, test_case.client_method, AsyncMock(return_value=mock_response))
 
     with pytest.raises(HttpRequestError) as exc_info:
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=1)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=1))
 
     assert exc_info.value.status_code == 429
     assert "failed with status 429 after 2 attempts" in str(exc_info.value)
@@ -195,7 +195,7 @@ async def test_timeout_exception_with_retries(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(3 attempts\)",
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=2))
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
@@ -212,6 +212,6 @@ async def test_request_error_with_retries(
     setattr(mock_client, test_case.client_method, client_method)
 
     with pytest.raises(HttpRequestError, match=r"failed after 3 attempts"):
-        await test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
+        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=2))
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6)]

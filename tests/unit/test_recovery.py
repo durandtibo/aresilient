@@ -13,6 +13,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
+from aresilient.core import ClientConfig
 from tests.helpers import (
     HTTP_METHODS,
     HttpMethodTestCase,
@@ -39,7 +40,7 @@ def test_recovery_after_multiple_failures(
         ],
     )
 
-    response = test_case.method_func(TEST_URL, client=mock_client, max_retries=5)
+    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=5))
 
     assert response.status_code == test_case.status_code
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
@@ -62,7 +63,7 @@ def test_mixed_error_and_status_failures(
         ],
     )
 
-    response = test_case.method_func(TEST_URL, client=mock_client, max_retries=5)
+    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=5))
 
     assert response.status_code == test_case.status_code
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
@@ -82,7 +83,7 @@ def test_network_error(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -101,7 +102,7 @@ def test_read_error(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -120,7 +121,7 @@ def test_write_error(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -139,7 +140,7 @@ def test_connect_timeout(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(4 attempts\)",
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -158,7 +159,7 @@ def test_read_timeout(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(4 attempts\)",
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -177,7 +178,7 @@ def test_pool_timeout(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(4 attempts\)",
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
 
@@ -196,6 +197,6 @@ def test_proxy_error(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data failed after 4 attempts",
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=3)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=3))
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]

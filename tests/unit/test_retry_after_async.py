@@ -9,6 +9,7 @@ import httpx
 import pytest
 
 from aresilient.request_async import request_async
+from aresilient.core import ClientConfig
 
 TEST_URL = "https://api.example.com/data"
 
@@ -34,7 +35,7 @@ async def test_request_with_retry_after_header_integer_async(mock_asleep: Mock) 
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        config=ClientConfig(status_forcelist=(503,)),
     )
 
     assert response == mock_success_response
@@ -65,7 +66,7 @@ async def test_request_with_retry_after_header_multiple_retries_async(mock_aslee
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(429,),
+        config=ClientConfig(status_forcelist=(429,)),
     )
 
     assert response == mock_success_response
@@ -91,7 +92,7 @@ async def test_request_without_retry_after_uses_exponential_backoff_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        config=ClientConfig(status_forcelist=(503,)),
     )
 
     assert response == mock_success_response
@@ -122,7 +123,7 @@ async def test_request_with_retry_after_mixed_with_backoff_async(mock_asleep: Mo
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(429, 503),
+        config=ClientConfig(status_forcelist=(429, 503)),
     )
 
     assert response == mock_success_response
@@ -150,9 +151,7 @@ async def test_request_with_jitter_applied_async(mock_asleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(503,),
-            backoff_factor=1.0,
-            jitter_factor=1.0,  # Jitter factor of 1.0
+            config=ClientConfig(status_forcelist=(503,), backoff_factor=1.0, jitter_factor=1.0),  # Jitter factor of 1.0
         )
 
     assert response == mock_success_response
@@ -188,9 +187,7 @@ async def test_request_jitter_range_async(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(503,),
-            backoff_factor=2.0,
-            jitter_factor=1.0,  # Jitter factor of 1.0
+            config=ClientConfig(status_forcelist=(503,), backoff_factor=2.0, jitter_factor=1.0),
         )
 
     assert response == mock_success_response
@@ -217,8 +214,7 @@ async def test_request_jitter_with_retry_after_async(mock_asleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(429,),
-            jitter_factor=1.0,  # Jitter factor of 1.0
+            config=ClientConfig(status_forcelist=(429,), jitter_factor=1.0),  # Jitter factor of 1.0
         )
 
     assert response == mock_success_response

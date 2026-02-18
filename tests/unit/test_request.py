@@ -9,6 +9,7 @@ import pytest
 
 from aresilient import HttpRequestError
 from aresilient.core import (
+    ClientConfig,
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
     RETRY_STATUS_CODES,
@@ -72,7 +73,7 @@ def test_request_retry_on_retryable_status(mock_response: httpx.Response, mock_s
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        config=ClientConfig(status_forcelist=(503,)),
     )
 
     assert response == mock_response
@@ -93,7 +94,7 @@ def test_request_multiple_retries_before_success(
         url=TEST_URL,
         method="POST",
         request_func=mock_request_func,
-        status_forcelist=(500,),
+        config=ClientConfig(status_forcelist=(500,)),
     )
 
     assert response == mock_response
@@ -120,8 +121,7 @@ def test_request_max_retries_exceeded(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            max_retries=2,
-            status_forcelist=(502,),
+            config=ClientConfig(max_retries=2, status_forcelist=(502,)),
         )
 
     assert exc_info.value.status_code == 502
@@ -170,8 +170,7 @@ def test_request_timeout_exception(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="PUT",
             request_func=mock_request_func,
-            max_retries=0,
-            status_forcelist=(500,),
+            config=ClientConfig(max_retries=0, status_forcelist=(500,)),
         )
 
     mock_request_func.assert_called_once_with(url=TEST_URL)
@@ -192,8 +191,7 @@ def test_request_timeout_exception_with_retries(
             url=TEST_URL,
             method="PUT",
             request_func=mock_request_func,
-            max_retries=2,
-            status_forcelist=(500,),
+            config=ClientConfig(max_retries=2, status_forcelist=(500,)),
         )
 
     assert mock_request_func.call_args_list == [
@@ -219,8 +217,7 @@ def test_request_request_error(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="DELETE",
             request_func=mock_request_func,
-            max_retries=0,
-            status_forcelist=(500,),
+            config=ClientConfig(max_retries=0, status_forcelist=(500,)),
         )
 
     mock_request_func.assert_called_once_with(url=TEST_URL)
@@ -236,8 +233,7 @@ def test_request_request_error_with_retries(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="DELETE",
             request_func=mock_request_func,
-            max_retries=1,
-            status_forcelist=(500,),
+            config=ClientConfig(max_retries=1, status_forcelist=(500,)),
         )
 
     assert mock_request_func.call_args_list == [call(url=TEST_URL), call(url=TEST_URL)]
@@ -254,8 +250,7 @@ def test_request_zero_max_retries(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            max_retries=0,
-            status_forcelist=(500,),
+            config=ClientConfig(max_retries=0, status_forcelist=(500,)),
         )
 
     mock_request_func.assert_called_once()
@@ -271,8 +266,7 @@ def test_request_zero_backoff_factor(mock_response: httpx.Response) -> None:
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        backoff_factor=0.0,
-        status_forcelist=(503,),
+        config=ClientConfig(backoff_factor=0.0, status_forcelist=(503,)),
     )
 
     assert response == mock_response
@@ -292,7 +286,7 @@ def test_request_success_status_2xx(mock_sleep: Mock, status_code: int) -> None:
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(500,),
+        config=ClientConfig(status_forcelist=(500,)),
     )
 
     assert response.status_code == status_code
@@ -314,7 +308,7 @@ def test_request_success_status_3xx(mock_sleep: Mock, status_code: int) -> None:
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(500,),
+        config=ClientConfig(status_forcelist=(500,)),
     )
 
     assert response.status_code == status_code
@@ -355,7 +349,7 @@ def test_request_empty_status_forcelist(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(),
+            config=ClientConfig(status_forcelist=()),
         )
 
     mock_request_func.assert_called_once()
@@ -374,8 +368,7 @@ def test_request_preserves_response_object(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            max_retries=0,
-            status_forcelist=(503,),
+            config=ClientConfig(max_retries=0, status_forcelist=(503,)),
         )
 
     assert exc_info.value.response == mock_fail_response
@@ -392,9 +385,7 @@ def test_request_large_backoff_factor(mock_response: httpx.Response, mock_sleep:
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        max_retries=2,
-        backoff_factor=10.0,
-        status_forcelist=(503,),
+        config=ClientConfig(max_retries=2, backoff_factor=10.0, status_forcelist=(503,)),
     )
 
     assert response == mock_response
@@ -412,9 +403,7 @@ def test_request_high_max_retries(mock_response: httpx.Response, mock_sleep: Moc
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        max_retries=10,
-        backoff_factor=1.0,
-        status_forcelist=(500,),
+        config=ClientConfig(max_retries=10, backoff_factor=1.0, status_forcelist=(500,)),
     )
 
     assert response == mock_response
@@ -538,8 +527,7 @@ def test_request_mixed_error_and_status_failures(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        max_retries=5,
-        status_forcelist=(502,),
+        config=ClientConfig(max_retries=5, status_forcelist=(502,)),
     )
 
     assert response == mock_response
@@ -607,7 +595,7 @@ def test_request_error_types(
             url=TEST_URL,
             method=method,
             request_func=mock_request_func,
-            status_forcelist=(500,),
+            config=ClientConfig(status_forcelist=(500,)),
         )
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
@@ -630,8 +618,7 @@ def test_request_recovery_after_multiple_failures(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        max_retries=5,
-        status_forcelist=(429, 500, 503),
+        config=ClientConfig(max_retries=5, status_forcelist=(429, 500, 503)),
     )
 
     assert response == mock_response
@@ -654,8 +641,7 @@ def test_request_error_message_includes_url(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            max_retries=0,
-            status_forcelist=(503,),
+            config=ClientConfig(max_retries=0, status_forcelist=(503,)),
         )
 
     mock_sleep.assert_not_called()
@@ -682,7 +668,7 @@ def test_request_retry_if_returns_false_for_success(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
+        config=ClientConfig(retry_if=retry_predicate),
     )
 
     assert response == mock_response
@@ -710,8 +696,7 @@ def test_request_retry_if_returns_true_for_success(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            retry_if=retry_predicate,
-            max_retries=3,
+            config=ClientConfig(retry_if=retry_predicate, max_retries=3),
         )
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
@@ -737,8 +722,7 @@ def test_request_retry_if_checks_response_content(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -764,7 +748,7 @@ def test_request_retry_if_returns_false_for_error(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            retry_if=retry_predicate,
+            config=ClientConfig(retry_if=retry_predicate),
         )
 
     # Should only try once since retry_if returns False
@@ -790,8 +774,7 @@ def test_request_retry_if_returns_true_for_error(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -817,8 +800,7 @@ def test_request_retry_if_with_custom_status_logic(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -844,7 +826,7 @@ def test_request_retry_if_does_not_retry_client_error(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            retry_if=retry_predicate,
+            config=ClientConfig(retry_if=retry_predicate),
         )
 
     # Should only try once
@@ -868,7 +850,7 @@ def test_request_retry_if_returns_false_for_exception(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            retry_if=retry_predicate,
+            config=ClientConfig(retry_if=retry_predicate),
         )
 
     # Should only try once
@@ -894,8 +876,7 @@ def test_request_retry_if_returns_true_for_exception(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -922,8 +903,7 @@ def test_request_retry_if_with_connection_error(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -948,8 +928,7 @@ def test_request_retry_if_exhausts_retries_with_exception(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            retry_if=retry_predicate,
-            max_retries=2,
+            config=ClientConfig(retry_if=retry_predicate, max_retries=2),
         )
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
@@ -980,8 +959,7 @@ def test_request_retry_if_complex_logic(mock_sleep: Mock) -> None:
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -1002,9 +980,66 @@ def test_request_retry_if_none_uses_default_behavior(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
-        max_retries=3,
+        config=ClientConfig(status_forcelist=(503,), max_retries=3),
     )
 
     assert response == mock_response_ok
     mock_sleep.assert_called_once_with(0.3)
+
+
+##################################################
+#     Tests for config parameter in request     #
+##################################################
+
+
+def test_request_with_config(
+    mock_response: httpx.Response, mock_request_func: Mock, mock_sleep: Mock
+) -> None:
+    """Test request using ClientConfig."""
+    config = ClientConfig(max_retries=2, backoff_factor=0.5)
+    response = request(
+        url=TEST_URL,
+        method="GET",
+        request_func=mock_request_func,
+        config=config,
+    )
+
+    assert response == mock_response
+    mock_request_func.assert_called_once_with(url=TEST_URL)
+    mock_sleep.assert_not_called()
+
+
+def test_request_config_values_are_used(mock_sleep: Mock) -> None:
+    """Test that config values control retry behavior."""
+    config = ClientConfig(max_retries=0)
+    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
+    mock_request_func = Mock(return_value=mock_fail_response)
+
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to .* failed with status 503 after 1 attempts",
+    ):
+        request(
+            url=TEST_URL,
+            method="GET",
+            request_func=mock_request_func,
+            config=config,
+        )
+
+    mock_sleep.assert_not_called()
+
+
+def test_request_config_none_uses_defaults(
+    mock_response: httpx.Response, mock_request_func: Mock, mock_sleep: Mock
+) -> None:
+    """Test that config=None uses default values."""
+    response = request(
+        url=TEST_URL,
+        method="GET",
+        request_func=mock_request_func,
+        config=None,
+    )
+
+    assert response == mock_response
+    mock_request_func.assert_called_once_with(url=TEST_URL)
+    mock_sleep.assert_not_called()

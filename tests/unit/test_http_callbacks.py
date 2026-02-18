@@ -14,6 +14,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
+from aresilient.core import ClientConfig
 from tests.helpers import (
     HTTP_METHODS,
     HttpMethodTestCase,
@@ -39,7 +40,7 @@ def test_http_method_on_request_callback(
     """Test that on_request callback is called for all HTTP methods."""
     mock_client, _ = setup_mock_client_for_method(test_case.client_method, test_case.status_code)
 
-    response = test_case.method_func(TEST_URL, client=mock_client, on_request=mock_callback)
+    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(on_request=mock_callback))
 
     assert response.status_code == test_case.status_code
     mock_callback.assert_called_once()
@@ -60,7 +61,7 @@ def test_http_method_on_success_callback(
     requests."""
     mock_client, _ = setup_mock_client_for_method(test_case.client_method, test_case.status_code)
 
-    response = test_case.method_func(TEST_URL, client=mock_client, on_success=mock_callback)
+    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(on_success=mock_callback))
 
     assert response.status_code == test_case.status_code
     mock_callback.assert_called_once()
@@ -85,7 +86,7 @@ def test_http_method_on_retry_callback(
         test_case.client_method, [mock_fail_response, mock_success_response]
     )
 
-    response = test_case.method_func(TEST_URL, client=mock_client, on_retry=mock_callback)
+    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(on_retry=mock_callback))
 
     assert response.status_code == test_case.status_code
     mock_callback.assert_called_once()
@@ -112,8 +113,7 @@ def test_http_method_on_failure_callback(
         test_case.method_func(
             TEST_URL,
             client=mock_client,
-            max_retries=2,
-            on_failure=on_failure_callback,
+            config=ClientConfig(max_retries=2, on_failure=on_failure_callback),
         )
 
     on_failure_callback.assert_called_once()
@@ -147,10 +147,12 @@ def test_http_method_all_callbacks_together(
     response = test_case.method_func(
         TEST_URL,
         client=mock_client,
-        on_request=on_request_callback,
-        on_retry=on_retry_callback,
-        on_success=on_success_callback,
-        on_failure=on_failure_callback,
+        config=ClientConfig(
+            on_request=on_request_callback,
+            on_retry=on_retry_callback,
+            on_success=on_success_callback,
+            on_failure=on_failure_callback,
+        ),
     )
 
     assert response.status_code == test_case.status_code
@@ -182,9 +184,11 @@ def test_http_method_callbacks_with_timeout_error(
     response = test_case.method_func(
         TEST_URL,
         client=mock_client,
-        on_request=on_request_callback,
-        on_retry=on_retry_callback,
-        on_failure=on_failure_callback,
+        config=ClientConfig(
+            on_request=on_request_callback,
+            on_retry=on_retry_callback,
+            on_failure=on_failure_callback,
+        ),
     )
 
     assert response.status_code == test_case.status_code
@@ -210,8 +214,10 @@ def test_http_method_callbacks_with_default_client(
     with patch(f"httpx.Client.{test_case.client_method}", return_value=mock_response):
         response = test_case.method_func(
             TEST_URL,
-            on_request=on_request_callback,
-            on_success=on_success_callback,
+            config=ClientConfig(
+                on_request=on_request_callback,
+                on_success=on_success_callback,
+            ),
         )
 
     assert response.status_code == test_case.status_code
