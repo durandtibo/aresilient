@@ -18,6 +18,9 @@ from aresilient.config import (
     DEFAULT_TIMEOUT,
     RETRY_STATUS_CODES,
 )
+from aresilient.core.validation import validate_retry_params
+from aresilient.request import request_with_automatic_retry
+from aresilient.request_async import request_with_automatic_retry_async
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -84,10 +87,6 @@ def execute_http_method(
         HttpRequestError: If the request fails after exhausting all retries.
         ValueError: If parameters are invalid.
     """
-    # Import here to avoid circular dependency
-    from aresilient.request import request_with_automatic_retry
-    from aresilient.utils import validate_retry_params
-
     # Input validation
     validate_retry_params(
         max_retries=max_retries,
@@ -185,10 +184,6 @@ async def execute_http_method_async(
         HttpRequestError: If the request fails after exhausting all retries.
         ValueError: If parameters are invalid.
     """
-    # Import here to avoid circular dependency
-    from aresilient.request_async import request_with_automatic_retry_async
-    from aresilient.utils import validate_retry_params
-
     # Input validation
     validate_retry_params(
         max_retries=max_retries,

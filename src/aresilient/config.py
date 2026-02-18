@@ -1,7 +1,8 @@
 r"""Default configurations for HTTP requests with automatic retry logic.
 
-This module re-exports default configuration constants from aresilient.core.config
-for backward compatibility. New code should import from aresilient.core.config.
+This module re-exports default configuration constants from
+aresilient.core.config for backward compatibility. New code should
+import from aresilient.core.config.
 """
 
 from __future__ import annotations

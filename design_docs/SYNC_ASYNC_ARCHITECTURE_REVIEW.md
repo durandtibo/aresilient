@@ -1301,7 +1301,7 @@ class ResilientClient:
 with ResilientClient(max_retries=3) as client:
     # Uses client default (3 retries)
     response1 = client.get("https://api.example.com/data")
-    
+
     # Override for this specific request (5 retries)
     response2 = client.get("https://api.example.com/critical", max_retries=5)
 ```
@@ -1347,7 +1347,7 @@ Cons:
 with ResilientClient(max_retries=3, timeout=10) as client:
     # Standard operation - use defaults
     user_data = client.get("https://api.example.com/users/123")
-    
+
     # Critical payment - needs more retries and longer timeout
     payment = client.post(
         "https://api.example.com/payments",
@@ -1355,7 +1355,7 @@ with ResilientClient(max_retries=3, timeout=10) as client:
         timeout=30,
         json=payment_data
     )
-    
+
     # Best-effort analytics - fail fast
     client.post(
         "https://analytics.example.com/events",
@@ -1370,7 +1370,7 @@ with ResilientClient(max_retries=3, timeout=10) as client:
 @dataclass
 class ClientConfig:
     # ... fields ...
-    
+
     def merge(self, **overrides) -> ClientConfig:
         """Create a new config with overrides applied."""
         return replace(self, **{k: v for k, v in overrides.items() if v is not None})
