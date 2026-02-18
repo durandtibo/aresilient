@@ -91,28 +91,28 @@ def request(
 
         ```
     """
-    effective_config = config if config is not None else ClientConfig()
+    config = config or ClientConfig()
 
     # Create retry configuration
     retry_config = RetryConfig(
-        max_retries=effective_config.max_retries,
-        backoff_factor=effective_config.backoff_factor,
-        status_forcelist=effective_config.status_forcelist,
-        jitter_factor=effective_config.jitter_factor,
-        retry_if=effective_config.retry_if,
-        backoff_strategy=effective_config.backoff_strategy,
-        max_total_time=effective_config.max_total_time,
-        max_wait_time=effective_config.max_wait_time,
+        max_retries=config.max_retries,
+        backoff_factor=config.backoff_factor,
+        status_forcelist=config.status_forcelist,
+        jitter_factor=config.jitter_factor,
+        retry_if=config.retry_if,
+        backoff_strategy=config.backoff_strategy,
+        max_total_time=config.max_total_time,
+        max_wait_time=config.max_wait_time,
     )
 
     # Create callback configuration
     callback_config = CallbackConfig(
-        on_request=effective_config.on_request,
-        on_retry=effective_config.on_retry,
-        on_success=effective_config.on_success,
-        on_failure=effective_config.on_failure,
+        on_request=config.on_request,
+        on_retry=config.on_retry,
+        on_success=config.on_success,
+        on_failure=config.on_failure,
     )
 
     # Create executor and execute request
-    executor = RetryExecutor(retry_config, callback_config, effective_config.circuit_breaker)
+    executor = RetryExecutor(retry_config, callback_config, config.circuit_breaker)
     return executor.execute(url, method, request_func, **kwargs)

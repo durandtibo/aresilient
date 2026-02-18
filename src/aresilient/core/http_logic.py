@@ -59,7 +59,7 @@ def execute_http_method(
     # Validate timeout (not part of ClientConfig)
     validate_timeout(timeout)
 
-    effective_config = config if config is not None else ClientConfig()
+    config = config or ClientConfig()
 
     # Client management
     owns_client = client is None
@@ -71,7 +71,7 @@ def execute_http_method(
             url=url,
             method=method,
             request_func=request_func,
-            config=effective_config,
+            config=config,
             **kwargs,
         )
     finally:
@@ -114,7 +114,7 @@ async def execute_http_method_async(
     # Validate timeout (not part of ClientConfig)
     validate_timeout(timeout)
 
-    effective_config = config if config is not None else ClientConfig()
+    config = config or ClientConfig()
 
     # Client management
     owns_client = client is None
@@ -126,7 +126,7 @@ async def execute_http_method_async(
             url=url,
             method=method,
             request_func=request_func,
-            config=effective_config,
+            config=config,
             **kwargs,
         )
     finally:
