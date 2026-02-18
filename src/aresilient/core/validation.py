@@ -44,7 +44,6 @@ def validate_timeout(timeout: float | httpx.Timeout) -> None:
 
 def validate_retry_params(
     max_retries: int,
-    backoff_factor: float,
     jitter_factor: float = 0.0,
     timeout: float | httpx.Timeout | None = None,
     max_total_time: float | None = None,
@@ -55,8 +54,6 @@ def validate_retry_params(
     Args:
         max_retries: Maximum number of retry attempts for failed requests.
             Must be >= 0. A value of 0 means no retries (only the initial attempt).
-        backoff_factor: Factor for exponential backoff between retries.
-            Must be >= 0.
         jitter_factor: Factor for adding random jitter to backoff delays.
             Must be >= 0. Recommended value is 0.1 for 10% jitter.
         timeout: Maximum seconds to wait for the server response.
@@ -69,26 +66,23 @@ def validate_retry_params(
             this value, even with exponential backoff growth.
 
     Raises:
-        ValueError: If max_retries, backoff_factor, or jitter_factor are negative,
+        ValueError: If max_retries or jitter_factor are negative,
             or if timeout, max_total_time, or max_wait_time are non-positive.
 
     Example:
         ```pycon
         >>> from aresilient.core import validate_retry_params
-        >>> validate_retry_params(max_retries=3, backoff_factor=0.5)
-        >>> validate_retry_params(max_retries=3, backoff_factor=0.5, jitter_factor=0.1)
-        >>> validate_retry_params(max_retries=3, backoff_factor=0.5, timeout=10.0)
-        >>> validate_retry_params(max_retries=3, backoff_factor=0.5, max_total_time=30.0)
-        >>> validate_retry_params(max_retries=3, backoff_factor=0.5, max_wait_time=5.0)
-        >>> validate_retry_params(max_retries=-1, backoff_factor=0.5)  # doctest: +SKIP
+        >>> validate_retry_params(max_retries=3)
+        >>> validate_retry_params(max_retries=3, jitter_factor=0.1)
+        >>> validate_retry_params(max_retries=3, timeout=10.0)
+        >>> validate_retry_params(max_retries=3, max_total_time=30.0)
+        >>> validate_retry_params(max_retries=3, max_wait_time=5.0)
+        >>> validate_retry_params(max_retries=-1)  # doctest: +SKIP
 
         ```
     """
     if max_retries < 0:
         msg = f"max_retries must be >= 0, got {max_retries}"
-        raise ValueError(msg)
-    if backoff_factor < 0:
-        msg = f"backoff_factor must be >= 0, got {backoff_factor}"
         raise ValueError(msg)
     if jitter_factor < 0:
         msg = f"jitter_factor must be >= 0, got {jitter_factor}"

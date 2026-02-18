@@ -361,7 +361,7 @@ async def test_successful_request_with_config(
     mock_asleep: Mock,
 ) -> None:
     """Test successful async request using ClientConfig."""
-    config = ClientConfig(max_retries=2, backoff_factor=0.1)
+    config = ClientConfig(max_retries=2)
     mock_response = Mock(spec=httpx.Response, status_code=test_case.status_code)
     mock_client = AsyncMock(spec=httpx.AsyncClient)
     setattr(mock_client, test_case.client_method, AsyncMock(return_value=mock_response))

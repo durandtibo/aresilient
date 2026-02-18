@@ -26,17 +26,15 @@ class RetryConfig:
 
     Attributes:
         max_retries: Maximum number of retry attempts.
-        backoff_factor: Factor for exponential backoff.
         status_forcelist: Tuple of HTTP status codes that trigger retries.
         jitter_factor: Factor for adding random jitter to backoff delays.
         retry_if: Optional custom predicate to determine retry behavior.
-        backoff_strategy: Optional custom backoff strategy.
+        backoff_strategy: Backoff strategy instance.
         max_total_time: Optional maximum total time budget for all retries.
         max_wait_time: Optional maximum backoff delay cap.
     """
 
     max_retries: int
-    backoff_factor: float
     status_forcelist: tuple[int, ...]
     jitter_factor: float
     retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None

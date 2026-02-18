@@ -335,7 +335,7 @@ def test_successful_request_with_config(
     mock_sleep: Mock,
 ) -> None:
     """Test successful request using ClientConfig."""
-    config = ClientConfig(max_retries=2, backoff_factor=0.1)
+    config = ClientConfig(max_retries=2)
     mock_client, _ = setup_mock_client_for_method(test_case.client_method, test_case.status_code)
 
     response = test_case.method_func(TEST_URL, client=mock_client, config=config)

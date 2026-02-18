@@ -14,7 +14,7 @@ from aresilient.callbacks import (
     invoke_on_retry,
     invoke_on_success,
 )
-from aresilient.core import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, ClientConfig
+from aresilient.core import DEFAULT_MAX_RETRIES, ClientConfig
 from aresilient.exceptions import HttpRequestError
 from aresilient.request import request
 
@@ -98,7 +98,7 @@ def test_on_retry_callback_called_before_retry(
             method="GET",
             attempt=2,
             max_retries=DEFAULT_MAX_RETRIES,
-            wait_time=DEFAULT_BACKOFF_FACTOR,
+            wait_time=0.3,
             error=None,
             status_code=500,
         )
@@ -147,7 +147,7 @@ def test_on_retry_callback_with_timeout_exception(
     assert call_args.method == "GET"
     assert call_args.attempt == 2  # Next attempt
     assert call_args.max_retries == DEFAULT_MAX_RETRIES
-    assert call_args.wait_time == DEFAULT_BACKOFF_FACTOR
+    assert call_args.wait_time == 0.3
     assert isinstance(call_args.error, httpx.TimeoutException)
     assert call_args.status_code is None
     mock_sleep.assert_called_once_with(0.3)
@@ -175,7 +175,7 @@ def test_on_retry_callback_with_request_error(
     assert call_args.method == "GET"
     assert call_args.attempt == 2  # Next attempt
     assert call_args.max_retries == DEFAULT_MAX_RETRIES
-    assert call_args.wait_time == DEFAULT_BACKOFF_FACTOR
+    assert call_args.wait_time == 0.3
     assert isinstance(call_args.error, httpx.ConnectError)
     assert call_args.status_code is None
     mock_sleep.assert_called_once_with(0.3)
@@ -521,11 +521,13 @@ def test_callbacks_with_custom_max_retries(
     mock_sleep.assert_called_once_with(0.3)
 
 
-def test_callbacks_with_custom_backoff_factor(
+def test_callbacks_with_custom_backoff_strategy(
     mock_response: httpx.Response, mock_sleep: Mock, mock_response_fail: httpx.Response
 ) -> None:
     """Test that on_retry callback receives correct wait_time with
-    custom backoff."""
+    custom backoff strategy."""
+    from aresilient.backoff import ExponentialBackoff
+
     on_retry_callback = Mock()
     mock_request_func = Mock(side_effect=[mock_response_fail, mock_response])
 
@@ -534,7 +536,9 @@ def test_callbacks_with_custom_backoff_factor(
         method="GET",
         request_func=mock_request_func,
         config=ClientConfig(
-            status_forcelist=(500,), backoff_factor=2.0, on_retry=on_retry_callback
+            status_forcelist=(500,),
+            backoff_strategy=ExponentialBackoff(base_delay=2.0),
+            on_retry=on_retry_callback,
         ),
     )
 

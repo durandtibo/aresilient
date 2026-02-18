@@ -39,13 +39,11 @@ def test_retry_config_creation() -> None:
     """Test RetryConfig dataclass creation."""
     config = RetryConfig(
         max_retries=3,
-        backoff_factor=0.5,
         status_forcelist=(500, 502, 503),
         jitter_factor=0.1,
     )
 
     assert config.max_retries == 3
-    assert config.backoff_factor == 0.5
     assert config.status_forcelist == (500, 502, 503)
     assert config.jitter_factor == 0.1
     assert config.retry_if is None
@@ -58,7 +56,6 @@ def test_retry_config_with_custom_predicate() -> None:
     """Test RetryConfig with custom retry predicate."""
     config = RetryConfig(
         max_retries=5,
-        backoff_factor=1.0,
         status_forcelist=(500,),
         jitter_factor=0.0,
         retry_if=custom_retry,
@@ -72,7 +69,6 @@ def test_retry_config_with_time_limits() -> None:
     """Test RetryConfig with time constraints."""
     config = RetryConfig(
         max_retries=10,
-        backoff_factor=2.0,
         status_forcelist=(429, 500, 502, 503, 504),
         jitter_factor=0.2,
         max_total_time=30.0,

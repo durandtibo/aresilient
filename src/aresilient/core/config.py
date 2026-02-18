@@ -8,7 +8,6 @@ context manager classes.
 from __future__ import annotations
 
 __all__ = [
-    "DEFAULT_BACKOFF_FACTOR",
     "DEFAULT_MAX_RETRIES",
     "DEFAULT_TIMEOUT",
     "RETRY_STATUS_CODES",
@@ -18,6 +17,7 @@ __all__ = [
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
+from aresilient.backoff.strategy import ExponentialBackoff
 from aresilient.core.validation import validate_retry_params
 
 if TYPE_CHECKING:
@@ -37,11 +37,6 @@ DEFAULT_TIMEOUT = 10.0
 # Default maximum number of retry attempts
 # Total attempts = max_retries + 1 (initial attempt)
 DEFAULT_MAX_RETRIES = 3
-
-# Default backoff factor for exponential backoff
-# Wait time = backoff_factor * (2 ** attempt)
-# With 0.3: 1st retry waits 0.3s, 2nd waits 0.6s, 3rd waits 1.2s
-DEFAULT_BACKOFF_FACTOR = 0.3
 
 # HTTP status codes that should trigger automatic retry
 # 429: Too Many Requests - Rate limiting
@@ -66,11 +61,10 @@ class ClientConfig:
 
     Args:
         max_retries: Maximum number of retry attempts for failed requests. Must be >= 0.
-        backoff_factor: Factor for exponential backoff between retries. Must be >= 0.
         status_forcelist: Tuple of HTTP status codes that should trigger a retry.
         jitter_factor: Factor for adding random jitter to backoff delays. Must be >= 0.
         retry_if: Optional custom predicate function to determine whether to retry.
-        backoff_strategy: Optional custom backoff strategy instance.
+        backoff_strategy: Backoff strategy instance. Defaults to ExponentialBackoff().
         max_total_time: Optional maximum total time budget in seconds for all retry
             attempts. Must be > 0 if provided.
         max_wait_time: Optional maximum backoff delay cap in seconds. Must be > 0 if provided.
@@ -99,11 +93,10 @@ class ClientConfig:
     """
 
     max_retries: int = DEFAULT_MAX_RETRIES
-    backoff_factor: float = DEFAULT_BACKOFF_FACTOR
     status_forcelist: tuple[int, ...] = field(default_factory=lambda: RETRY_STATUS_CODES)
     jitter_factor: float = 0.0
     retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None
-    backoff_strategy: BackoffStrategy | None = None
+    backoff_strategy: BackoffStrategy = field(default_factory=ExponentialBackoff)
     max_total_time: float | None = None
     max_wait_time: float | None = None
     circuit_breaker: CircuitBreaker | None = None
@@ -122,7 +115,6 @@ class ClientConfig:
         # by the client when creating httpx.Client/AsyncClient
         validate_retry_params(
             max_retries=self.max_retries,
-            backoff_factor=self.backoff_factor,
             jitter_factor=self.jitter_factor,
             max_total_time=self.max_total_time,
             max_wait_time=self.max_wait_time,
@@ -179,7 +171,6 @@ class ClientConfig:
         """
         return {
             "max_retries": self.max_retries,
-            "backoff_factor": self.backoff_factor,
             "status_forcelist": self.status_forcelist,
             "jitter_factor": self.jitter_factor,
             "retry_if": self.retry_if,

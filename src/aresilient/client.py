@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 from aresilient.core.config import (
-    DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
     DEFAULT_TIMEOUT,
     RETRY_STATUS_CODES,
@@ -45,12 +44,11 @@ class ResilientClient:
     Args:
         timeout: Maximum seconds to wait for server responses. Must be > 0.
         max_retries: Maximum number of retry attempts for failed requests. Must be >= 0.
-        backoff_factor: Factor for exponential backoff between retries. Must be >= 0.
-            Ignored if backoff_strategy is provided.
         status_forcelist: Tuple of HTTP status codes that should trigger a retry.
         jitter_factor: Factor for adding random jitter to backoff delays. Must be >= 0.
         retry_if: Optional custom predicate function to determine whether to retry.
         backoff_strategy: Optional custom backoff strategy instance.
+            Defaults to ExponentialBackoff().
         max_total_time: Optional maximum total time budget in seconds for all retry
             attempts. Must be > 0 if provided.
         max_wait_time: Optional maximum backoff delay cap in seconds. Must be > 0 if provided.
@@ -82,7 +80,6 @@ class ResilientClient:
         *,
         timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
-        backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
         status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
         jitter_factor: float = 0.0,
         retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
@@ -102,21 +99,22 @@ class ResilientClient:
         self._timeout = timeout
 
         # Store retry configuration in ClientConfig dataclass
-        self._config = ClientConfig(
-            max_retries=max_retries,
-            backoff_factor=backoff_factor,
-            status_forcelist=status_forcelist,
-            jitter_factor=jitter_factor,
-            retry_if=retry_if,
-            backoff_strategy=backoff_strategy,
-            max_total_time=max_total_time,
-            max_wait_time=max_wait_time,
-            circuit_breaker=circuit_breaker,
-            on_request=on_request,
-            on_retry=on_retry,
-            on_success=on_success,
-            on_failure=on_failure,
-        )
+        config_kwargs: dict[str, Any] = {
+            "max_retries": max_retries,
+            "status_forcelist": status_forcelist,
+            "jitter_factor": jitter_factor,
+            "retry_if": retry_if,
+            "max_total_time": max_total_time,
+            "max_wait_time": max_wait_time,
+            "circuit_breaker": circuit_breaker,
+            "on_request": on_request,
+            "on_retry": on_retry,
+            "on_success": on_success,
+            "on_failure": on_failure,
+        }
+        if backoff_strategy is not None:
+            config_kwargs["backoff_strategy"] = backoff_strategy
+        self._config = ClientConfig(**config_kwargs)
 
         # Client will be created when entering context
         self._client: httpx.Client | None = None
@@ -172,7 +170,6 @@ class ResilientClient:
         url: str,
         *,
         max_retries: int | None = None,
-        backoff_factor: float | None = None,
         status_forcelist: tuple[int, ...] | None = None,
         jitter_factor: float | None = None,
         retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
@@ -192,7 +189,6 @@ class ResilientClient:
             method: HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, etc.).
             url: The URL to send the request to.
             max_retries: Override client's max_retries for this request.
-            backoff_factor: Override client's backoff_factor for this request.
             status_forcelist: Override client's status_forcelist for this request.
             jitter_factor: Override client's jitter_factor for this request.
             retry_if: Override client's retry_if for this request.
@@ -227,7 +223,6 @@ class ResilientClient:
         # Merge config with request-specific overrides
         request_config = self._config.merge(
             max_retries=max_retries,
-            backoff_factor=backoff_factor,
             status_forcelist=status_forcelist,
             jitter_factor=jitter_factor,
             retry_if=retry_if,

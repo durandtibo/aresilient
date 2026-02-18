@@ -7,6 +7,7 @@ from unittest.mock import Mock, call, patch
 
 import httpx
 
+from aresilient.backoff import ExponentialBackoff
 from aresilient.core import ClientConfig
 from aresilient.request import request
 
@@ -126,7 +127,11 @@ def test_request_with_jitter_applied(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            config=ClientConfig(status_forcelist=(503,), backoff_factor=1.0, jitter_factor=1.0),
+            config=ClientConfig(
+                status_forcelist=(503,),
+                backoff_strategy=ExponentialBackoff(base_delay=1.0),
+                jitter_factor=1.0,
+            ),
         )
 
     assert response == mock_success_response

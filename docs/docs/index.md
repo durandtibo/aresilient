@@ -114,12 +114,13 @@ print(response.status_code)
 
 ```python
 from aresilient import get
+from aresilient.backoff import ExponentialBackoff
 
 # Custom retry configuration
 response = get(
     "https://api.example.com/data",
     max_retries=5,  # Retry up to 5 times
-    backoff_factor=1.0,  # Exponential backoff factor
+    backoff_strategy=ExponentialBackoff(base_delay=1.0),  # Exponential backoff
     timeout=30.0,  # 30 second timeout
     status_forcelist=(429, 503),  # Only retry on these status codes
 )

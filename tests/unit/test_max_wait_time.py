@@ -11,6 +11,7 @@ from unittest.mock import Mock, call
 import httpx
 import pytest
 
+from aresilient.backoff import ExponentialBackoff
 from aresilient.core import ClientConfig
 from tests.helpers import HTTP_METHODS, HttpMethodTestCase
 
@@ -35,7 +36,11 @@ def test_max_wait_time_caps_backoff(
     response = test_case.method_func(
         TEST_URL,
         client=mock_client,
-        config=ClientConfig(max_retries=5, backoff_factor=2.0, max_wait_time=5.0),
+        config=ClientConfig(
+            max_retries=5,
+            backoff_strategy=ExponentialBackoff(base_delay=2.0),
+            max_wait_time=5.0,
+        ),
     )
 
     assert response.status_code == test_case.status_code
@@ -84,7 +89,11 @@ def test_max_wait_time_below_backoff(
     response = test_case.method_func(
         TEST_URL,
         client=mock_client,
-        config=ClientConfig(max_retries=3, backoff_factor=0.5, max_wait_time=10.0),
+        config=ClientConfig(
+            max_retries=3,
+            backoff_strategy=ExponentialBackoff(base_delay=0.5),
+            max_wait_time=10.0,
+        ),
     )
 
     assert response.status_code == test_case.status_code
@@ -123,7 +132,11 @@ def test_max_wait_time_none(
     response = test_case.method_func(
         TEST_URL,
         client=mock_client,
-        config=ClientConfig(max_retries=5, backoff_factor=2.0, max_wait_time=None),
+        config=ClientConfig(
+            max_retries=5,
+            backoff_strategy=ExponentialBackoff(base_delay=2.0),
+            max_wait_time=None,
+        ),
     )
 
     assert response.status_code == test_case.status_code

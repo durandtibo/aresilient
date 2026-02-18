@@ -12,7 +12,6 @@ import pytest
 from coola.equality import objects_are_equal
 
 from aresilient.core import (
-    DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
     DEFAULT_TIMEOUT,
     RETRY_STATUS_CODES,
@@ -31,14 +30,16 @@ if TYPE_CHECKING:
 
 def test_client_config_defaults() -> None:
     """Test that ClientConfig uses correct default values."""
+    from aresilient.backoff.strategy import ExponentialBackoff
+
     config = ClientConfig()
 
     assert config.max_retries == DEFAULT_MAX_RETRIES
-    assert config.backoff_factor == DEFAULT_BACKOFF_FACTOR
+    assert isinstance(config.backoff_strategy, ExponentialBackoff)
+    assert config.backoff_strategy.base_delay == 0.3
     assert config.status_forcelist == RETRY_STATUS_CODES
     assert config.jitter_factor == 0.0
     assert config.retry_if is None
-    assert config.backoff_strategy is None
     assert config.max_total_time is None
     assert config.max_wait_time is None
     assert config.circuit_breaker is None
@@ -53,13 +54,6 @@ def test_client_config_max_retries(max_retries: int) -> None:
     """Test that ClientConfig accepts custom max_retries values."""
     config = ClientConfig(max_retries=max_retries)
     assert config.max_retries == max_retries
-
-
-@pytest.mark.parametrize("backoff_factor", [0.5, 1.0, 2.0, 0.0])
-def test_client_config_backoff_factor(backoff_factor: float) -> None:
-    """Test that ClientConfig accepts custom backoff_factor values."""
-    config = ClientConfig(backoff_factor=backoff_factor)
-    assert config.backoff_factor == backoff_factor
 
 
 @pytest.mark.parametrize("jitter_factor", [0.1, 0.0, 0.5])
@@ -149,12 +143,6 @@ def test_client_config_validation_max_retries_negative() -> None:
         ClientConfig(max_retries=-1)
 
 
-def test_client_config_validation_backoff_factor_negative() -> None:
-    """Test that ClientConfig validates backoff_factor >= 0."""
-    with pytest.raises(ValueError, match=r"backoff_factor must be >= 0"):
-        ClientConfig(backoff_factor=-0.5)
-
-
 def test_client_config_validation_jitter_factor_negative() -> None:
     """Test that ClientConfig validates jitter_factor >= 0."""
     with pytest.raises(ValueError, match=r"jitter_factor must be >= 0"):
@@ -197,21 +185,27 @@ def test_client_config_merge_no_overrides() -> None:
 
 def test_client_config_merge_with_overrides() -> None:
     """Test that merge() applies non-None overrides."""
-    config = ClientConfig(max_retries=3, backoff_factor=0.5)
+    from aresilient.backoff.strategy import ExponentialBackoff, LinearBackoff
+
+    original_strategy = ExponentialBackoff(base_delay=0.5)
+    config = ClientConfig(max_retries=3, backoff_strategy=original_strategy)
     merged = config.merge(max_retries=5)
 
     assert merged.max_retries == 5
-    assert merged.backoff_factor == 0.5  # Unchanged
+    assert merged.backoff_strategy is original_strategy  # Unchanged
     assert config.max_retries == 3  # Original unchanged
 
 
 def test_client_config_merge_with_none_values() -> None:
     """Test that merge() ignores None values."""
+    from aresilient.backoff.strategy import LinearBackoff
+
+    new_strategy = LinearBackoff(base_delay=1.0)
     config = ClientConfig(max_retries=3)
-    merged = config.merge(max_retries=None, backoff_factor=1.0)
+    merged = config.merge(max_retries=None, backoff_strategy=new_strategy)
 
     assert merged.max_retries == 3  # Not overridden (was None)
-    assert merged.backoff_factor == 1.0  # Overridden
+    assert merged.backoff_strategy is new_strategy  # Overridden
 
 
 def test_client_config_merge_preserves_original() -> None:
@@ -225,9 +219,12 @@ def test_client_config_merge_preserves_original() -> None:
 
 def test_client_config_to_dict() -> None:
     """Test that to_dict() returns all configuration parameters."""
+    from aresilient.backoff.strategy import ExponentialBackoff
+
+    strategy = ExponentialBackoff(base_delay=0.5)
     config = ClientConfig(
         max_retries=5,
-        backoff_factor=1.0,
+        backoff_strategy=strategy,
         jitter_factor=0.1,
         max_total_time=60.0,
         max_wait_time=10.0,
@@ -236,13 +233,12 @@ def test_client_config_to_dict() -> None:
         config.to_dict(),
         {
             "max_retries": 5,
-            "backoff_factor": 1.0,
             "jitter_factor": 0.1,
             "max_total_time": 60.0,
             "max_wait_time": 10.0,
             "status_forcelist": RETRY_STATUS_CODES,
             "retry_if": None,
-            "backoff_strategy": None,
+            "backoff_strategy": strategy,
             "circuit_breaker": None,
             "on_request": None,
             "on_retry": None,
@@ -312,11 +308,6 @@ def test_default_max_retries_value() -> None:
     assert DEFAULT_MAX_RETRIES == 3
 
 
-def test_default_backoff_factor_value() -> None:
-    """Test the DEFAULT_BACKOFF_FACTOR value."""
-    assert DEFAULT_BACKOFF_FACTOR == 0.3
-
-
 def test_retry_status_codes_is_tuple() -> None:
     """Test that RETRY_STATUS_CODES is a tuple."""
     assert isinstance(RETRY_STATUS_CODES, tuple)
@@ -351,6 +342,5 @@ def test_constants_are_immutable_types() -> None:
     """Test that configuration constants are immutable types."""
     # These should be int, float, or tuple (immutable)
     assert isinstance(DEFAULT_MAX_RETRIES, int)
-    assert isinstance(DEFAULT_BACKOFF_FACTOR, float)
     assert isinstance(DEFAULT_TIMEOUT, float)
     assert isinstance(RETRY_STATUS_CODES, tuple)

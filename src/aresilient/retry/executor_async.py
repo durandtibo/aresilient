@@ -61,7 +61,6 @@ class AsyncRetryExecutor:
         >>> async def main():
         ...     retry_config = RetryConfig(
         ...         max_retries=3,
-        ...         backoff_factor=0.5,
         ...         status_forcelist=(500, 502, 503),
         ...         jitter_factor=0.1,
         ...     )
@@ -89,7 +88,6 @@ class AsyncRetryExecutor:
     ) -> None:
         self.config = retry_config
         self.strategy: RetryStrategy = RetryStrategy(
-            backoff_factor=retry_config.backoff_factor,
             jitter_factor=retry_config.jitter_factor,
             backoff_strategy=retry_config.backoff_strategy,
             max_wait_time=retry_config.max_wait_time,
@@ -162,7 +160,6 @@ class AsyncRetryExecutor:
             >>> async def main():
             ...     retry_config = RetryConfig(
             ...         max_retries=2,
-            ...         backoff_factor=0.3,
             ...         status_forcelist=(500, 502, 503),
             ...         jitter_factor=0.0,
             ...     )

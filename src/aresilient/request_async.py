@@ -40,8 +40,8 @@ async def request_async(
     3. General network errors (httpx.RequestError)
 
     Backoff Strategy:
-    - Default: Exponential backoff: backoff_factor * (2 ** attempt)
-    - Custom: Use backoff_strategy parameter for alternative strategies
+    - Default: ExponentialBackoff with base_delay=0.3
+    - Custom: Use backoff_strategy in ClientConfig for alternative strategies
       (Linear, Fibonacci, Constant, or custom implementations)
     - Jitter: Optional randomization added to prevent thundering herd
     - Retry-After header: If present in the response (429/503), the server's
@@ -100,7 +100,6 @@ async def request_async(
     # Create retry configuration
     retry_config = RetryConfig(
         max_retries=config.max_retries,
-        backoff_factor=config.backoff_factor,
         status_forcelist=config.status_forcelist,
         jitter_factor=config.jitter_factor,
         retry_if=config.retry_if,

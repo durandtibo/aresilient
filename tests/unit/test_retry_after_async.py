@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, Mock, call, patch
 import httpx
 import pytest
 
+from aresilient.backoff import ExponentialBackoff
 from aresilient.core import ClientConfig
 from aresilient.request_async import request_async
 
@@ -152,7 +153,9 @@ async def test_request_with_jitter_applied_async(mock_asleep: Mock) -> None:
             method="GET",
             request_func=mock_request_func,
             config=ClientConfig(
-                status_forcelist=(503,), backoff_factor=1.0, jitter_factor=1.0
+                status_forcelist=(503,),
+                backoff_strategy=ExponentialBackoff(base_delay=1.0),
+                jitter_factor=1.0,
             ),  # Jitter factor of 1.0
         )
 
@@ -189,7 +192,11 @@ async def test_request_jitter_range_async(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            config=ClientConfig(status_forcelist=(503,), backoff_factor=2.0, jitter_factor=1.0),
+            config=ClientConfig(
+                status_forcelist=(503,),
+                backoff_strategy=ExponentialBackoff(base_delay=2.0),
+                jitter_factor=1.0,
+            ),
         )
 
     assert response == mock_success_response

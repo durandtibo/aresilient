@@ -276,16 +276,6 @@ def test_client_validation_timeout_zero(mock_sleep: Mock) -> None:
 
     mock_sleep.assert_not_called()
 
-
-def test_client_validation_backoff_factor_negative(mock_sleep: Mock) -> None:
-    """Test that client validates backoff_factor parameter must be >=
-    0."""
-    with pytest.raises(ValueError, match=r"backoff_factor must be >= 0, got -0.5"):
-        ResilientClient(backoff_factor=-0.5)
-
-    mock_sleep.assert_not_called()
-
-
 def test_client_shares_configuration_across_requests(
     mock_sleep: Mock, mock_response: httpx.Response
 ) -> None:
