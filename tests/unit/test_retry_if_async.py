@@ -72,7 +72,9 @@ async def test_retry_if_returns_true_for_successful_response(
         HttpRequestError, match=f"failed with status {test_case.status_code} after 4 attempts"
     ):
         await test_case.method_func(
-            TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate, max_retries=3)
+            TEST_URL,
+            client=mock_async_client,
+            config=ClientConfig(retry_if=retry_predicate, max_retries=3),
         )
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
@@ -104,7 +106,9 @@ async def test_retry_if_checks_response_content(
         return bool(response and "retry" in response.text.lower())
 
     response = await test_case.method_func(
-        TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate, max_retries=3)
+        TEST_URL,
+        client=mock_async_client,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -134,7 +138,9 @@ async def test_retry_if_returns_false_for_error_response(
         return False  # Never retry
 
     with pytest.raises(HttpRequestError, match=r"failed with status 500"):
-        await test_case.method_func(TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate))
+        await test_case.method_func(
+            TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate)
+        )
 
     # Should only try once since retry_if returns False
     mock_asleep.assert_not_called()
@@ -163,7 +169,9 @@ async def test_retry_if_returns_true_for_error_response(
         return bool(response and response.status_code >= 500)
 
     response = await test_case.method_func(
-        TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate, max_retries=3)
+        TEST_URL,
+        client=mock_async_client,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -195,7 +203,9 @@ async def test_retry_if_returns_false_for_exception(
         return False  # Never retry
 
     with pytest.raises(HttpRequestError, match=r"timed out"):
-        await test_case.method_func(TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate))
+        await test_case.method_func(
+            TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate)
+        )
 
     # Should only try once
     mock_asleep.assert_not_called()
@@ -224,7 +234,9 @@ async def test_retry_if_returns_true_for_exception(
         return bool(isinstance(exception, httpx.TimeoutException))
 
     response = await test_case.method_func(
-        TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate, max_retries=3)
+        TEST_URL,
+        client=mock_async_client,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -253,7 +265,9 @@ async def test_retry_if_with_connection_error(
         return bool(isinstance(exception, httpx.ConnectError))
 
     response = await test_case.method_func(
-        TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate, max_retries=3)
+        TEST_URL,
+        client=mock_async_client,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -282,7 +296,9 @@ async def test_retry_if_exhausts_retries_with_exception(
 
     with pytest.raises(HttpRequestError, match=r"timed out"):
         await test_case.method_func(
-            TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate, max_retries=2)
+            TEST_URL,
+            client=mock_async_client,
+            config=ClientConfig(retry_if=retry_predicate, max_retries=2),
         )
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
@@ -322,7 +338,9 @@ async def test_retry_if_complex_logic(
         return bool(isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)))
 
     response = await test_case.method_func(
-        TEST_URL, client=mock_async_client, config=ClientConfig(retry_if=retry_predicate, max_retries=3)
+        TEST_URL,
+        client=mock_async_client,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -347,7 +365,9 @@ async def test_retry_if_none_uses_default_behavior(
 
     # No retry_if provided - should use default behavior
     response = await test_case.method_func(
-        TEST_URL, client=mock_async_client, config=ClientConfig(status_forcelist=(503,), max_retries=3)
+        TEST_URL,
+        client=mock_async_client,
+        config=ClientConfig(status_forcelist=(503,), max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -416,7 +436,9 @@ async def test_retry_if_with_on_failure_callback(
         await test_case.method_func(
             TEST_URL,
             client=mock_async_client,
-            config=ClientConfig(retry_if=retry_predicate, on_failure=failure_callback, max_retries=2),
+            config=ClientConfig(
+                retry_if=retry_predicate, on_failure=failure_callback, max_retries=2
+            ),
         )
 
     failure_callback.assert_called_once()

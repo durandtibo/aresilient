@@ -9,10 +9,10 @@ import pytest
 
 from aresilient import HttpRequestError
 from aresilient.core import (
-    ClientConfig,
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
     RETRY_STATUS_CODES,
+    ClientConfig,
 )
 from aresilient.request import request
 

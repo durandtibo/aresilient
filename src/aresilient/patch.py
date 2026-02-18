@@ -1,4 +1,5 @@
-r"""Contains synchronous HTTP PATCH request with automatic retry logic."""
+r"""Contains synchronous HTTP PATCH request with automatic retry
+logic."""
 
 from __future__ import annotations
 
@@ -7,8 +8,8 @@ __all__ = ["patch"]
 from typing import TYPE_CHECKING, Any
 
 from aresilient.core.config import (
-    ClientConfig,
     DEFAULT_TIMEOUT,
+    ClientConfig,
 )
 from aresilient.core.http_logic import execute_http_method
 

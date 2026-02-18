@@ -14,10 +14,9 @@ from aresilient.callbacks import (
     invoke_on_retry,
     invoke_on_success,
 )
-from aresilient.core import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES
+from aresilient.core import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, ClientConfig
 from aresilient.exceptions import HttpRequestError
 from aresilient.request import request
-from aresilient.core import ClientConfig
 
 TEST_URL = "https://api.example.com/data"
 
@@ -255,7 +254,9 @@ def test_on_success_callback_not_called_on_failure(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            config=ClientConfig(status_forcelist=(500,), max_retries=2, on_success=on_success_callback),
+            config=ClientConfig(
+                status_forcelist=(500,), max_retries=2, on_success=on_success_callback
+            ),
         )
 
     on_success_callback.assert_not_called()
@@ -280,7 +281,9 @@ def test_on_failure_callback_called_on_retryable_status_failure(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            config=ClientConfig(status_forcelist=(500,), max_retries=2, on_failure=on_failure_callback),
+            config=ClientConfig(
+                status_forcelist=(500,), max_retries=2, on_failure=on_failure_callback
+            ),
         )
 
     on_failure_callback.assert_called_once()
@@ -489,7 +492,12 @@ def test_callbacks_with_custom_max_retries(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        config=ClientConfig(status_forcelist=(500,), max_retries=5, on_request=on_request_callback, on_retry=on_retry_callback),
+        config=ClientConfig(
+            status_forcelist=(500,),
+            max_retries=5,
+            on_request=on_request_callback,
+            on_retry=on_retry_callback,
+        ),
     )
 
     assert response == mock_response
@@ -525,7 +533,9 @@ def test_callbacks_with_custom_backoff_factor(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        config=ClientConfig(status_forcelist=(500,), backoff_factor=2.0, on_retry=on_retry_callback),
+        config=ClientConfig(
+            status_forcelist=(500,), backoff_factor=2.0, on_retry=on_retry_callback
+        ),
     )
 
     assert response == mock_response

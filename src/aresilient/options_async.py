@@ -8,8 +8,8 @@ __all__ = ["options_async"]
 from typing import TYPE_CHECKING, Any
 
 from aresilient.core.config import (
-    ClientConfig,
     DEFAULT_TIMEOUT,
+    ClientConfig,
 )
 from aresilient.core.http_logic import execute_http_method_async
 

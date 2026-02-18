@@ -126,7 +126,9 @@ def test_custom_status_forcelist(
         test_case.client_method, [mock_response_fail, mock_response]
     )
 
-    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(status_forcelist=(404,)))
+    response = test_case.method_func(
+        TEST_URL, client=mock_client, config=ClientConfig(status_forcelist=(404,))
+    )
 
     assert response.status_code == test_case.status_code
     mock_sleep.assert_called_once_with(0.3)

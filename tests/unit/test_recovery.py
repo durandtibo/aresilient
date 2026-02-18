@@ -40,7 +40,9 @@ def test_recovery_after_multiple_failures(
         ],
     )
 
-    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=5))
+    response = test_case.method_func(
+        TEST_URL, client=mock_client, config=ClientConfig(max_retries=5)
+    )
 
     assert response.status_code == test_case.status_code
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
@@ -63,7 +65,9 @@ def test_mixed_error_and_status_failures(
         ],
     )
 
-    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=5))
+    response = test_case.method_func(
+        TEST_URL, client=mock_client, config=ClientConfig(max_retries=5)
+    )
 
     assert response.status_code == test_case.status_code
     assert mock_sleep.call_args_list == [call(0.3), call(0.6), call(1.2)]

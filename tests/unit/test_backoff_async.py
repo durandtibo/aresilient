@@ -9,10 +9,9 @@ from __future__ import annotations
 from unittest.mock import Mock, call, patch
 
 import httpx
-
-from aresilient.core import ClientConfig
 import pytest
 
+from aresilient.core import ClientConfig
 from tests.helpers import (
     HTTP_METHODS_ASYNC,
     HttpMethodTestCase,
@@ -33,7 +32,9 @@ async def test_exponential_backoff(
         test_case.client_method, [mock_response_fail, mock_response_fail, mock_response]
     )
 
-    await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(backoff_factor=2.0))
+    await test_case.method_func(
+        TEST_URL, client=mock_client, config=ClientConfig(backoff_factor=2.0)
+    )
 
     # Should have slept twice (after 1st and 2nd failures)
     assert mock_asleep.call_args_list == [call(2.0), call(4.0)]

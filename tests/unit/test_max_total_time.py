@@ -91,14 +91,16 @@ def test_max_total_time_not_exceeded(
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_negative_max_total_time(test_case: HttpMethodTestCase) -> None:
-    """Test that negative max_total_time raises ValueError via ClientConfig."""
+    """Test that negative max_total_time raises ValueError via
+    ClientConfig."""
     with pytest.raises(ValueError, match=r"max_total_time must be > 0"):
         test_case.method_func(TEST_URL, config=ClientConfig(max_total_time=-1.0))
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_zero_max_total_time(test_case: HttpMethodTestCase) -> None:
-    """Test that zero max_total_time raises ValueError via ClientConfig."""
+    """Test that zero max_total_time raises ValueError via
+    ClientConfig."""
     with pytest.raises(ValueError, match=r"max_total_time must be > 0"):
         test_case.method_func(TEST_URL, config=ClientConfig(max_total_time=0.0))
 

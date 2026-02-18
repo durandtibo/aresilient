@@ -109,7 +109,9 @@ async def test_timeout_exception(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(1 attempts\)",
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=0))
+        await test_case.method_func(
+            TEST_URL, client=mock_client, config=ClientConfig(max_retries=0)
+        )
 
     mock_asleep.assert_not_called()
 
@@ -132,7 +134,9 @@ async def test_request_error(
             r"Connection failed"
         ),
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=0))
+        await test_case.method_func(
+            TEST_URL, client=mock_client, config=ClientConfig(max_retries=0)
+        )
 
     mock_asleep.assert_not_called()
 
@@ -140,7 +144,8 @@ async def test_request_error(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_negative_max_retries(test_case: HttpMethodTestCase) -> None:
-    """Test that negative max_retries raises ValueError via ClientConfig."""
+    """Test that negative max_retries raises ValueError via
+    ClientConfig."""
     with pytest.raises(ValueError, match=r"max_retries must be >= 0"):
         await test_case.method_func(TEST_URL, config=ClientConfig(max_retries=-1))
 
@@ -313,7 +318,9 @@ async def test_error_message_includes_url(
             r"after 1 attempts"
         ),
     ):
-        await test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=0))
+        await test_case.method_func(
+            TEST_URL, client=mock_client, config=ClientConfig(max_retries=0)
+        )
 
     mock_asleep.assert_not_called()
 
@@ -373,7 +380,8 @@ async def test_config_values_are_used(
     test_case: HttpMethodTestCase,
     mock_asleep: Mock,
 ) -> None:
-    """Test that config values are respected when async request fails."""
+    """Test that config values are respected when async request
+    fails."""
     config = ClientConfig(max_retries=0)
     mock_response = Mock(spec=httpx.Response, status_code=503)
     mock_client = AsyncMock(spec=httpx.AsyncClient)

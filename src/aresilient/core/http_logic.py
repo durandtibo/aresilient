@@ -8,20 +8,17 @@ from __future__ import annotations
 
 __all__ = ["execute_http_method", "execute_http_method_async"]
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import httpx
 
 from aresilient.core.config import (
-    ClientConfig,
     DEFAULT_TIMEOUT,
+    ClientConfig,
 )
 from aresilient.core.validation import validate_timeout
 from aresilient.request import request
 from aresilient.request_async import request_async
-
-if TYPE_CHECKING:
-    pass
 
 
 def execute_http_method(

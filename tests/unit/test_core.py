@@ -134,7 +134,8 @@ def test_request_error(
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_negative_max_retries(test_case: HttpMethodTestCase) -> None:
-    """Test that negative max_retries raises ValueError via ClientConfig."""
+    """Test that negative max_retries raises ValueError via
+    ClientConfig."""
     with pytest.raises(ValueError, match=r"max_retries must be >= 0"):
         test_case.method_func(TEST_URL, config=ClientConfig(max_retries=-1))
 
@@ -373,7 +374,8 @@ def test_config_none_uses_defaults(
     test_case: HttpMethodTestCase,
     mock_sleep: Mock,
 ) -> None:
-    """Test that config=None uses default values (same as not passing config)."""
+    """Test that config=None uses default values (same as not passing
+    config)."""
     mock_client, _ = setup_mock_client_for_method(test_case.client_method, test_case.status_code)
 
     response = test_case.method_func(TEST_URL, client=mock_client, config=None)
