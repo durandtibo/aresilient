@@ -7,12 +7,39 @@ retry logic.
 
 from __future__ import annotations
 
-__all__ = ["validate_retry_params"]
+__all__ = ["validate_retry_params", "validate_timeout"]
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import httpx
+
+
+def validate_timeout(timeout: float | httpx.Timeout) -> None:
+    """Validate timeout parameter.
+
+    Args:
+        timeout: Maximum seconds to wait for server responses.
+            Must be > 0 if provided as a numeric value.
+
+    Raises:
+        ValueError: If timeout is a numeric value <= 0.
+
+    Example:
+        ```pycon
+        >>> from aresilient.core.validation import validate_timeout
+        >>> validate_timeout(10.0)
+        >>> validate_timeout(30)
+        >>> validate_timeout(0)  # doctest: +SKIP
+        Traceback (most recent call last):
+        ...
+        ValueError: timeout must be > 0, got 0
+
+        ```
+    """
+    if isinstance(timeout, (int, float)) and timeout <= 0:
+        msg = f"timeout must be > 0, got {timeout}"
+        raise ValueError(msg)
 
 
 def validate_retry_params(

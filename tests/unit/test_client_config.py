@@ -8,8 +8,12 @@ from __future__ import annotations
 import pytest
 from coola.equality import objects_are_equal
 
-from aresilient.config import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, RETRY_STATUS_CODES
-from aresilient.core.config import ClientConfig
+from aresilient.core.config import (
+    DEFAULT_BACKOFF_FACTOR,
+    DEFAULT_MAX_RETRIES,
+    RETRY_STATUS_CODES,
+    ClientConfig,
+)
 
 
 #######################################
@@ -37,94 +41,69 @@ def test_client_config_defaults() -> None:
 
 
 @pytest.mark.parametrize(
-    ("param_name", "param_value"),
-    [
-        ("max_retries", 5),
-        ("max_retries", 0),
-        ("max_retries", 10),
-    ],
+    "max_retries",
+    [5, 0, 10],
 )
-def test_client_config_max_retries(param_name: str, param_value: int) -> None:
+def test_client_config_max_retries(max_retries: int) -> None:
     """Test that ClientConfig accepts custom max_retries values."""
-    config = ClientConfig(**{param_name: param_value})
-    assert getattr(config, param_name) == param_value
+    config = ClientConfig(max_retries=max_retries)
+    assert config.max_retries == max_retries
 
 
 @pytest.mark.parametrize(
-    ("param_name", "param_value"),
-    [
-        ("backoff_factor", 0.5),
-        ("backoff_factor", 1.0),
-        ("backoff_factor", 2.0),
-        ("backoff_factor", 0.0),
-    ],
+    "backoff_factor",
+    [0.5, 1.0, 2.0, 0.0],
 )
-def test_client_config_backoff_factor(param_name: str, param_value: float) -> None:
+def test_client_config_backoff_factor(backoff_factor: float) -> None:
     """Test that ClientConfig accepts custom backoff_factor values."""
-    config = ClientConfig(**{param_name: param_value})
-    assert getattr(config, param_name) == param_value
+    config = ClientConfig(backoff_factor=backoff_factor)
+    assert config.backoff_factor == backoff_factor
 
 
 @pytest.mark.parametrize(
-    ("param_name", "param_value"),
-    [
-        ("jitter_factor", 0.1),
-        ("jitter_factor", 0.0),
-        ("jitter_factor", 0.5),
-    ],
+    "jitter_factor",
+    [0.1, 0.0, 0.5],
 )
-def test_client_config_jitter_factor(param_name: str, param_value: float) -> None:
+def test_client_config_jitter_factor(jitter_factor: float) -> None:
     """Test that ClientConfig accepts custom jitter_factor values."""
-    config = ClientConfig(**{param_name: param_value})
-    assert getattr(config, param_name) == param_value
+    config = ClientConfig(jitter_factor=jitter_factor)
+    assert config.jitter_factor == jitter_factor
 
 
 @pytest.mark.parametrize(
-    ("param_name", "param_value"),
-    [
-        ("max_total_time", 30.0),
-        ("max_total_time", 60.0),
-        ("max_total_time", 120.0),
-    ],
+    "max_total_time",
+    [30.0, 60.0, 120.0],
 )
-def test_client_config_max_total_time(param_name: str, param_value: float) -> None:
+def test_client_config_max_total_time(max_total_time: float) -> None:
     """Test that ClientConfig accepts custom max_total_time values."""
-    config = ClientConfig(**{param_name: param_value})
-    assert getattr(config, param_name) == param_value
+    config = ClientConfig(max_total_time=max_total_time)
+    assert config.max_total_time == max_total_time
 
 
 @pytest.mark.parametrize(
-    ("param_name", "param_value"),
-    [
-        ("max_wait_time", 5.0),
-        ("max_wait_time", 10.0),
-        ("max_wait_time", 20.0),
-    ],
+    "max_wait_time",
+    [5.0, 10.0, 20.0],
 )
-def test_client_config_max_wait_time(param_name: str, param_value: float) -> None:
+def test_client_config_max_wait_time(max_wait_time: float) -> None:
     """Test that ClientConfig accepts custom max_wait_time values."""
-    config = ClientConfig(**{param_name: param_value})
-    assert getattr(config, param_name) == param_value
+    config = ClientConfig(max_wait_time=max_wait_time)
+    assert config.max_wait_time == max_wait_time
 
 
 @pytest.mark.parametrize(
-    ("param_name", "param_value"),
-    [
-        ("status_forcelist", (500, 502, 503)),
-        ("status_forcelist", (429, 500)),
-        ("status_forcelist", (503,)),
-    ],
+    "status_forcelist",
+    [(500, 502, 503), (429, 500), (503,)],
 )
-def test_client_config_status_forcelist(param_name: str, param_value: tuple) -> None:
+def test_client_config_status_forcelist(status_forcelist: tuple[int, ...]) -> None:
     """Test that ClientConfig accepts custom status_forcelist values."""
-    config = ClientConfig(**{param_name: param_value})
-    assert getattr(config, param_name) == param_value
+    config = ClientConfig(status_forcelist=status_forcelist)
+    assert config.status_forcelist == status_forcelist
 
 
 def test_client_config_retry_if() -> None:
     """Test that ClientConfig accepts custom retry_if callback."""
 
-    def custom_retry_if(response, exception):
+    def custom_retry_if(response: object, exception: object) -> bool:
         return response is not None and response.status_code == 503
 
     config = ClientConfig(retry_if=custom_retry_if)
@@ -134,7 +113,7 @@ def test_client_config_retry_if() -> None:
 def test_client_config_on_request() -> None:
     """Test that ClientConfig accepts on_request callback."""
 
-    def on_request_callback(request_info):
+    def on_request_callback(request_info: object) -> None:
         pass
 
     config = ClientConfig(on_request=on_request_callback)
@@ -144,7 +123,7 @@ def test_client_config_on_request() -> None:
 def test_client_config_on_retry() -> None:
     """Test that ClientConfig accepts on_retry callback."""
 
-    def on_retry_callback(retry_info):
+    def on_retry_callback(retry_info: object) -> None:
         pass
 
     config = ClientConfig(on_retry=on_retry_callback)
@@ -154,7 +133,7 @@ def test_client_config_on_retry() -> None:
 def test_client_config_on_success() -> None:
     """Test that ClientConfig accepts on_success callback."""
 
-    def on_success_callback(response_info):
+    def on_success_callback(response_info: object) -> None:
         pass
 
     config = ClientConfig(on_success=on_success_callback)
@@ -164,7 +143,7 @@ def test_client_config_on_success() -> None:
 def test_client_config_on_failure() -> None:
     """Test that ClientConfig accepts on_failure callback."""
 
-    def on_failure_callback(failure_info):
+    def on_failure_callback(failure_info: object) -> None:
         pass
 
     config = ClientConfig(on_failure=on_failure_callback)

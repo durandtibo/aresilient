@@ -1,22 +1,23 @@
-r"""Configuration dataclass for ResilientClient.
+r"""Configuration dataclass and defaults for ResilientClient.
 
-This module provides a dataclass-based configuration object for the
-ResilientClient and AsyncResilientClient context manager classes to reduce
-code duplication while maintaining a clean interface.
+This module provides configuration constants and a dataclass-based
+configuration object for the ResilientClient and AsyncResilientClient
+context manager classes.
 """
 
 from __future__ import annotations
 
-__all__ = ["ClientConfig"]
+__all__ = [
+    "ClientConfig",
+    "DEFAULT_BACKOFF_FACTOR",
+    "DEFAULT_MAX_RETRIES",
+    "DEFAULT_TIMEOUT",
+    "RETRY_STATUS_CODES",
+]
 
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
-from aresilient.config import (
-    DEFAULT_BACKOFF_FACTOR,
-    DEFAULT_MAX_RETRIES,
-    RETRY_STATUS_CODES,
-)
 from aresilient.core.validation import validate_retry_params
 
 if TYPE_CHECKING:
@@ -27,6 +28,28 @@ if TYPE_CHECKING:
     from aresilient.backoff import BackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
     from aresilient.circuit_breaker import CircuitBreaker
+
+
+# Default timeout in seconds for HTTP requests
+# This is a reasonable default for most API calls
+DEFAULT_TIMEOUT = 10.0
+
+# Default maximum number of retry attempts
+# Total attempts = max_retries + 1 (initial attempt)
+DEFAULT_MAX_RETRIES = 3
+
+# Default backoff factor for exponential backoff
+# Wait time = backoff_factor * (2 ** attempt)
+# With 0.3: 1st retry waits 0.3s, 2nd waits 0.6s, 3rd waits 1.2s
+DEFAULT_BACKOFF_FACTOR = 0.3
+
+# HTTP status codes that should trigger automatic retry
+# 429: Too Many Requests - Rate limiting
+# 500: Internal Server Error - Temporary server issue
+# 502: Bad Gateway - Upstream server error
+# 503: Service Unavailable - Server overloaded or down
+# 504: Gateway Timeout - Upstream server timeout
+RETRY_STATUS_CODES = (429, 500, 502, 503, 504)
 
 
 @dataclass

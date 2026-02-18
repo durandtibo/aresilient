@@ -21,6 +21,7 @@ from aresilient.config import (
     RETRY_STATUS_CODES,
 )
 from aresilient.core.config import ClientConfig
+from aresilient.core.validation import validate_timeout
 from aresilient.request import request_with_automatic_retry
 
 if TYPE_CHECKING:
@@ -96,9 +97,7 @@ class ResilientClient:
     ) -> None:
         """Initialize the resilient client with retry configuration."""
         # Validate timeout separately (used for httpx.Client creation, not retry logic)
-        if isinstance(timeout, (int, float)) and timeout <= 0:
-            msg = f"timeout must be > 0, got {timeout}"
-            raise ValueError(msg)
+        validate_timeout(timeout)
 
         # Store timeout separately (used for httpx.Client creation)
         self._timeout = timeout
