@@ -11,6 +11,7 @@ __all__ = ["RetryStrategy"]
 from typing import TYPE_CHECKING
 
 from aresilient.backoff.sleep import calculate_sleep_time
+from aresilient.backoff.strategy import ExponentialBackoff
 
 if TYPE_CHECKING:
     import httpx
@@ -26,12 +27,12 @@ class RetryStrategy:
 
     Args:
         jitter_factor: Factor for adding random jitter to delays.
-        backoff_strategy: Optional custom backoff strategy instance.
+        backoff_strategy: Backoff strategy instance. Defaults to ExponentialBackoff().
         max_wait_time: Optional maximum wait time cap in seconds.
 
     Attributes:
         jitter_factor: Factor for adding random jitter to delays.
-        backoff_strategy: Optional custom backoff strategy instance.
+        backoff_strategy: Backoff strategy instance.
         max_wait_time: Optional maximum wait time cap in seconds.
     """
 
@@ -42,7 +43,9 @@ class RetryStrategy:
         max_wait_time: float | None = None,
     ) -> None:
         self.jitter_factor = jitter_factor
-        self.backoff_strategy = backoff_strategy
+        self.backoff_strategy: BackoffStrategy = (
+            backoff_strategy if backoff_strategy is not None else ExponentialBackoff()
+        )
         self.max_wait_time = max_wait_time
 
     def calculate_delay(

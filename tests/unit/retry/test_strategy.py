@@ -15,12 +15,14 @@ from aresilient.retry.strategy import RetryStrategy
 
 def test_retry_strategy_creation() -> None:
     """Test RetryStrategy initialization."""
+    from aresilient.backoff.strategy import ExponentialBackoff
+
     strategy = RetryStrategy(
         jitter_factor=0.1,
     )
 
     assert strategy.jitter_factor == 0.1
-    assert strategy.backoff_strategy is None
+    assert isinstance(strategy.backoff_strategy, ExponentialBackoff)
     assert strategy.max_wait_time is None
 
 
