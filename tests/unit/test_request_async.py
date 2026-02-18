@@ -675,3 +675,97 @@ async def test_request_async_retry_if_none_uses_default_behavior(
 
     assert response == mock_response_ok
     mock_asleep.assert_called_once_with(0.3)
+
+
+######################################################
+#     Tests for config parameter in request_async   #
+######################################################
+
+
+@pytest.mark.asyncio
+async def test_request_async_with_config(
+    mock_response: httpx.Response,
+    mock_async_request_func: AsyncMock,
+    mock_asleep: Mock,
+) -> None:
+    """Test async request using ClientConfig."""
+    from aresilient.core import ClientConfig
+
+    config = ClientConfig(max_retries=2, backoff_factor=0.5)
+    response = await request_async(
+        url="https://example.com",
+        method="GET",
+        request_func=mock_async_request_func,
+        config=config,
+    )
+
+    assert response == mock_response
+    mock_async_request_func.assert_called_once_with(url="https://example.com")
+    mock_asleep.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_request_async_config_values_are_used(mock_asleep: Mock) -> None:
+    """Test that config values control retry behavior in async request."""
+    from aresilient.core import ClientConfig
+
+    config = ClientConfig(max_retries=0)
+    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
+    mock_request_func = AsyncMock(return_value=mock_fail_response)
+
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to .* failed with status 503 after 1 attempts",
+    ):
+        await request_async(
+            url="https://example.com",
+            method="GET",
+            request_func=mock_request_func,
+            config=config,
+        )
+
+    mock_asleep.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_request_async_individual_params_override_config(mock_asleep: Mock) -> None:
+    """Test that individual params override config values in async request."""
+    from aresilient.core import ClientConfig
+
+    # config says max_retries=5, but individual param overrides to 0
+    config = ClientConfig(max_retries=5)
+    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
+    mock_request_func = AsyncMock(return_value=mock_fail_response)
+
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to .* failed with status 503 after 1 attempts",
+    ):
+        await request_async(
+            url="https://example.com",
+            method="GET",
+            request_func=mock_request_func,
+            config=config,
+            max_retries=0,  # Overrides config.max_retries=5
+        )
+
+    mock_asleep.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_request_async_config_none_uses_defaults(
+    mock_response: httpx.Response,
+    mock_async_request_func: AsyncMock,
+    mock_asleep: Mock,
+) -> None:
+    """Test that config=None uses default values in async request."""
+    response = await request_async(
+        url="https://example.com",
+        method="GET",
+        request_func=mock_async_request_func,
+        config=None,
+    )
+
+    assert response == mock_response
+    mock_async_request_func.assert_called_once_with(url="https://example.com")
+    mock_asleep.assert_not_called()

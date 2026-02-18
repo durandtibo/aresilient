@@ -1008,3 +1008,93 @@ def test_request_retry_if_none_uses_default_behavior(
 
     assert response == mock_response_ok
     mock_sleep.assert_called_once_with(0.3)
+
+
+##################################################
+#     Tests for config parameter in request     #
+##################################################
+
+
+def test_request_with_config(
+    mock_response: httpx.Response, mock_request_func: Mock, mock_sleep: Mock
+) -> None:
+    """Test request using ClientConfig."""
+    from aresilient.core import ClientConfig
+
+    config = ClientConfig(max_retries=2, backoff_factor=0.5)
+    response = request(
+        url=TEST_URL,
+        method="GET",
+        request_func=mock_request_func,
+        config=config,
+    )
+
+    assert response == mock_response
+    mock_request_func.assert_called_once_with(url=TEST_URL)
+    mock_sleep.assert_not_called()
+
+
+def test_request_config_values_are_used(mock_sleep: Mock) -> None:
+    """Test that config values control retry behavior."""
+    from aresilient.core import ClientConfig
+
+    config = ClientConfig(max_retries=0)
+    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
+    mock_request_func = Mock(return_value=mock_fail_response)
+
+    from aresilient import HttpRequestError
+
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to .* failed with status 503 after 1 attempts",
+    ):
+        request(
+            url=TEST_URL,
+            method="GET",
+            request_func=mock_request_func,
+            config=config,
+        )
+
+    mock_sleep.assert_not_called()
+
+
+def test_request_individual_params_override_config(mock_sleep: Mock) -> None:
+    """Test that individual params override config values in request."""
+    from aresilient.core import ClientConfig
+
+    # config says max_retries=5, but individual param overrides to 0
+    config = ClientConfig(max_retries=5)
+    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
+    mock_request_func = Mock(return_value=mock_fail_response)
+
+    from aresilient import HttpRequestError
+
+    with pytest.raises(
+        HttpRequestError,
+        match=r"GET request to .* failed with status 503 after 1 attempts",
+    ):
+        request(
+            url=TEST_URL,
+            method="GET",
+            request_func=mock_request_func,
+            config=config,
+            max_retries=0,  # Overrides config.max_retries=5
+        )
+
+    mock_sleep.assert_not_called()
+
+
+def test_request_config_none_uses_defaults(
+    mock_response: httpx.Response, mock_request_func: Mock, mock_sleep: Mock
+) -> None:
+    """Test that config=None uses default values."""
+    response = request(
+        url=TEST_URL,
+        method="GET",
+        request_func=mock_request_func,
+        config=None,
+    )
+
+    assert response == mock_response
+    mock_request_func.assert_called_once_with(url=TEST_URL)
+    mock_sleep.assert_not_called()

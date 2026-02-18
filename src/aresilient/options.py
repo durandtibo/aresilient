@@ -8,10 +8,8 @@ __all__ = ["options"]
 from typing import TYPE_CHECKING, Any
 
 from aresilient.core.config import (
-    DEFAULT_BACKOFF_FACTOR,
-    DEFAULT_MAX_RETRIES,
+    ClientConfig,
     DEFAULT_TIMEOUT,
-    RETRY_STATUS_CODES,
 )
 from aresilient.core.http_logic import execute_http_method
 
@@ -22,21 +20,24 @@ if TYPE_CHECKING:
 
     from aresilient.backoff import BackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
+    from aresilient.circuit_breaker import CircuitBreaker
 
 
 def options(
     url: str,
     *,
     client: httpx.Client | None = None,
+    config: ClientConfig | None = None,
     timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
-    max_retries: int = DEFAULT_MAX_RETRIES,
-    backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
-    status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
-    jitter_factor: float = 0.0,
+    max_retries: int | None = None,
+    backoff_factor: float | None = None,
+    status_forcelist: tuple[int, ...] | None = None,
+    jitter_factor: float | None = None,
     retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
     backoff_strategy: BackoffStrategy | None = None,
     max_total_time: float | None = None,
     max_wait_time: float | None = None,
+    circuit_breaker: CircuitBreaker | None = None,
     on_request: Callable[[RequestInfo], None] | None = None,
     on_retry: Callable[[RetryInfo], None] | None = None,
     on_success: Callable[[ResponseInfo], None] | None = None,
@@ -128,6 +129,7 @@ def options(
         url=url,
         method="OPTIONS",
         client=client,
+        config=config,
         timeout=timeout,
         max_retries=max_retries,
         backoff_factor=backoff_factor,
@@ -137,6 +139,7 @@ def options(
         backoff_strategy=backoff_strategy,
         max_total_time=max_total_time,
         max_wait_time=max_wait_time,
+        circuit_breaker=circuit_breaker,
         on_request=on_request,
         on_retry=on_retry,
         on_success=on_success,
