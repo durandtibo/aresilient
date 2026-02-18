@@ -1,4 +1,4 @@
-r"""Unit tests for options_with_automatic_retry function.
+r"""Unit tests for options function.
 
 This file contains tests that are specific to the OPTIONS HTTP method.
 Common tests across all HTTP methods are in test_core.py.

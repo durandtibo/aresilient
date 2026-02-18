@@ -7,7 +7,7 @@ from unittest.mock import Mock, call, patch
 
 import httpx
 
-from aresilient.request import request_with_automatic_retry
+from aresilient.request import request
 
 TEST_URL = "https://api.example.com/data"
 
@@ -25,7 +25,7 @@ def test_request_with_retry_after_header_integer(mock_sleep: Mock) -> None:
     mock_success_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_success_response])
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -49,7 +49,7 @@ def test_request_with_retry_after_header_multiple_retries(mock_sleep: Mock) -> N
         side_effect=[mock_fail_response_1, mock_fail_response_2, mock_success_response]
     )
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -69,7 +69,7 @@ def test_request_without_retry_after_uses_exponential_backoff(mock_sleep: Mock) 
     mock_success_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_success_response])
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -93,7 +93,7 @@ def test_request_with_retry_after_mixed_with_backoff(mock_sleep: Mock) -> None:
         side_effect=[mock_fail_response_1, mock_fail_response_2, mock_success_response]
     )
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -121,7 +121,7 @@ def test_request_with_jitter_applied(mock_sleep: Mock) -> None:
     with patch(
         "aresilient.backoff.sleep.random.uniform", return_value=0.05
     ):  # returns 5% of jitter_factor
-        response = request_with_automatic_retry(
+        response = request(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
@@ -146,7 +146,7 @@ def test_request_jitter_with_retry_after(mock_sleep: Mock) -> None:
 
     # Mock jitter to 0.1 (10% of jitter_factor)
     with patch("aresilient.backoff.sleep.random.uniform", return_value=0.1):
-        response = request_with_automatic_retry(
+        response = request(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,

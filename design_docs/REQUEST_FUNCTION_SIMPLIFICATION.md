@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-The `request_with_automatic_retry` and `request_with_automatic_retry_async` functions are too
+The `request` and `request_async` functions are too
 complex and raise the following linting errors:
 
 - **PLR0912**: Too many branches (19 > 12)
@@ -602,7 +602,7 @@ class RetryExecutor:
 
 
 # Backward-compatible wrapper function
-def request_with_automatic_retry(
+def request(
     url: str,
     method: str,
     request_func: Callable[..., httpx.Response],
@@ -699,14 +699,14 @@ This approach provides the best balance of:
 
 ### Phase 2: Refactor Synchronous Function (Week 1)
 
-1. Update `request_with_automatic_retry()` to use new helper functions
+1. Update `request()` to use new helper functions
 2. Remove duplicated retry_if handling code
 3. Run full test suite to ensure no regression
 4. Verify linting passes (should fix PLR0912 and PLR0915)
 
 ### Phase 3: Refactor Async Function (Week 1)
 
-1. Update `request_with_automatic_retry_async()` to use new helper functions
+1. Update `request_async()` to use new helper functions
 2. Remove duplicated retry_if handling code
 3. Run full test suite to ensure no regression
 4. Verify linting passes

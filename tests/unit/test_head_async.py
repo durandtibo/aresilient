@@ -1,4 +1,4 @@
-r"""Unit tests for head_with_automatic_retry_async function.
+r"""Unit tests for head_async function.
 
 This file contains tests that are specific to the async HEAD HTTP method.
 Common tests across all async HTTP methods are in test_core_async.py.

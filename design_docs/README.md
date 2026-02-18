@@ -39,7 +39,7 @@ This directory contains design documents and proposals for the aresilient librar
 
 - **[REQUEST_FUNCTION_SIMPLIFICATION.md](REQUEST_FUNCTION_SIMPLIFICATION.md)** - Request function
   complexity reduction
-    - Analysis of `request_with_automatic_retry` and `request_with_automatic_retry_async` complexity
+    - Analysis of `request` and `request_async` complexity
       issues
     - Five proposed approaches for reducing branches and statements
     - Recommended approach: Extract retry_if handling to helper functions

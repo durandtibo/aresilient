@@ -22,7 +22,7 @@ from aresilient.core.config import (
     ClientConfig,
 )
 from aresilient.core.validation import validate_timeout
-from aresilient.request import request_with_automatic_retry
+from aresilient.request import request
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -242,7 +242,7 @@ class ResilientClient:
             on_failure=on_failure,
         )
 
-        return request_with_automatic_retry(
+        return request(
             url=url,
             method=method,
             request_func=getattr(client, method.lower()),

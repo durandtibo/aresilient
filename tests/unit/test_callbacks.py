@@ -16,7 +16,7 @@ from aresilient.callbacks import (
 )
 from aresilient.core import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES
 from aresilient.exceptions import HttpRequestError
-from aresilient.request import request_with_automatic_retry
+from aresilient.request import request
 
 TEST_URL = "https://api.example.com/data"
 
@@ -33,7 +33,7 @@ def test_on_request_callback_called_on_first_attempt(
     attempt."""
     on_request_callback = Mock()
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -55,7 +55,7 @@ def test_on_request_callback_called_on_each_retry(
     on_request_callback = Mock()
     mock_request_func = Mock(side_effect=[mock_response_fail, mock_response_fail, mock_response])
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -85,7 +85,7 @@ def test_on_retry_callback_called_before_retry(
     on_retry_callback = Mock()
     mock_request_func = Mock(side_effect=[mock_response_fail, mock_response])
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -115,7 +115,7 @@ def test_on_retry_callback_not_called_on_first_success(
     on first attempt."""
     on_retry_callback = Mock()
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -135,7 +135,7 @@ def test_on_retry_callback_with_timeout_exception(
     on_retry_callback = Mock()
     mock_request_func = Mock(side_effect=[httpx.TimeoutException("timeout"), mock_response])
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -163,7 +163,7 @@ def test_on_retry_callback_with_request_error(
     on_retry_callback = Mock()
     mock_request_func = Mock(side_effect=[httpx.ConnectError("connection failed"), mock_response])
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -194,7 +194,7 @@ def test_on_success_callback_called_on_success(
     """Test that on_success callback is called when request succeeds."""
     on_success_callback = Mock()
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -221,7 +221,7 @@ def test_on_success_callback_after_retries(
     on_success_callback = Mock()
     mock_request_func = Mock(side_effect=[mock_response_fail, mock_response_fail, mock_response])
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -253,7 +253,7 @@ def test_on_success_callback_not_called_on_failure(
         HttpRequestError,
         match=r"GET request to https://api.example.com/data failed with status 500 after 3 attempts",
     ):
-        request_with_automatic_retry(
+        request(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
@@ -280,7 +280,7 @@ def test_on_failure_callback_called_on_retryable_status_failure(
     mock_request_func = Mock(return_value=mock_response_fail)
 
     with pytest.raises(HttpRequestError, match=r"GET request to https://api.example.com/data"):
-        request_with_automatic_retry(
+        request(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
@@ -308,7 +308,7 @@ def test_on_failure_callback_not_called_on_success(
     succeeds."""
     on_failure_callback = Mock()
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -327,7 +327,7 @@ def test_on_failure_callback_with_timeout_error(mock_sleep: Mock) -> None:
     mock_request_func = Mock(side_effect=httpx.TimeoutException("timeout"))
 
     with pytest.raises(HttpRequestError):
-        request_with_automatic_retry(
+        request(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
@@ -359,7 +359,7 @@ def test_all_callbacks_together_on_success(
 
     mock_request_func = Mock(side_effect=[mock_response_fail, mock_response])
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -405,7 +405,7 @@ def test_all_callbacks_together_on_failure(
         HttpRequestError,
         match=r"GET request to https://api.example.com/data failed with status 500 after 3 attempts",
     ):
-        request_with_automatic_retry(
+        request(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
@@ -465,7 +465,7 @@ def test_callback_exception_does_not_break_retry_logic(
 
     # Should still succeed despite callback exception
     with pytest.raises(ValueError, match=r"callback error"):
-        request_with_automatic_retry(
+        request(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
@@ -488,7 +488,7 @@ def test_callbacks_with_custom_max_retries(
     on_retry_callback = Mock()
     mock_request_func = Mock(side_effect=[mock_response_fail, mock_response])
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
@@ -527,7 +527,7 @@ def test_callbacks_with_custom_backoff_factor(
     on_retry_callback = Mock()
     mock_request_func = Mock(side_effect=[mock_response_fail, mock_response])
 
-    response = request_with_automatic_retry(
+    response = request(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,

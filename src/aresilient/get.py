@@ -2,7 +2,7 @@ r"""Contains synchronous HTTP GET request with automatic retry logic."""
 
 from __future__ import annotations
 
-__all__ = ["get_with_automatic_retry"]
+__all__ = ["get"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-def get_with_automatic_retry(
+def get(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -110,8 +110,8 @@ def get_with_automatic_retry(
 
     Example:
         ```pycon
-        >>> from aresilient import get_with_automatic_retry
-        >>> response = get_with_automatic_retry("https://api.example.com/data")  # doctest: +SKIP
+        >>> from aresilient import get
+        >>> response = get("https://api.example.com/data")  # doctest: +SKIP
 
         ```
     """

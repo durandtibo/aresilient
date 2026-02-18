@@ -24,10 +24,10 @@ requests with automatic retry logic.
 The simplest way to make an HTTP GET request with automatic retry:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Basic GET request
-response = get_with_automatic_retry("https://api.example.com/users")
+response = get("https://api.example.com/users")
 print(response.json())
 ```
 
@@ -36,17 +36,17 @@ print(response.json())
 POST requests work similarly with support for JSON payloads and form data:
 
 ```python
-from aresilient import post_with_automatic_retry
+from aresilient import post
 
 # POST with JSON payload
-response = post_with_automatic_retry(
+response = post(
     "https://api.example.com/users",
     json={"name": "John Doe", "email": "john@example.com"},
 )
 print(response.status_code)
 
 # POST with form data
-response = post_with_automatic_retry(
+response = post(
     "https://api.example.com/submit", data={"field1": "value1", "field2": "value2"}
 )
 ```
@@ -57,23 +57,19 @@ response = post_with_automatic_retry(
 
 ```python
 from aresilient import (
-    put_with_automatic_retry,
-    delete_with_automatic_retry,
-    patch_with_automatic_retry,
+    put,
+    delete,
+    patch,
 )
 
 # PUT request to update a resource
-response = put_with_automatic_retry(
-    "https://api.example.com/resource/123", json={"name": "updated"}
-)
+response = put("https://api.example.com/resource/123", json={"name": "updated"})
 
 # DELETE request to remove a resource
-response = delete_with_automatic_retry("https://api.example.com/resource/123")
+response = delete("https://api.example.com/resource/123")
 
 # PATCH request to partially update a resource
-response = patch_with_automatic_retry(
-    "https://api.example.com/resource/123", json={"status": "active"}
-)
+response = patch("https://api.example.com/resource/123", json={"status": "active"})
 ```
 
 ## Async Usage
@@ -85,11 +81,11 @@ All async functions have the same parameters as their synchronous counterparts.
 
 ```python
 import asyncio
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 
 async def fetch_data():
-    response = await get_with_automatic_retry_async("https://api.example.com/data")
+    response = await get_async("https://api.example.com/data")
     return response.json()
 
 
@@ -102,11 +98,11 @@ print(data)
 
 ```python
 import asyncio
-from aresilient import post_with_automatic_retry_async
+from aresilient import post_async
 
 
 async def create_user():
-    response = await post_with_automatic_retry_async(
+    response = await post_async(
         "https://api.example.com/users",
         json={"name": "Jane Doe", "email": "jane@example.com"},
     )
@@ -124,11 +120,11 @@ All HTTP methods have async versions with identical parameters and callback supp
 
 ```python
 from aresilient import (
-    put_with_automatic_retry_async,
-    delete_with_automatic_retry_async,
-    patch_with_automatic_retry_async,
-    head_with_automatic_retry_async,
-    options_with_automatic_retry_async,
+    put_async,
+    delete_async,
+    patch_async,
+    head_async,
+    options_async,
 )
 ```
 
@@ -146,18 +142,14 @@ For better performance with multiple async requests, reuse an `httpx.AsyncClient
 ```python
 import asyncio
 import httpx
-from aresilient import get_with_automatic_retry_async, post_with_automatic_retry_async
+from aresilient import get_async, post_async
 
 
 async def fetch_multiple_resources():
     async with httpx.AsyncClient(timeout=30.0) as client:
         # Make multiple concurrent requests
-        users_task = get_with_automatic_retry_async(
-            "https://api.example.com/users", client=client
-        )
-        posts_task = get_with_automatic_retry_async(
-            "https://api.example.com/posts", client=client
-        )
+        users_task = get_async("https://api.example.com/users", client=client)
+        posts_task = get_async("https://api.example.com/posts", client=client)
 
         # Wait for both requests to complete
         users, posts = await asyncio.gather(users_task, posts_task)
@@ -175,11 +167,11 @@ Process multiple URLs concurrently for better performance:
 
 ```python
 import asyncio
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 
 async def fetch_all(urls):
-    tasks = [get_with_automatic_retry_async(url) for url in urls]
+    tasks = [get_async(url) for url in urls]
     responses = await asyncio.gather(*tasks, return_exceptions=True)
     return responses
 
@@ -218,24 +210,20 @@ print(f"Retry on status codes: {RETRY_STATUS_CODES}")
 Control how long to wait for a server response:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Short timeout for quick responses
-response = get_with_automatic_retry(
-    "https://api.example.com/health", timeout=5.0  # 5 seconds
-)
+response = get("https://api.example.com/health", timeout=5.0)  # 5 seconds
 
 # Longer timeout for slow endpoints
-response = get_with_automatic_retry(
-    "https://api.example.com/slow-endpoint", timeout=60.0  # 60 seconds
-)
+response = get("https://api.example.com/slow-endpoint", timeout=60.0)  # 60 seconds
 ```
 
 You can also use httpx.Timeout for fine-grained control:
 
 ```python
 import httpx
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Different timeouts for different operations
 timeout = httpx.Timeout(
@@ -245,7 +233,7 @@ timeout = httpx.Timeout(
     pool=5.0,  # 5 seconds to get connection from pool
 )
 
-response = get_with_automatic_retry("https://api.example.com/data", timeout=timeout)
+response = get("https://api.example.com/data", timeout=timeout)
 ```
 
 ### Customizing Retry Behavior
@@ -253,24 +241,24 @@ response = get_with_automatic_retry("https://api.example.com/data", timeout=time
 Control how many times and how long between retries:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # More aggressive retry
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     max_retries=5,  # Retry up to 5 times
     backoff_factor=0.5,  # Longer waits between retries
 )
 
 # Less aggressive retry
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     max_retries=1,  # Only retry once
     backoff_factor=0.1,  # Shorter waits between retries
 )
 
 # With jitter to prevent thundering herd
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     max_retries=3,
     backoff_factor=0.5,
@@ -278,7 +266,7 @@ response = get_with_automatic_retry(
 )
 
 # No retry
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data", max_retries=0  # No retries, fail immediately
 )
 ```
@@ -323,7 +311,7 @@ You can use alternative backoff strategies by providing a `backoff_strategy` par
 
 ```python
 from aresilient import (
-    get_with_automatic_retry,
+    get,
     LinearBackoff,
     FibonacciBackoff,
     ConstantBackoff,
@@ -331,25 +319,25 @@ from aresilient import (
 )
 
 # Linear backoff: 1s, 2s, 3s, 4s...
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=10.0),
 )
 
 # Fibonacci backoff: 1s, 1s, 2s, 3s, 5s, 8s...
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0),
 )
 
 # Constant backoff: 2s, 2s, 2s, 2s...
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=ConstantBackoff(delay=2.0),
 )
 
 # Explicit exponential backoff with custom settings
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0),
 )
@@ -364,20 +352,18 @@ By default, `aresilient` retries on status codes 429, 500, 502, 503, and 504. Yo
 this:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Only retry on rate limiting
-response = get_with_automatic_retry(
-    "https://api.example.com/data", status_forcelist=(429,)
-)
+response = get("https://api.example.com/data", status_forcelist=(429,))
 
 # Retry on server errors and rate limiting
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data", status_forcelist=(429, 500, 502, 503, 504)
 )
 
 # Add custom status codes
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     status_forcelist=(408, 429, 500, 502, 503, 504),  # Include 408 Request Timeout
 )
@@ -411,17 +397,17 @@ delay from a server.
 Control the total time budget and maximum wait time for retries:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Limit total time for all retry attempts
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     max_retries=10,
     max_total_time=30.0,  # Stop retrying after 30 seconds total
 )
 
 # Cap individual backoff delays
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     max_retries=10,
     backoff_factor=2.0,
@@ -429,7 +415,7 @@ response = get_with_automatic_retry(
 )
 
 # Combine both for strict SLA guarantees
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     max_retries=10,
     backoff_factor=2.0,
@@ -576,15 +562,13 @@ For advanced configurations like custom headers, authentication, or connection p
 
 ```python
 import httpx
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Create a client with custom headers
 with httpx.Client(
     headers={"User-Agent": "MyApp/1.0", "Authorization": "Bearer your-token-here"}
 ) as client:
-    response = get_with_automatic_retry(
-        "https://api.example.com/protected", client=client
-    )
+    response = get("https://api.example.com/protected", client=client)
     print(response.json())
 ```
 
@@ -594,17 +578,15 @@ When making multiple requests, reuse the same client for better performance:
 
 ```python
 import httpx
-from aresilient import get_with_automatic_retry, post_with_automatic_retry
+from aresilient import get, post
 
 with httpx.Client(headers={"Authorization": "Bearer token"}, timeout=30.0) as client:
     # Multiple requests using the same client
-    users = get_with_automatic_retry("https://api.example.com/users", client=client)
+    users = get("https://api.example.com/users", client=client)
 
-    posts = get_with_automatic_retry("https://api.example.com/posts", client=client)
+    posts = get("https://api.example.com/posts", client=client)
 
-    result = post_with_automatic_retry(
-        "https://api.example.com/data", client=client, json={"data": "value"}
-    )
+    result = post("https://api.example.com/data", client=client, json={"data": "value"})
 ```
 
 ### Passing Additional httpx Arguments
@@ -612,26 +594,20 @@ with httpx.Client(headers={"Authorization": "Bearer token"}, timeout=30.0) as cl
 All `**kwargs` are passed directly to the underlying httpx methods:
 
 ```python
-from aresilient import get_with_automatic_retry, post_with_automatic_retry
+from aresilient import get, post
 
 # GET with query parameters
-response = get_with_automatic_retry(
-    "https://api.example.com/search", params={"q": "python", "page": 1}
-)
+response = get("https://api.example.com/search", params={"q": "python", "page": 1})
 
 # GET with custom headers (without custom client)
-response = get_with_automatic_retry(
-    "https://api.example.com/data", headers={"X-Custom-Header": "value"}
-)
+response = get("https://api.example.com/data", headers={"X-Custom-Header": "value"})
 
 # POST with files
 with open("document.pdf", "rb") as f:
-    response = post_with_automatic_retry(
-        "https://api.example.com/upload", files={"file": f}
-    )
+    response = post("https://api.example.com/upload", files={"file": f})
 
 # POST with both data and files
-response = post_with_automatic_retry(
+response = post(
     "https://api.example.com/submit",
     data={"title": "My Document"},
     files={"attachment": open("file.txt", "rb")},
@@ -657,7 +633,7 @@ A circuit breaker has three states:
 ### Basic Circuit Breaker Usage
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.circuit_breaker import CircuitBreaker
 
 # Create a circuit breaker
@@ -668,7 +644,7 @@ circuit_breaker = CircuitBreaker(
 
 # Use with requests
 try:
-    response = get_with_automatic_retry(
+    response = get(
         "https://api.example.com/data",
         circuit_breaker=circuit_breaker,
     )
@@ -692,19 +668,19 @@ except Exception as e:
 Share a circuit breaker across multiple endpoints:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.circuit_breaker import CircuitBreaker
 
 # Shared circuit breaker for API service
 api_circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
 
 # All requests to this API share the circuit breaker
-response1 = get_with_automatic_retry(
+response1 = get(
     "https://api.example.com/users",
     circuit_breaker=api_circuit,
 )
 
-response2 = get_with_automatic_retry(
+response2 = get(
     "https://api.example.com/posts",
     circuit_breaker=api_circuit,
 )
@@ -732,13 +708,13 @@ with ResilientClient(
 ### Handling Circuit Breaker Errors
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
 
 try:
-    response = get_with_automatic_retry(
+    response = get(
         "https://api.example.com/data",
         circuit_breaker=circuit,
     )
@@ -796,7 +772,7 @@ than `status_forcelist` alone.
 ### Basic Retry Predicate
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 def should_retry(response, exception):
@@ -821,7 +797,7 @@ def should_retry(response, exception):
     return False
 
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     retry_if=should_retry,
 )
@@ -830,7 +806,7 @@ response = get_with_automatic_retry(
 ### Retry Based on Response Content
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 def retry_on_error_field(response, exception):
@@ -859,7 +835,7 @@ def retry_on_error_field(response, exception):
     return False
 
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     retry_if=retry_on_error_field,
     max_retries=5,
@@ -869,7 +845,7 @@ response = get_with_automatic_retry(
 ### Retry Based on Response Headers
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 def retry_on_header(response, exception):
@@ -892,7 +868,7 @@ def retry_on_header(response, exception):
     return False
 
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/long-running-task",
     retry_if=retry_on_header,
     max_retries=10,
@@ -902,7 +878,7 @@ response = get_with_automatic_retry(
 ### Complex Business Logic
 
 ```python
-from aresilient import post_with_automatic_retry
+from aresilient import post
 import httpx
 
 
@@ -946,7 +922,7 @@ def complex_retry_logic(response, exception):
     return False
 
 
-response = post_with_automatic_retry(
+response = post(
     "https://api.example.com/process",
     json={"task": "data_processing"},
     retry_if=complex_retry_logic,
@@ -960,7 +936,7 @@ When `retry_if` is provided, it takes precedence over `status_forcelist` for det
 behavior. However, you can reference `status_forcelist` logic within your predicate:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 def custom_with_defaults(response, exception):
@@ -980,7 +956,7 @@ def custom_with_defaults(response, exception):
     return response.status_code in (429, 500, 502, 503, 504)
 
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     retry_if=custom_with_defaults,
 )
@@ -992,7 +968,7 @@ The `retry_if` predicate works identically with async functions:
 
 ```python
 import asyncio
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 
 def should_retry_async(response, exception):
@@ -1003,7 +979,7 @@ def should_retry_async(response, exception):
 
 
 async def fetch_data():
-    response = await get_with_automatic_retry_async(
+    response = await get_async(
         "https://api.example.com/data",
         retry_if=should_retry_async,
     )
@@ -1111,7 +1087,7 @@ class FailureInfo:
 Track each phase of the request lifecycle:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 def log_request(info):
@@ -1156,7 +1132,7 @@ def log_failure(info):
 
 # Use callbacks for comprehensive logging
 try:
-    response = get_with_automatic_retry(
+    response = get(
         "https://api.example.com/data",
         max_retries=3,
         on_request=log_request,
@@ -1184,7 +1160,7 @@ Example output:
 Track statistics across multiple requests:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 class RequestMetrics:
@@ -1244,7 +1220,7 @@ urls = [
 
 for url in urls:
     try:
-        response = get_with_automatic_retry(
+        response = get(
             url,
             on_request=metrics.on_request,
             on_retry=metrics.on_retry,
@@ -1263,7 +1239,7 @@ Integrate with Python's standard logging module:
 
 ```python
 import logging
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Configure logging
 logging.basicConfig(
@@ -1305,7 +1281,7 @@ def log_failure_event(info):
     )
 
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     on_retry=log_retry_event,
     on_failure=log_failure_event,
@@ -1317,7 +1293,7 @@ response = get_with_automatic_retry(
 Send metrics to a monitoring system:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 class MonitoringClient:
@@ -1375,7 +1351,7 @@ def track_failure(info):
     )
 
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     on_retry=track_retry,
     on_success=track_success,
@@ -1389,7 +1365,7 @@ Callbacks work identically with async functions:
 
 ```python
 import asyncio
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 
 async def async_log_retry(info):
@@ -1398,9 +1374,7 @@ async def async_log_retry(info):
 
 
 async def fetch_data():
-    response = await get_with_automatic_retry_async(
-        "https://api.example.com/data", on_retry=async_log_retry
-    )
+    response = await get_async("https://api.example.com/data", on_retry=async_log_retry)
     return response.json()
 
 
@@ -1416,7 +1390,7 @@ separately.
 Send alerts when requests fail after all retries:
 
 ```python
-from aresilient import post_with_automatic_retry
+from aresilient import post
 
 
 def send_alert_on_failure(info):
@@ -1438,7 +1412,7 @@ def send_alert_on_failure(info):
 
 
 try:
-    response = post_with_automatic_retry(
+    response = post(
         "https://critical-api.example.com/important",
         json={"data": "value"},
         on_failure=send_alert_on_failure,
@@ -1452,7 +1426,7 @@ except Exception:
 You can use multiple callbacks together for comprehensive observability:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 class RequestObserver:
@@ -1485,7 +1459,7 @@ class RequestObserver:
 observer = RequestObserver(logger, metrics, alerting)
 
 # Use all callbacks
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     on_request=observer.on_request,
     on_retry=observer.on_retry,
@@ -1518,10 +1492,10 @@ response = get_with_automatic_retry(
 `aresilient` raises `HttpRequestError` when a request fails after all retries:
 
 ```python
-from aresilient import get_with_automatic_retry, HttpRequestError
+from aresilient import get, HttpRequestError
 
 try:
-    response = get_with_automatic_retry("https://api.example.com/data")
+    response = get("https://api.example.com/data")
 except HttpRequestError as e:
     print(f"Request failed: {e}")
     print(f"Method: {e.method}")  # 'GET'
@@ -1538,12 +1512,10 @@ except HttpRequestError as e:
 When a request times out after all retries:
 
 ```python
-from aresilient import get_with_automatic_retry, HttpRequestError
+from aresilient import get, HttpRequestError
 
 try:
-    response = get_with_automatic_retry(
-        "https://slow-api.example.com/data", timeout=1.0, max_retries=2
-    )
+    response = get("https://slow-api.example.com/data", timeout=1.0, max_retries=2)
 except HttpRequestError as e:
     # status_code will be None for timeout errors
     if e.status_code is None:
@@ -1555,10 +1527,10 @@ except HttpRequestError as e:
 When the connection fails (DNS errors, connection refused, etc.):
 
 ```python
-from aresilient import get_with_automatic_retry, HttpRequestError
+from aresilient import get, HttpRequestError
 
 try:
-    response = get_with_automatic_retry("https://nonexistent-domain.invalid")
+    response = get("https://nonexistent-domain.invalid")
 except HttpRequestError as e:
     if e.status_code is None:
         print(f"Network error: {e}")
@@ -1569,10 +1541,10 @@ except HttpRequestError as e:
 When the server returns an error status code:
 
 ```python
-from aresilient import get_with_automatic_retry, HttpRequestError
+from aresilient import get, HttpRequestError
 
 try:
-    response = get_with_automatic_retry("https://api.example.com/not-found")
+    response = get("https://api.example.com/not-found")
 except HttpRequestError as e:
     if e.status_code == 404:
         print("Resource not found")
@@ -1587,10 +1559,10 @@ except HttpRequestError as e:
 Check response status and content:
 
 ```python
-from aresilient import get_with_automatic_retry, HttpRequestError
+from aresilient import get, HttpRequestError
 
 try:
-    response = get_with_automatic_retry("https://api.example.com/data")
+    response = get("https://api.example.com/data")
 
     # Response is automatically successful (2xx or 3xx)
     # if we get here
@@ -1612,12 +1584,12 @@ Error handling works the same way with async functions:
 
 ```python
 import asyncio
-from aresilient import get_with_automatic_retry_async, HttpRequestError
+from aresilient import get_async, HttpRequestError
 
 
 async def fetch_with_error_handling():
     try:
-        response = await get_with_automatic_retry_async("https://api.example.com/data")
+        response = await get_async("https://api.example.com/data")
         return response.json()
     except HttpRequestError as e:
         print(f"Async request failed: {e}")
@@ -1631,17 +1603,17 @@ result = asyncio.run(fetch_with_error_handling())
 ## Custom HTTP Methods
 
 For HTTP methods not directly supported or for custom needs, use the
-`request_with_automatic_retry` and `request_with_automatic_retry_async` functions.
+`request` and `request_async` functions.
 
 ### Synchronous Custom Requests
 
 ```python
 import httpx
-from aresilient import request_with_automatic_retry
+from aresilient import request
 
 # Example: Using HEAD method
 with httpx.Client() as client:
-    response = request_with_automatic_retry(
+    response = request(
         url="https://api.example.com/resource",
         method="HEAD",
         request_func=client.head,
@@ -1651,7 +1623,7 @@ with httpx.Client() as client:
 
 # Example: Using OPTIONS method
 with httpx.Client() as client:
-    response = request_with_automatic_retry(
+    response = request(
         url="https://api.example.com/resource",
         method="OPTIONS",
         request_func=client.options,
@@ -1664,13 +1636,13 @@ with httpx.Client() as client:
 ```python
 import asyncio
 import httpx
-from aresilient import request_with_automatic_retry_async
+from aresilient import request_async
 
 
 async def make_custom_request():
     async with httpx.AsyncClient() as client:
         # Using HEAD method asynchronously
-        response = await request_with_automatic_retry_async(
+        response = await request_async(
             url="https://api.example.com/resource",
             method="HEAD",
             request_func=client.head,
@@ -1686,13 +1658,13 @@ content_length = asyncio.run(make_custom_request())
 
 ```python
 import httpx
-from aresilient import request_with_automatic_retry
+from aresilient import request
 
 
 def custom_api_call():
     with httpx.Client(timeout=30.0) as client:
         # Custom request with specific retry configuration
-        response = request_with_automatic_retry(
+        response = request(
             url="https://api.example.com/custom-endpoint",
             method="PATCH",
             request_func=client.patch,
@@ -1714,12 +1686,10 @@ Set timeouts based on your expected response times:
 
 ```python
 # Quick health check
-response = get_with_automatic_retry("https://api.example.com/health", timeout=5.0)
+response = get("https://api.example.com/health", timeout=5.0)
 
 # Large data download
-response = get_with_automatic_retry(
-    "https://api.example.com/large-dataset", timeout=120.0
-)
+response = get("https://api.example.com/large-dataset", timeout=120.0)
 ```
 
 ### 2. Use Context Managers for Multiple Requests
@@ -1738,18 +1708,18 @@ with ResilientClient(max_retries=3, timeout=30.0) as client:
 
 # Alternative: Reuse httpx client (more verbose)
 import httpx
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 with httpx.Client() as client:
     for url in urls:
-        response = get_with_automatic_retry(url, client=client, max_retries=3)
+        response = get(url, client=client, max_retries=3)
         process_response(response)
 
 # Bad: Creates new client for each request
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 for url in urls:
-    response = get_with_automatic_retry(url, max_retries=3)
+    response = get(url, max_retries=3)
     process_response(response)
 ```
 
@@ -1759,16 +1729,14 @@ For user-facing operations, use fewer retries for faster failure:
 
 ```python
 # User-facing: fail fast
-response = get_with_automatic_retry(
-    "https://api.example.com/user-data", max_retries=1, timeout=10.0
-)
+response = get("https://api.example.com/user-data", max_retries=1, timeout=10.0)
 ```
 
 For background jobs, use more retries:
 
 ```python
 # Background job: be more resilient
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/batch-process",
     max_retries=5,
     backoff_factor=1.0,
@@ -1782,7 +1750,7 @@ If you're hitting rate limits frequently, consider:
 
 ```python
 # Increase backoff for rate-limited endpoints
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/rate-limited",
     max_retries=5,
     backoff_factor=2.0,  # Longer waits
@@ -1797,12 +1765,12 @@ When making multiple HTTP requests, async can significantly improve performance:
 ```python
 import asyncio
 import httpx
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 
 async def fetch_all_data(urls):
     async with httpx.AsyncClient() as client:
-        tasks = [get_with_automatic_retry_async(url, client=client) for url in urls]
+        tasks = [get_async(url, client=client) for url in urls]
         responses = await asyncio.gather(*tasks)
         return [r.json() for r in responses]
 
@@ -1830,23 +1798,23 @@ results = asyncio.run(fetch_all_data(urls))
 
 ```python
 # Synchronous example - simple script
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
-response = get_with_automatic_retry("https://api.example.com/data")
+response = get("https://api.example.com/data")
 print(response.json())
 ```
 
 ```python
 # Async example - FastAPI application
 from fastapi import FastAPI
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 app = FastAPI()
 
 
 @app.get("/fetch-data")
 async def fetch_data():
-    response = await get_with_automatic_retry_async("https://api.example.com/data")
+    response = await get_async("https://api.example.com/data")
     return response.json()
 ```
 
@@ -1858,7 +1826,7 @@ retry behavior.
 
 ```python
 import logging
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Enable debug logging to see retry details
 logging.basicConfig(level=logging.DEBUG)
@@ -1868,7 +1836,7 @@ logging.basicConfig(level=logging.DEBUG)
 # - Wait times between retries
 # - Whether Retry-After header is being used
 # - Success/failure of each attempt
-response = get_with_automatic_retry("https://api.example.com/data")
+response = get("https://api.example.com/data")
 ```
 
 Example debug output:
@@ -1908,10 +1876,10 @@ with ResilientClient(circuit_breaker=user_service_circuit) as client:
 Use `max_total_time` when you have strict time constraints:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Critical user-facing operation with 5-second SLA
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/critical-data",
     max_retries=10,  # Try many times...
     max_total_time=5.0,  # ...but stop after 5 seconds total
@@ -1925,26 +1893,26 @@ Select backoff strategies based on your use case:
 
 ```python
 from aresilient import (
-    get_with_automatic_retry,
+    get,
     ExponentialBackoff,
     LinearBackoff,
     ConstantBackoff,
 )
 
 # Exponential: Most services (default)
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0),
 )
 
 # Linear: Predictable recovery times
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/stable-service",
     backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=10.0),
 )
 
 # Constant: Testing or specific API requirements
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/polling-endpoint",
     backoff_strategy=ConstantBackoff(delay=2.0),
 )
@@ -1955,7 +1923,7 @@ response = get_with_automatic_retry(
 When status codes aren't enough, use `retry_if` for custom logic:
 
 ```python
-from aresilient import post_with_automatic_retry
+from aresilient import post
 
 
 def should_retry_payment(response, exception):
@@ -1978,7 +1946,7 @@ def should_retry_payment(response, exception):
     return False
 
 
-response = post_with_automatic_retry(
+response = post(
     "https://payment-api.example.com/charge",
     json={"amount": 100},
     retry_if=should_retry_payment,

@@ -3,14 +3,14 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from aresilient import delete_with_automatic_retry_async
+from aresilient import delete_async
 
 # Use httpbin.org for real HTTP testing
 HTTPBIN_URL = "https://httpbin.org"
 
 
 #######################################################
-#     Tests for delete_with_automatic_retry_async     #
+#     Tests for delete_async     #
 #######################################################
 # Note: Common async tests (successful request, non-retryable status, headers, query params)
 # are now in test_core_async.py to avoid duplication across HTTP methods.
@@ -18,10 +18,10 @@ HTTPBIN_URL = "https://httpbin.org"
 
 
 @pytest.mark.asyncio
-async def test_delete_with_automatic_retry_async_with_auth_headers() -> None:
+async def test_delete_async_with_auth_headers() -> None:
     """Test DELETE request with authorization headers."""
     async with httpx.AsyncClient() as client:
-        response = await delete_with_automatic_retry_async(
+        response = await delete_async(
             url=f"{HTTPBIN_URL}/delete",
             client=client,
             headers={"Authorization": "Bearer test-token-123"},
@@ -33,10 +33,10 @@ async def test_delete_with_automatic_retry_async_with_auth_headers() -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_with_automatic_retry_async_multiple_headers() -> None:
+async def test_delete_async_multiple_headers() -> None:
     """Test DELETE request with multiple custom headers."""
     async with httpx.AsyncClient() as client:
-        response = await delete_with_automatic_retry_async(
+        response = await delete_async(
             url=f"{HTTPBIN_URL}/delete",
             client=client,
             headers={

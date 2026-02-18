@@ -3,7 +3,7 @@ logic."""
 
 from __future__ import annotations
 
-__all__ = ["delete_with_automatic_retry_async"]
+__all__ = ["delete_async"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-async def delete_with_automatic_retry_async(
+async def delete_async(
     url: str,
     *,
     client: httpx.AsyncClient | None = None,
@@ -112,11 +112,9 @@ async def delete_with_automatic_retry_async(
     Example:
         ```pycon
         >>> import asyncio
-        >>> from aresilient import delete_with_automatic_retry_async
+        >>> from aresilient import delete_async
         >>> async def example():
-        ...     response = await delete_with_automatic_retry_async(
-        ...         "https://api.example.com/resource/123"
-        ...     )
+        ...     response = await delete_async("https://api.example.com/resource/123")
         ...     return response.status_code
         ...
         >>> asyncio.run(example())  # doctest: +SKIP

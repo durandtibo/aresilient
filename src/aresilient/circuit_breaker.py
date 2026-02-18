@@ -11,13 +11,13 @@ has three states:
 
 Example:
     ```pycon
-    >>> from aresilient import get_with_automatic_retry
+    >>> from aresilient import get
     >>> from aresilient.circuit_breaker import CircuitBreaker
     >>> circuit_breaker = CircuitBreaker(
     ...     failure_threshold=5,
     ...     recovery_timeout=60.0,
     ... )
-    >>> response = get_with_automatic_retry(
+    >>> response = get(
     ...     "https://api.example.com/data",
     ...     circuit_breaker=circuit_breaker,
     ... )  # doctest: +SKIP
@@ -149,13 +149,13 @@ class CircuitBreaker:
         Usage with HTTP requests:
 
         ```pycon
-        >>> from aresilient import get_with_automatic_retry
+        >>> from aresilient import get
         >>> from aresilient.circuit_breaker import CircuitBreaker
         >>> circuit_breaker = CircuitBreaker(
         ...     failure_threshold=5,
         ...     recovery_timeout=60.0,
         ... )
-        >>> response = get_with_automatic_retry(
+        >>> response = get(
         ...     "https://api.example.com/data",
         ...     circuit_breaker=circuit_breaker,
         ... )  # doctest: +SKIP

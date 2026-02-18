@@ -1,4 +1,4 @@
-r"""Unit tests for put_with_automatic_retry_async function.
+r"""Unit tests for put_async function.
 
 This file contains tests that are specific to the async PUT HTTP method.
 Common tests across all async HTTP methods are in test_core_async.py.
@@ -11,20 +11,18 @@ from unittest.mock import AsyncMock, Mock
 import httpx
 import pytest
 
-from aresilient import put_with_automatic_retry_async
+from aresilient import put_async
 
 TEST_URL = "https://api.example.com/data"
 
 
 ####################################################
-#     Tests for put_with_automatic_retry_async     #
+#     Tests for put_async     #
 ####################################################
 
 
 @pytest.mark.asyncio
-async def test_put_with_automatic_retry_async_with_data(
-    mock_async_client: httpx.AsyncClient, mock_asleep: Mock
-) -> None:
+async def test_put_async_with_data(mock_async_client: httpx.AsyncClient, mock_asleep: Mock) -> None:
     """Test async PUT request with form data.
 
     This is PUT-specific because form data submission is typically done
@@ -33,7 +31,7 @@ async def test_put_with_automatic_retry_async_with_data(
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_async_client.put = AsyncMock(return_value=mock_response)
 
-    response = await put_with_automatic_retry_async(
+    response = await put_async(
         TEST_URL, client=mock_async_client, data={"username": "test", "role": "admin"}
     )
 

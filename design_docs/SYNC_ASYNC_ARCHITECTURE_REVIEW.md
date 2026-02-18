@@ -146,7 +146,7 @@ sync/async pairs with **~95% similarity**.
 ### 1.3 Strengths of Current Architecture
 
 1. ✅ **Clear Separation:** Easy to identify sync vs async code
-2. ✅ **Simple Imports:** Straightforward API (`from aresilient import get_with_automatic_retry`)
+2. ✅ **Simple Imports:** Straightforward API (`from aresilient import get`)
 3. ✅ **Independent Testing:** Each version can be tested separately
 4. ✅ **Type Safety:** Full type hints for both sync and async
 5. ✅ **No Runtime Overhead:** No abstraction layers affecting performance
@@ -186,7 +186,7 @@ sync/async pairs with **~95% similarity**.
 
 ```python
 # Change in get.py
-def get_with_automatic_retry(
+def get(
     url: str,
     *,
     timeout: float = DEFAULT_TIMEOUT,
@@ -199,7 +199,7 @@ def get_with_automatic_retry(
 
 
 # MUST also change in get_async.py
-async def get_with_automatic_retry_async(
+async def get_async(
     url: str,
     *,
     timeout: float = DEFAULT_TIMEOUT,
@@ -263,13 +263,13 @@ if response.status_code in status_forcelist and attempt < max_retries:
 ```python
 # test_get.py
 def test_successful_request():
-    response = get_with_automatic_retry("https://api.example.com/data")
+    response = get("https://api.example.com/data")
     assert response.status_code == 200
 
 
 # test_get_async.py (nearly identical)
 async def test_successful_request():
-    response = await get_with_automatic_retry_async("https://api.example.com/data")
+    response = await get_async("https://api.example.com/data")
     assert response.status_code == 200
 ```
 
@@ -653,13 +653,13 @@ src/aresilient/
 
 ```python
 # get.py
-def get_with_automatic_retry(url, *, timeout, max_retries, **kwargs):
+def get(url, *, timeout, max_retries, **kwargs):
     validate_retry_params(timeout, max_retries, **kwargs)
     # ... 100 lines of retry logic
 
 
 # get_async.py
-async def get_with_automatic_retry_async(url, *, timeout, max_retries, **kwargs):
+async def get_async(url, *, timeout, max_retries, **kwargs):
     validate_retry_params(timeout, max_retries, **kwargs)
     # ... 100 lines of DUPLICATED retry logic
 ```
@@ -682,7 +682,7 @@ class HttpMethodLogic:
 
 
 # get.py (thin wrapper - ~30 lines)
-def get_with_automatic_retry(url, *, timeout, max_retries, **kwargs):
+def get(url, *, timeout, max_retries, **kwargs):
     config = HttpMethodLogic.prepare_request(url, timeout, max_retries, **kwargs)
     return execute_with_retry(
         method="GET",
@@ -693,7 +693,7 @@ def get_with_automatic_retry(url, *, timeout, max_retries, **kwargs):
 
 
 # get_async.py (thin wrapper - ~30 lines)
-async def get_with_automatic_retry_async(url, *, timeout, max_retries, **kwargs):
+async def get_async(url, *, timeout, max_retries, **kwargs):
     config = HttpMethodLogic.prepare_request(url, timeout, max_retries, **kwargs)
     return await execute_with_retry_async(
         method="GET",
@@ -880,7 +880,7 @@ from core.engine import RequestEngine
 from adapters.sync_adapter import SyncHttpClient
 
 
-def get_with_automatic_retry(url, **kwargs):
+def get(url, **kwargs):
     """GET request with retry."""
     config = _prepare_config(**kwargs)
     client = SyncHttpClient(httpx.Client())
@@ -888,7 +888,7 @@ def get_with_automatic_retry(url, **kwargs):
     return engine.execute("GET", url, **kwargs)
 
 
-def post_with_automatic_retry(url, **kwargs):
+def post(url, **kwargs):
     """POST request with retry."""
     config = _prepare_config(**kwargs)
     client = SyncHttpClient(httpx.Client())
@@ -900,7 +900,7 @@ def post_with_automatic_retry(url, **kwargs):
 
 
 # Async methods_async.py (all methods in one file)
-async def get_with_automatic_retry_async(url, **kwargs):
+async def get_async(url, **kwargs):
     """Async GET request with retry."""
     config = _prepare_config(**kwargs)
     client = AsyncHttpClient(httpx.AsyncClient())
@@ -971,7 +971,7 @@ src/aresilient/
 
 ```jinja2
 {# http_method.py.jinja2 #}
-{% if is_async %}async {% endif %}def {{ method }}_with_automatic_retry{% if is_async %}_async{% endif %}(
+{% if is_async %}async {% endif %}def {{ method }}{% if is_async %}_async{% endif %}(
     url: str,
     *,
     client: httpx.{% if is_async %}Async{% endif %}Client | None = None,
@@ -1031,8 +1031,8 @@ def get_base(url, client, **kwargs):
 
 
 # Automatically creates:
-# - get_with_automatic_retry (sync)
-# - get_with_automatic_retry_async (async)
+# - get (sync)
+# - get_async (async)
 ```
 
 #### Benefits
@@ -1349,7 +1349,7 @@ class ResilientClient:
             max_retries=max_retries,
             # ...
         )
-        return request_with_automatic_retry(
+        return request(
             url=url,
             method=method,
             request_func=getattr(client, method.lower()),
@@ -1525,24 +1525,24 @@ class ClientConfig:
 
 ```python
 # Before refactor
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
-response = get_with_automatic_retry("https://api.example.com")
+response = get("https://api.example.com")
 
 # After refactor (SAME)
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
-response = get_with_automatic_retry("https://api.example.com")
+response = get("https://api.example.com")
 ```
 
 **Internal imports may change:**
 
 ```python
 # Before (direct import)
-from aresilient.request import request_with_automatic_retry
+from aresilient.request import request
 
 # After (may still work via re-exports)
-from aresilient.request import request_with_automatic_retry  # Still works
+from aresilient.request import request  # Still works
 from aresilient.core.retry_logic import RetryLogic  # New internal API
 ```
 
@@ -1775,7 +1775,7 @@ Option A essentially adapts httpx's approach to aresilient's context:
 **get.py (Sync):**
 
 ```python
-def get_with_automatic_retry(
+def get(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -1788,7 +1788,7 @@ def get_with_automatic_retry(
 ) -> httpx.Response:
     """GET request with automatic retry."""
     validate_retry_params(timeout, max_retries, backoff_factor, jitter_factor)
-    return request_with_automatic_retry(
+    return request(
         url,
         method="GET",
         client=client,
@@ -1804,7 +1804,7 @@ def get_with_automatic_retry(
 **get_async.py (Async - 98% identical):**
 
 ```python
-async def get_with_automatic_retry_async(
+async def get_async(
     url: str,
     *,
     client: httpx.AsyncClient | None = None,  # Only difference: AsyncClient
@@ -1819,7 +1819,7 @@ async def get_with_automatic_retry_async(
     validate_retry_params(
         timeout, max_retries, backoff_factor, jitter_factor
     )  # Identical
-    return await request_with_automatic_retry_async(  # Only difference: async/await
+    return await request_async(  # Only difference: async/await
         url,
         method="GET",
         client=client,
@@ -1876,10 +1876,10 @@ class HttpMethodConfig:
 ```python
 import httpx
 from aresilient.core.http_method import HttpMethodConfig
-from aresilient.request import request_with_automatic_retry
+from aresilient.request import request
 
 
-def get_with_automatic_retry(
+def get(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -1887,7 +1887,7 @@ def get_with_automatic_retry(
 ) -> httpx.Response:
     """GET request with automatic retry."""
     config = HttpMethodConfig.prepare(**kwargs)
-    return request_with_automatic_retry(
+    return request(
         url,
         method="GET",
         client=client,
@@ -1900,10 +1900,10 @@ def get_with_automatic_retry(
 ```python
 import httpx
 from aresilient.core.http_method import HttpMethodConfig
-from aresilient.request_async import request_with_automatic_retry_async
+from aresilient.request_async import request_async
 
 
-async def get_with_automatic_retry_async(
+async def get_async(
     url: str,
     *,
     client: httpx.AsyncClient | None = None,
@@ -1911,7 +1911,7 @@ async def get_with_automatic_retry_async(
 ) -> httpx.Response:
     """GET request with automatic retry."""
     config = HttpMethodConfig.prepare(**kwargs)  # Same as sync
-    return await request_with_automatic_retry_async(
+    return await request_async(
         url,
         method="GET",
         client=client,

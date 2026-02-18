@@ -1,4 +1,4 @@
-r"""Unit tests for post_with_automatic_retry_async function.
+r"""Unit tests for post_async function.
 
 This file contains tests that are specific to the async POST HTTP
 method. Common tests across all async HTTP methods are in
@@ -12,18 +12,18 @@ from unittest.mock import AsyncMock, Mock
 import httpx
 import pytest
 
-from aresilient import post_with_automatic_retry_async
+from aresilient import post_async
 
 TEST_URL = "https://api.example.com/data"
 
 
 ######################################################
-#     Tests for post_with_automatic_retry_async     #
+#     Tests for post_async     #
 ######################################################
 
 
 @pytest.mark.asyncio
-async def test_post_with_automatic_retry_async_with_data(
+async def test_post_async_with_data(
     mock_async_client: httpx.AsyncClient, mock_asleep: Mock
 ) -> None:
     """Test async POST request with form data.
@@ -34,7 +34,7 @@ async def test_post_with_automatic_retry_async_with_data(
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_async_client.post = AsyncMock(return_value=mock_response)
 
-    response = await post_with_automatic_retry_async(
+    response = await post_async(
         TEST_URL, client=mock_async_client, data={"username": "test", "password": "secret"}
     )
 

@@ -3,7 +3,7 @@ logic."""
 
 from __future__ import annotations
 
-__all__ = ["post_with_automatic_retry_async"]
+__all__ = ["post_async"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-async def post_with_automatic_retry_async(
+async def post_async(
     url: str,
     *,
     client: httpx.AsyncClient | None = None,
@@ -112,11 +112,9 @@ async def post_with_automatic_retry_async(
     Example:
         ```pycon
         >>> import asyncio
-        >>> from aresilient import post_with_automatic_retry_async
+        >>> from aresilient import post_async
         >>> async def example():
-        ...     response = await post_with_automatic_retry_async(
-        ...         "https://api.example.com/data", json={"key": "value"}
-        ...     )
+        ...     response = await post_async("https://api.example.com/data", json={"key": "value"})
         ...     return response.json()
         ...
         >>> asyncio.run(example())  # doctest: +SKIP

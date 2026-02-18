@@ -3,7 +3,7 @@ logic."""
 
 from __future__ import annotations
 
-__all__ = ["post_with_automatic_retry"]
+__all__ = ["post"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-def post_with_automatic_retry(
+def post(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -111,10 +111,8 @@ def post_with_automatic_retry(
 
     Example:
         ```pycon
-        >>> from aresilient import post_with_automatic_retry
-        >>> response = post_with_automatic_retry(
-        ...     "https://api.example.com/data", json={"key": "value"}
-        ... )  # doctest: +SKIP
+        >>> from aresilient import post
+        >>> response = post("https://api.example.com/data", json={"key": "value"})  # doctest: +SKIP
 
         ```
     """

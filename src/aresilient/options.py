@@ -3,7 +3,7 @@ logic."""
 
 from __future__ import annotations
 
-__all__ = ["options_with_automatic_retry"]
+__all__ = ["options"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-def options_with_automatic_retry(
+def options(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -116,11 +116,9 @@ def options_with_automatic_retry(
 
     Example:
         ```pycon
-        >>> from aresilient import options_with_automatic_retry
+        >>> from aresilient import options
         >>> # Check allowed HTTP methods for a resource
-        >>> response = options_with_automatic_retry(
-        ...     "https://api.example.com/resource"
-        ... )  # doctest: +SKIP
+        >>> response = options("https://api.example.com/resource")  # doctest: +SKIP
         >>> allowed_methods = response.headers.get("Allow")  # doctest: +SKIP
         >>> print(f"Allowed methods: {allowed_methods}")  # doctest: +SKIP
 

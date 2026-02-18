@@ -61,7 +61,7 @@ backoff, circuit breaker, and other resilience features.
 The `aresilient` library provides resilient HTTP request functionality with:
 
 - Context manager clients: `ResilientClient` and `AsyncResilientClient`
-- Standalone functions: `get_with_automatic_retry`, `post_with_automatic_retry`, etc.
+- Standalone functions: `get`, `post`, etc.
 - Comprehensive retry logic, backoff strategies, circuit breakers, and callbacks
 
 However, the current implementation has limitations:
@@ -1059,10 +1059,10 @@ http_client.close()
 from aresilient import (
     ResilientClient,  # ✅ No change
     AsyncResilientClient,  # ✅ No change
-    get_with_automatic_retry,  # ✅ No change
-    post_with_automatic_retry,  # ✅ No change
-    get_with_automatic_retry_async,  # ✅ No change
-    request_with_automatic_retry,  # ✅ No change
+    get,  # ✅ No change
+    post,  # ✅ No change
+    get_async,  # ✅ No change
+    request,  # ✅ No change
     # ... all other existing exports
 )
 ```

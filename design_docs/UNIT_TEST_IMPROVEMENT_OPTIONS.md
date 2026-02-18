@@ -261,7 +261,7 @@ The test suite already includes comprehensive test utilities in `helpers.py` (41
 def test_get_with_params(mock_sleep: Mock) -> None:
     client, _ = setup_mock_client_for_method("get", 200)
     assert_successful_request(
-        get_with_automatic_retry,
+        get,
         TEST_URL,
         client,
         params={"page": 1, "limit": 10},

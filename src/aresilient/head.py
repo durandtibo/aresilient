@@ -3,7 +3,7 @@ logic."""
 
 from __future__ import annotations
 
-__all__ = ["head_with_automatic_retry"]
+__all__ = ["head"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-def head_with_automatic_retry(
+def head(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -116,11 +116,9 @@ def head_with_automatic_retry(
 
     Example:
         ```pycon
-        >>> from aresilient import head_with_automatic_retry
+        >>> from aresilient import head
         >>> # Check if a resource exists and get metadata
-        >>> response = head_with_automatic_retry(
-        ...     "https://api.example.com/large-file.zip"
-        ... )  # doctest: +SKIP
+        >>> response = head("https://api.example.com/large-file.zip")  # doctest: +SKIP
         >>> if response.status_code == 200:  # doctest: +SKIP
         ...     print(f"Content-Length: {response.headers.get('Content-Length')}")  # doctest: +SKIP
         ...     print(f"Last-Modified: {response.headers.get('Last-Modified')}")  # doctest: +SKIP

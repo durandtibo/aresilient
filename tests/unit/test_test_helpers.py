@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from aresilient import get_with_automatic_retry, get_with_automatic_retry_async
+from aresilient import get, get_async
 from tests.helpers import (
     assert_successful_request,
     assert_successful_request_async,
@@ -134,7 +134,7 @@ def test_assert_successful_request_default_status(mock_sleep: Mock) -> None:
     """Test assert_successful_request with default expected status."""
     client, _ = setup_mock_client_for_method("get", 200)
 
-    response = assert_successful_request(get_with_automatic_retry, TEST_URL, client)
+    response = assert_successful_request(get, TEST_URL, client)
 
     assert response.status_code == 200
     client.get.assert_called_once_with(url=TEST_URL)
@@ -146,9 +146,7 @@ def test_assert_successful_request_custom_status(mock_sleep: Mock) -> None:
     # Use 200 which is a success status, so it doesn't trigger errors
     client, _ = setup_mock_client_for_method("get", 200)
 
-    response = assert_successful_request(
-        get_with_automatic_retry, TEST_URL, client, expected_status=200
-    )
+    response = assert_successful_request(get, TEST_URL, client, expected_status=200)
 
     assert response.status_code == 200
     mock_sleep.assert_not_called()
@@ -159,9 +157,7 @@ def test_assert_successful_request_with_kwargs(mock_sleep: Mock) -> None:
     client, _ = setup_mock_client_for_method("get", 200)
 
     headers = {"X-Custom": "value"}
-    response = assert_successful_request(
-        get_with_automatic_retry, TEST_URL, client, headers=headers
-    )
+    response = assert_successful_request(get, TEST_URL, client, headers=headers)
 
     assert response.status_code == 200
     client.get.assert_called_once_with(url=TEST_URL, headers=headers)
@@ -175,7 +171,7 @@ def test_assert_successful_request_status_mismatch(mock_sleep: Mock) -> None:
     client, _ = setup_mock_client_for_method("get", 200)
 
     with pytest.raises(AssertionError):
-        assert_successful_request(get_with_automatic_retry, TEST_URL, client, expected_status=201)
+        assert_successful_request(get, TEST_URL, client, expected_status=201)
     mock_sleep.assert_not_called()
 
 
@@ -183,7 +179,7 @@ def test_assert_successful_request_returns_response(mock_sleep: Mock) -> None:
     """Test assert_successful_request returns the response object."""
     client, mock_response = setup_mock_client_for_method("get", 200)
 
-    response = assert_successful_request(get_with_automatic_retry, TEST_URL, client)
+    response = assert_successful_request(get, TEST_URL, client)
 
     assert response is mock_response
     mock_sleep.assert_not_called()
@@ -200,9 +196,7 @@ async def test_assert_successful_request_async_default_status(mock_asleep: Mock)
     status."""
     client, _ = setup_mock_async_client_for_method("get", 200)
 
-    response = await assert_successful_request_async(
-        get_with_automatic_retry_async, TEST_URL, client
-    )
+    response = await assert_successful_request_async(get_async, TEST_URL, client)
 
     assert response.status_code == 200
     client.get.assert_called_once_with(url=TEST_URL)
@@ -217,7 +211,7 @@ async def test_assert_successful_request_async_custom_status(mock_asleep: Mock) 
     client, _ = setup_mock_async_client_for_method("get", 200)
 
     response = await assert_successful_request_async(
-        get_with_automatic_retry_async, TEST_URL, client, expected_status=200
+        get_async, TEST_URL, client, expected_status=200
     )
 
     assert response.status_code == 200
@@ -230,9 +224,7 @@ async def test_assert_successful_request_async_with_kwargs(mock_asleep: Mock) ->
     client, _ = setup_mock_async_client_for_method("get", 200)
 
     headers = {"X-Custom": "value"}
-    response = await assert_successful_request_async(
-        get_with_automatic_retry_async, TEST_URL, client, headers=headers
-    )
+    response = await assert_successful_request_async(get_async, TEST_URL, client, headers=headers)
 
     assert response.status_code == 200
     client.get.assert_called_once_with(url=TEST_URL, headers=headers)
@@ -247,9 +239,7 @@ async def test_assert_successful_request_async_status_mismatch(mock_asleep: Mock
     client, _ = setup_mock_async_client_for_method("get", 200)
 
     with pytest.raises(AssertionError):
-        await assert_successful_request_async(
-            get_with_automatic_retry_async, TEST_URL, client, expected_status=201
-        )
+        await assert_successful_request_async(get_async, TEST_URL, client, expected_status=201)
     mock_asleep.assert_not_called()
 
 
@@ -259,9 +249,7 @@ async def test_assert_successful_request_async_returns_response(mock_asleep: Moc
     object."""
     client, mock_response = setup_mock_async_client_for_method("get", 200)
 
-    response = await assert_successful_request_async(
-        get_with_automatic_retry_async, TEST_URL, client
-    )
+    response = await assert_successful_request_async(get_async, TEST_URL, client)
 
     assert response is mock_response
     mock_asleep.assert_not_called()

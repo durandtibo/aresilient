@@ -3,7 +3,7 @@ logic."""
 
 from __future__ import annotations
 
-__all__ = ["patch_with_automatic_retry"]
+__all__ = ["patch"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-def patch_with_automatic_retry(
+def patch(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -111,8 +111,8 @@ def patch_with_automatic_retry(
 
     Example:
         ```pycon
-        >>> from aresilient import patch_with_automatic_retry
-        >>> response = patch_with_automatic_retry(
+        >>> from aresilient import patch
+        >>> response = patch(
         ...     "https://api.example.com/resource/123", json={"status": "active"}
         ... )  # doctest: +SKIP
 

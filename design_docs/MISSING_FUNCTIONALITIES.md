@@ -94,7 +94,7 @@ libraries (urllib3, tenacity, requests-retry) and industry best practices.
 **Example Usage:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 def should_retry(response, exception):
@@ -107,9 +107,7 @@ def should_retry(response, exception):
     return False
 
 
-response = get_with_automatic_retry(
-    "https://api.example.com/data", retry_if=should_retry
-)
+response = get("https://api.example.com/data", retry_if=should_retry)
 ```
 
 ---
@@ -132,17 +130,17 @@ response = get_with_automatic_retry(
 **Example Usage:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import FibonacciBackoff, LinearBackoff
 
 # Linear backoff: 1s, 2s, 3s, 4s...
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=LinearBackoff(base_delay=1.0),
 )
 
 # Fibonacci backoff: 1s, 1s, 2s, 3s, 5s, 8s...
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=FibonacciBackoff(base_delay=1.0),
 )
@@ -164,9 +162,9 @@ response = get_with_automatic_retry(
 **Example Usage:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     max_retries=10,
     max_total_time=30.0,  # Give up after 30s total, regardless of retry count
@@ -191,7 +189,7 @@ response = get_with_automatic_retry(
 **Example Usage:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.circuit_breaker import CircuitBreaker
 
 circuit_breaker = CircuitBreaker(
@@ -199,9 +197,7 @@ circuit_breaker = CircuitBreaker(
     recovery_timeout=60.0,  # Try again after 60s
 )
 
-response = get_with_automatic_retry(
-    "https://api.example.com/data", circuit_breaker=circuit_breaker
-)
+response = get("https://api.example.com/data", circuit_breaker=circuit_breaker)
 ```
 
 ---
@@ -272,11 +268,9 @@ async with AsyncResilientClient(max_retries=5, timeout=30) as client:
 **Example Usage:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
-response, stats = get_with_automatic_retry(
-    "https://api.example.com/data", return_stats=True
-)
+response, stats = get("https://api.example.com/data", return_stats=True)
 print(f"Succeeded on attempt {stats.attempts}/{stats.max_retries}")
 print(f"Total time: {stats.total_time:.2f}s")
 print(f"Retry delays: {stats.backoff_times}")
@@ -347,7 +341,7 @@ print(f"Retry delays: {stats.backoff_times}")
 **Example Usage:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 def fallback_handler(error):
@@ -355,7 +349,7 @@ def fallback_handler(error):
     return {"status": "degraded", "data": get_cached_data()}
 
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data", on_failure=lambda info: fallback_handler(info.error)
 )
 ```
@@ -387,7 +381,7 @@ explicit with dedicated `fallback` parameter.
 **Example Usage:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 def fallback_handler(error):
@@ -395,9 +389,7 @@ def fallback_handler(error):
     return {"status": "degraded", "data": get_cached_data()}
 
 
-response = get_with_automatic_retry(
-    "https://api.example.com/data", fallback=fallback_handler
-)
+response = get("https://api.example.com/data", fallback=fallback_handler)
 ```
 
 ---
@@ -536,7 +528,7 @@ New features should follow these patterns:
 
 ```python
 # Sync variant
-def method_with_automatic_retry(
+def method(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -551,7 +543,7 @@ def method_with_automatic_retry(
 
 
 # Async variant
-async def method_with_automatic_retry_async(
+async def method_async(
     # Same signature
 ) -> httpx.Response: ...
 ```
