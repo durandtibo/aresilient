@@ -19,6 +19,7 @@ works well for most scenarios where you want progressively longer delays between
 **Formula:** `base_delay * (2 ** attempt)`
 
 **When to use:**
+
 - Most general-purpose retry scenarios
 - Services that need time to recover from failures
 - Preventing overwhelming a struggling service
@@ -58,6 +59,7 @@ useful for services with predictable recovery times.
 **Formula:** `base_delay * (attempt + 1)`
 
 **When to use:**
+
 - Services that recover quickly and predictably
 - Testing scenarios where you want consistent delays
 - APIs with linear rate limit recovery
@@ -90,6 +92,7 @@ following the Fibonacci sequence. This provides a more gradual increase than exp
 **Formula:** `base_delay * fibonacci(attempt + 1)`
 
 **When to use:**
+
 - When exponential backoff is too aggressive
 - Services that need gradual recovery time
 - Balancing between quick retries and giving services time to recover
@@ -122,6 +125,7 @@ is useful for testing or when you know the exact delay that works best.
 **Formula:** `delay` (constant)
 
 **When to use:**
+
 - Testing and debugging scenarios
 - APIs with specific retry delay requirements
 - Situations where you know the optimal wait time
@@ -246,10 +250,10 @@ Here's how different strategies compare for the first 6 retry attempts (with `ba
    take precedence over your configured strategy.
 
 5. **Choose strategy based on service behavior**:
-   - **Exponential**: Services that need increasing recovery time
-   - **Linear**: Services with predictable recovery patterns
-   - **Fibonacci**: When you want gradual increase without exponential growth
-   - **Constant**: Testing or APIs with specific requirements
+    - **Exponential**: Services that need increasing recovery time
+    - **Linear**: Services with predictable recovery patterns
+    - **Fibonacci**: When you want gradual increase without exponential growth
+    - **Constant**: Testing or APIs with specific requirements
 
 6. **Test your strategy** - Use different strategies in staging to find what works best for your
    specific API.
