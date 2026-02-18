@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-**STATUS UPDATE (February 2026):** The library has successfully transitioned to a **modular structure** with subdirectories for backoff, retry, and utils modules. With ~6,600 lines across 40 files, the library now follows Option B's minimal sub-package structure while maintaining backward compatibility through comprehensive re-exports in `__init__.py`.
+**STATUS UPDATE (February 2026):** The library has successfully transitioned to a **modular structure** with subdirectories for backoff, core, retry, and utils modules. With ~7,000 lines across 43 files, the library follows a modular sub-package structure while keeping the public API clean through focused exports in `__init__.py`.
 
 ## Current Structure Analysis
 
@@ -10,51 +10,55 @@
 
 ```
 src/aresilient/
-├── __init__.py          (120 lines)  - Main public API (36+ exports)
-├── config.py            (32 lines)   - Configuration constants
+├── __init__.py          (91 lines)   - Main public API (20 exports)
+├── callbacks.py         (263 lines)  - Callback dataclasses
+├── circuit_breaker.py   (467 lines)  - Circuit breaker implementation
+├── client.py            (398 lines)  - Context manager client (sync)
+├── client_async.py      (435 lines)  - Context manager client (async)
 ├── exceptions.py        (81 lines)   - Custom exception classes
-├── callbacks.py         (155 lines)  - Callback dataclasses
-├── circuit_breaker.py   (464 lines)  - Circuit breaker implementation
-├── client.py            (385 lines)  - Context manager client (sync)
-├── client_async.py      (412 lines)  - Context manager client (async)
 ├── request.py           (177 lines)  - Core retry logic (sync)
 ├── request_async.py     (181 lines)  - Core retry logic (async)
-├── get.py               (152 lines)  - GET request wrapper (sync)
-├── get_async.py         (158 lines)  - GET request wrapper (async)
-├── post.py              (155 lines)  - POST request wrapper (sync)
-├── post_async.py        (160 lines)  - POST request wrapper (async)
-├── put.py               (154 lines)  - PUT request wrapper (sync)
-├── put_async.py         (160 lines)  - PUT request wrapper (async)
-├── delete.py            (156 lines)  - DELETE request wrapper (sync)
-├── delete_async.py      (160 lines)  - DELETE request wrapper (async)
-├── patch.py             (155 lines)  - PATCH request wrapper (sync)
-├── patch_async.py       (160 lines)  - PATCH request wrapper (async)
-├── head.py              (165 lines)  - HEAD request wrapper (sync)
-├── head_async.py        (167 lines)  - HEAD request wrapper (async)
-├── options.py           (163 lines)  - OPTIONS request wrapper (sync)
-├── options_async.py     (167 lines)  - OPTIONS request wrapper (async)
+├── get.py               (136 lines)  - GET request wrapper (sync)
+├── get_async.py                      - GET request wrapper (async)
+├── post.py                           - POST request wrapper (sync)
+├── post_async.py                     - POST request wrapper (async)
+├── put.py                            - PUT request wrapper (sync)
+├── put_async.py                      - PUT request wrapper (async)
+├── delete.py                         - DELETE request wrapper (sync)
+├── delete_async.py                   - DELETE request wrapper (async)
+├── patch.py                          - PATCH request wrapper (sync)
+├── patch_async.py                    - PATCH request wrapper (async)
+├── head.py              (149 lines)  - HEAD request wrapper (sync)
+├── head_async.py        (151 lines)  - HEAD request wrapper (async)
+├── options.py           (147 lines)  - OPTIONS request wrapper (sync)
+├── options_async.py     (151 lines)  - OPTIONS request wrapper (async)
 ├── backoff/
 │   ├── __init__.py      (26 lines)   - Backoff exports
 │   ├── strategy.py      (318 lines)  - Backoff strategies (Exponential, Linear, etc.)
 │   └── sleep.py         (126 lines)  - Sleep utilities
+├── core/
+│   ├── __init__.py      (40 lines)   - Core exports
+│   ├── config.py        (194 lines)  - Client configuration and defaults
+│   ├── http_logic.py    (223 lines)  - Shared HTTP method logic (sync/async)
+│   ├── retry_logic.py   (126 lines)  - Retry decision logic
+│   └── validation.py    (104 lines)  - Parameter validation
 ├── retry/
 │   ├── __init__.py      (33 lines)   - Retry exports
-│   ├── config.py        (61 lines)   - Retry configuration
-│   ├── strategy.py      (65 lines)   - Retry strategies
-│   ├── manager.py       (150 lines)  - Retry manager
-│   ├── decider.py       (130 lines)  - Retry decision logic
-│   ├── executor.py      (326 lines)  - Sync retry executor
-│   └── executor_async.py (343 lines) - Async retry executor
+│   ├── config.py        (62 lines)   - Retry configuration
+│   ├── strategy.py      (75 lines)   - Retry strategies
+│   ├── manager.py       (158 lines)  - Retry manager
+│   ├── decider.py       (106 lines)  - Retry decision logic
+│   ├── executor_core.py (176 lines)  - Shared executor logic
+│   ├── executor.py      (282 lines)  - Sync retry executor
+│   └── executor_async.py (299 lines) - Async retry executor
 └── utils/
-    ├── __init__.py      (43 lines)   - Utility exports
-    ├── callbacks.py     (121 lines)  - Callback utilities
+    ├── __init__.py      (33 lines)   - Utility exports
     ├── exceptions.py    (239 lines)  - Exception utilities
     ├── response.py      (65 lines)   - Response utilities
     ├── retry_after.py   (73 lines)   - Retry-After header parsing
-    ├── retry_if_handler.py (177 lines) - Custom retry predicate handling
-    └── validation.py    (77 lines)   - Parameter validation
+    └── retry_if_handler.py (177 lines) - Custom retry predicate handling
 
-Total: 40 Python files, ~6,612 lines
+Total: 43 Python files, ~7,032 lines
 ```
 
 ### Strengths of Current Structure (Updated February 2026)
@@ -82,7 +86,7 @@ Total: 40 Python files, ~6,612 lines
 
 ## Public API Overview
 
-### Exported Functions (36 total)
+### Top-Level Exports (`aresilient`)
 
 **Context Manager Clients:**
 - `ResilientClient` (sync)
@@ -96,40 +100,43 @@ Total: 40 Python files, ~6,612 lines
 - `request_with_automatic_retry` (sync)
 - `request_with_automatic_retry_async` (async)
 
-**Backoff Strategies:**
-- `BackoffStrategy` (base class)
-- `ExponentialBackoff`
-- `LinearBackoff`
-- `FibonacciBackoff`
-- `ConstantBackoff`
-
-**Circuit Breaker:**
-- `CircuitBreaker`
-- `CircuitBreakerError`
-- `CircuitState`
-
-**Callbacks:**
-- `RequestInfo`
-- `ResponseInfo`
-- `RetryInfo`
-- `FailureInfo`
-
-**Configuration Constants:**
-- `DEFAULT_TIMEOUT`
-- `DEFAULT_MAX_RETRIES`
-- `DEFAULT_BACKOFF_FACTOR`
-- `RETRY_STATUS_CODES`
-
 **Exceptions:**
 - `HttpRequestError`
 
 **Version:**
 - `__version__`
 
+### Submodule Exports
+
+**Backoff Strategies (`aresilient.backoff`):**
+- `BackoffStrategy` (base class)
+- `ExponentialBackoff`
+- `LinearBackoff`
+- `FibonacciBackoff`
+- `ConstantBackoff`
+- `calculate_sleep_time`
+
+**Circuit Breaker (`aresilient.circuit_breaker`):**
+- `CircuitBreaker`
+- `CircuitBreakerError`
+- `CircuitState`
+
+**Callbacks (`aresilient.callbacks`):**
+- `RequestInfo`
+- `ResponseInfo`
+- `RetryInfo`
+- `FailureInfo`
+
+**Configuration (`aresilient.core.config`):**
+- `DEFAULT_TIMEOUT`
+- `DEFAULT_MAX_RETRIES`
+- `DEFAULT_BACKOFF_FACTOR`
+- `RETRY_STATUS_CODES`
+
 ### Import Patterns
 
 ```python
-# Context manager clients (new in 2026)
+# Context manager clients
 from aresilient import ResilientClient, AsyncResilientClient
 
 # Method-specific (most common)
@@ -140,13 +147,13 @@ from aresilient import get_with_automatic_retry_async
 from aresilient import request_with_automatic_retry
 
 # Backoff strategies
-from aresilient import LinearBackoff, ExponentialBackoff
+from aresilient.backoff import LinearBackoff, ExponentialBackoff
 
 # Circuit breaker
-from aresilient import CircuitBreaker
+from aresilient.circuit_breaker import CircuitBreaker
 
-# Configuration
-from aresilient import DEFAULT_TIMEOUT, RETRY_STATUS_CODES
+# Callbacks
+from aresilient.callbacks import RequestInfo, RetryInfo
 
 # Exceptions
 from aresilient import HttpRequestError
@@ -159,54 +166,61 @@ from aresilient import HttpRequestError
 **Current Implementation (February 2026):**
 ```
 src/aresilient/
-├── __init__.py          # Re-exports all public APIs
-├── config.py            # At root (frequently accessed)
-├── exceptions.py        # At root (frequently accessed)
-├── callbacks.py         # At root (callback dataclasses)
-├── circuit_breaker.py   # At root (major feature)
+├── __init__.py          # Main public API (HTTP methods, clients, exceptions)
+├── callbacks.py         # Callback dataclasses
+├── circuit_breaker.py   # Circuit breaker implementation
 ├── client.py / client_async.py  # Context managers
+├── exceptions.py        # Custom exceptions
 ├── request.py / request_async.py  # Core request functions
 ├── [HTTP methods].py / [HTTP methods]_async.py  # GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
 ├── backoff/             # Backoff strategies
-│   ├── __init__.py      # Re-exports for convenience
+│   ├── __init__.py      # Backoff exports
 │   ├── strategy.py      # BackoffStrategy classes
 │   └── sleep.py         # Sleep utilities
-├── retry/               # Retry logic
-│   ├── __init__.py      # Re-exports
+├── core/                # Shared configuration and logic
+│   ├── __init__.py      # Core exports
+│   ├── config.py        # Client configuration and defaults
+│   ├── http_logic.py    # Shared HTTP method logic (sync/async)
+│   ├── retry_logic.py   # Retry decision logic
+│   └── validation.py    # Parameter validation
+├── retry/               # Retry execution framework
+│   ├── __init__.py      # Retry exports
 │   ├── config.py        # Retry configuration
 │   ├── strategy.py      # Retry strategies
 │   ├── manager.py       # Retry manager
 │   ├── decider.py       # Decision logic
+│   ├── executor_core.py # Shared executor logic
 │   ├── executor.py      # Sync executor
 │   └── executor_async.py  # Async executor
 └── utils/               # Utility functions
-    ├── __init__.py      # Re-exports
-    ├── callbacks.py     # Callback utilities
+    ├── __init__.py      # Utility exports
     ├── exceptions.py    # Exception utilities
     ├── response.py      # Response utilities
     ├── retry_after.py   # Retry-After parsing
-    ├── retry_if_handler.py  # Custom retry predicates
-    └── validation.py    # Parameter validation
+    └── retry_if_handler.py  # Custom retry predicates
 ```
 
 **Benefits Realized:**
-- ✅ Clear feature separation (backoff, retry, utils)
+- ✅ Clear feature separation (backoff, core, retry, utils)
 - ✅ Scalable for future features
 - ✅ Logical grouping reduces root-level clutter
 - ✅ Easy to add new features in appropriate modules
-- ✅ Maintains simple API via comprehensive re-exports
-- ✅ No breaking changes for existing users
-- ✅ Supports ~6,600 lines of code comfortably
+- ✅ Supports ~7,000 lines of code comfortably
 
 **User Experience:**
 ```python
-# Still simple - re-exports maintain compatibility
-from aresilient import get_with_automatic_retry, LinearBackoff
+# Top-level exports for HTTP methods and clients
+from aresilient import get_with_automatic_retry
 from aresilient import get_with_automatic_retry_async
-from aresilient import ResilientClient, CircuitBreaker
+from aresilient import ResilientClient
 
-# Can also import from submodules if needed
-from aresilient.backoff import ExponentialBackoff
+# Submodule imports for backoff strategies
+from aresilient.backoff import ExponentialBackoff, LinearBackoff
+
+# Submodule imports for circuit breaker
+from aresilient.circuit_breaker import CircuitBreaker
+
+# Submodule imports for retry framework (advanced)
 from aresilient.retry import RetryConfig
 ```
 
@@ -287,20 +301,21 @@ src/aresilient/
 
 ### Rationale
 
-1. **Library Size**: At ~6,612 lines across 40 files, the library has exceeded the threshold (~2,500 lines, 20+ files) where modular structures provide clear benefits. The current structure is appropriate for the size.
+1. **Library Size**: At ~7,032 lines across 43 files, the library has exceeded the threshold (~2,500 lines, 20+ files) where modular structures provide clear benefits. The current structure is appropriate for the size.
 
-2. **Implemented Structure Works Excellently**: The modular sub-package approach provides clear organization while maintaining all benefits of simple imports through comprehensive re-exports.
+2. **Implemented Structure Works Excellently**: The modular sub-package approach provides clear organization with a clean separation between public API and internal implementation.
 
-3. **User Experience**: Simple imports remain critical and are maintained:
+3. **User Experience**: Simple imports for common use cases:
    ```python
-   # Current (Excellent) - re-exports work seamlessly
-   from aresilient import get_with_automatic_retry, LinearBackoff
+   # Top-level exports for HTTP methods and clients
+   from aresilient import get_with_automatic_retry
    from aresilient import get_with_automatic_retry_async
-   from aresilient import ResilientClient, CircuitBreaker
+   from aresilient import ResilientClient
 
-   # Also possible if needed
+   # Submodule imports for extended functionality
    from aresilient.backoff import ExponentialBackoff
-   from aresilient.retry import RetryExecutor
+   from aresilient.circuit_breaker import CircuitBreaker
+   from aresilient.retry import RetryConfig
    ```
 
 4. **Python Philosophy**: While "Flat is better than nested", at this size, "Explicit is better than implicit" and "Namespaces are one honking great idea" take precedence. The modular structure provides necessary organization.
@@ -314,11 +329,10 @@ src/aresilient/
 
 ### Current Status (February 2026)
 
-**Structure:** ✅ **Modular with subdirectories (backoff/, retry/, utils/)**
-**Size:** ~6,612 lines across 40 files
+**Structure:** ✅ **Modular with subdirectories (backoff/, core/, retry/, utils/)**
+**Size:** ~7,032 lines across 43 files
 **Organization:** Excellent - features logically grouped
-**API:** Simple - comprehensive re-exports in `__init__.py`
-**Backward Compatibility:** ✅ Maintained
+**API:** Clean - HTTP methods and clients at top level, extended functionality in submodules
 **Scalability:** ✅ High - can grow indefinitely with current structure
 
 ### Future Considerations
@@ -373,7 +387,7 @@ The current modular structure should remain stable for the foreseeable future. C
 | Sync/async clarity   | ⭐⭐⭐⭐             | ⭐⭐⭐⭐    | ⭐⭐⭐⭐⭐        | ⭐⭐⭐             |
 | **Total**            | **38/40**             | **29/40**   | **31/40**         | **28/40**           |
 
-**Note:** The modular structure (implemented in February 2026) scores highest, especially for scalability, maintenance, navigation, and fit for current size (~6,600 lines).
+**Note:** The modular structure (implemented in February 2026) scores highest, especially for scalability, maintenance, navigation, and fit for current size (~7,000 lines).
 
 ## Evolution Timeline
 
@@ -383,18 +397,20 @@ The current modular structure should remain stable for the foreseeable future. C
 - **Action**: Started with flat structure ✅
 
 ### Phase 2: Growth and Modularization (Mid-2025 to Early 2026)
-- **Status**: ~6,612 lines, 40 files
-- **Structure**: Modular with `backoff/`, `retry/`, `utils/` subdirectories
+- **Status**: ~7,032 lines, 43 files
+- **Structure**: Modular with `backoff/`, `core/`, `retry/`, `utils/` subdirectories
 - **Action**: Successfully transitioned to modular structure ✅
 - **Key additions**:
-  - Circuit breaker implementation (464 lines)
-  - Context manager clients (client.py, client_async.py)
-  - Comprehensive retry execution framework
-  - Custom backoff strategies
-  - Retry predicates (retry_if functionality)
+  - Circuit breaker implementation (`circuit_breaker.py`)
+  - Context manager clients (`client.py`, `client_async.py`)
+  - Core shared logic module (`core/`)
+  - Comprehensive retry execution framework (`retry/`)
+  - Custom backoff strategies (`backoff/`)
+  - Retry predicates (`retry_if` functionality in `utils/retry_if_handler.py`)
+  - Callbacks and observability (`callbacks.py`)
 
 ### Phase 3: Current State (February 2026)
-- **Status**: ~6,612 lines, 40 files, modular structure
+- **Status**: ~7,032 lines, 43 files, modular structure
 - **Structure**: Optimal modular organization
 - **Action**: Maintain current structure, focus on quality and documentation ✅
 - **Features**: Complete HTTP library with resilience patterns
@@ -410,11 +426,10 @@ The current modular structure should remain stable for the foreseeable future. C
 
 ### Summary of Current State (February 2026)
 
-1. ✅ **Modular structure implemented** - Clear organization with backoff/, retry/, utils/ subdirectories
-2. ✅ **Appropriate for size** - ~6,612 lines across 40 files needs modular organization
-3. ✅ **Maintains simplicity** - Re-exports preserve simple import patterns
+1. ✅ **Modular structure implemented** - Clear organization with backoff/, core/, retry/, utils/ subdirectories
+2. ✅ **Appropriate for size** - ~7,032 lines across 43 files needs modular organization
+3. ✅ **Clean public API** - Top-level exports for common use, submodules for extended functionality
 4. ✅ **Highly scalable** - Can grow indefinitely with current structure
-5. ✅ **Backward compatible** - No breaking changes for existing users
 
 ### Recommendations
 

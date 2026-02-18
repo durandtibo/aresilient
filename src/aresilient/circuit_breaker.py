@@ -11,7 +11,8 @@ has three states:
 
 Example:
     ```pycon
-    >>> from aresilient.circuit_breaker import CircuitBreaker, get_with_automatic_retry
+    >>> from aresilient import get_with_automatic_retry
+    >>> from aresilient.circuit_breaker import CircuitBreaker
     >>> circuit_breaker = CircuitBreaker(
     ...     failure_threshold=5,
     ...     recovery_timeout=60.0,
@@ -131,7 +132,8 @@ class CircuitBreaker:
         Custom configuration:
 
         ```pycon
-        >>> from aresilient.circuit_breaker import CircuitBreaker, HttpRequestError
+        >>> from aresilient import HttpRequestError
+        >>> from aresilient.circuit_breaker import CircuitBreaker
         >>> def on_change(old_state, new_state):
         ...     print(f"Circuit {old_state.value} -> {new_state.value}")
         ...
@@ -147,7 +149,8 @@ class CircuitBreaker:
         Usage with HTTP requests:
 
         ```pycon
-        >>> from aresilient.circuit_breaker import CircuitBreaker, get_with_automatic_retry
+        >>> from aresilient import get_with_automatic_retry
+        >>> from aresilient.circuit_breaker import CircuitBreaker
         >>> circuit_breaker = CircuitBreaker(
         ...     failure_threshold=5,
         ...     recovery_timeout=60.0,

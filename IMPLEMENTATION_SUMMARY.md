@@ -175,39 +175,28 @@ All new methods include:
 
 ---
 
-## Future Work Roadmap
+## Implemented Since Initial Analysis
 
-Based on the analysis document, recommended next steps:
+The following features from the original roadmap have since been implemented:
 
-### Phase 1: Observability (Next Priority)
-1. **Callback/Event System**
+### Observability (Implemented)
+1. **Callback/Event System** ✅
    - `on_request` callback
    - `on_retry` callback
    - `on_success` callback
    - `on_failure` callback
 
-2. **Statistics Collection**
-   - Retry counter
-   - Success/failure tracking
-   - Timing information
+2. **Timing Information** ✅
+   - `total_time` in `ResponseInfo` and `FailureInfo`
 
-### Phase 2: Advanced Configuration
-1. **Custom Retry Predicates**
-   - Retry based on response body
-   - Retry based on custom business logic
+### Advanced Configuration (Implemented)
+1. **Custom Retry Predicates** ✅ (`retry_if` parameter)
+2. **Time Limits** ✅ (`max_total_time`, `max_wait_time` parameters)
+3. **Multiple Backoff Strategies** ✅ (Exponential, Linear, Fibonacci, Constant)
 
-2. **Time Limits**
-   - Max total time across retries
-   - Max wait time cap for backoff
-
-### Phase 3: Advanced Resilience
-1. **Circuit Breaker Pattern**
-   - Prevent cascading failures
-   - Fail fast after threshold
-
-2. **Fallback Strategies**
-   - Return cached data
-   - Call alternative endpoints
+### Advanced Resilience (Implemented)
+1. **Circuit Breaker Pattern** ✅ (`aresilient.circuit_breaker.CircuitBreaker`)
+2. **Context Manager API** ✅ (`ResilientClient`, `AsyncResilientClient`)
 
 ---
 

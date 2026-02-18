@@ -891,7 +891,9 @@ http_client.close()
 
 ```python
 import httpx
-from aresilient import ResilientClient, LinearBackoff
+
+from aresilient import ResilientClient
+from aresilient.backoff import LinearBackoff
 
 # Nested context managers (recommended)
 with httpx.Client(auth=..., headers=...) as http_client:
@@ -911,7 +913,9 @@ with httpx.Client(auth=..., headers=...) as http_client:
 
 ```python
 import httpx
-from aresilient import ResilientClient, CircuitBreaker
+
+from aresilient import ResilientClient
+from aresilient.circuit_breaker import CircuitBreaker
 
 # Create circuit breaker
 breaker = CircuitBreaker(

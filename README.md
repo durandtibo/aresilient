@@ -148,7 +148,8 @@ and constant backoff. You can also implement custom strategies. See the
 for detailed examples and guidance.
 
 ```python
-from aresilient import get_with_automatic_retry, LinearBackoff
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import LinearBackoff
 
 # Use linear backoff instead of exponential
 response = get_with_automatic_retry(
@@ -495,7 +496,8 @@ states:
 #### Basic Usage
 
 ```python
-from aresilient import CircuitBreaker, CircuitBreakerError, get_with_automatic_retry
+from aresilient import get_with_automatic_retry
+from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 # Create a circuit breaker instance
 circuit_breaker = CircuitBreaker(
@@ -520,7 +522,8 @@ A single circuit breaker instance can be shared across multiple requests to prot
 service:
 
 ```python
-from aresilient import CircuitBreaker, get_with_automatic_retry
+from aresilient import get_with_automatic_retry
+from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 # Create a shared circuit breaker for a specific API
 api_circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
@@ -540,7 +543,8 @@ for endpoint in ["/users", "/posts", "/comments"]:
 #### Advanced Configuration
 
 ```python
-from aresilient import CircuitBreaker, HttpRequestError
+from aresilient import HttpRequestError
+from aresilient.circuit_breaker import CircuitBreaker
 
 
 def on_state_change(old_state, new_state):
@@ -560,7 +564,7 @@ circuit_breaker = CircuitBreaker(
 #### Monitoring Circuit State
 
 ```python
-from aresilient import CircuitBreaker, CircuitState
+from aresilient.circuit_breaker import CircuitBreaker, CircuitState
 
 circuit_breaker = CircuitBreaker(failure_threshold=5)
 

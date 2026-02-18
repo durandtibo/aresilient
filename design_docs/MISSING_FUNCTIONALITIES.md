@@ -120,7 +120,8 @@ response = get_with_automatic_retry(
 
 **Example Usage:**
 ```python
-from aresilient import get_with_automatic_retry, LinearBackoff, FibonacciBackoff
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import FibonacciBackoff, LinearBackoff
 
 # Linear backoff: 1s, 2s, 3s, 4s...
 response = get_with_automatic_retry(
@@ -166,7 +167,7 @@ response = get_with_automatic_retry(
 **Implementation Status:** ✅ **COMPLETED**
 
 **What was implemented:**
-- Full circuit breaker implementation in `circuit_breaker.py` (464 lines)
+- Full circuit breaker implementation in `circuit_breaker.py` (467 lines)
 - Three states: CLOSED, OPEN, HALF_OPEN
 - Configurable failure threshold and recovery timeout
 - Integration with all HTTP methods
@@ -174,7 +175,8 @@ response = get_with_automatic_retry(
 
 **Example Usage:**
 ```python
-from aresilient import get_with_automatic_retry, CircuitBreaker
+from aresilient import get_with_automatic_retry
+from aresilient.circuit_breaker import CircuitBreaker
 
 circuit_breaker = CircuitBreaker(
     failure_threshold=5,  # Open circuit after 5 failures

@@ -58,11 +58,12 @@ This directory contains design documents and proposals for the aresilient librar
 
 ### Modular Structure Refactoring (Mid-2025 to Early 2026)
 
-The library successfully transitioned from a flat structure (~1,350 lines, 18 files) to a modular organization (~6,600 lines, 40 files):
+The library successfully transitioned from a flat structure (~1,350 lines, 18 files) to a modular organization (~7,032 lines, 43 files):
 
 - **backoff/** - Backoff strategy implementations (Exponential, Linear, Fibonacci, Constant)
+- **core/** - Shared configuration, HTTP method logic, retry decision logic, and validation
 - **retry/** - Comprehensive retry execution framework with managers, executors, and decision logic
-- **utils/** - Utility functions for validation, callbacks, exceptions, response handling, and retry predicates
+- **utils/** - Utility functions for exceptions, response handling, retry-after parsing, and retry predicates
 
 Benefits:
 - Clear feature separation and organization
@@ -95,7 +96,7 @@ Full circuit breaker implementation with three states (CLOSED, OPEN, HALF_OPEN):
 - Prevents cascading failures
 - Configurable failure thresholds and recovery timeouts
 - Integration with all HTTP methods
-- 464 lines of implementation in `circuit_breaker.py`
+- 467 lines of implementation in `circuit_breaker.py`
 
 ### Custom Retry Predicates (2025-2026)
 
@@ -106,10 +107,10 @@ Implemented `retry_if` functionality allowing custom retry logic:
 
 ## Summary
 
-The aresilient library has evolved significantly from its initial flat structure to a well-organized modular architecture. The library now maintains a **modular structure** with clear separation of concerns using subdirectories for backoff, retry, and utility functionality. This structure is optimal for the current size (~6,600 lines, 40 files) and provides excellent scalability for future growth.
+The aresilient library has evolved significantly from its initial flat structure to a well-organized modular architecture. The library now maintains a **modular structure** with clear separation of concerns using subdirectories for backoff, core, retry, and utility functionality. This structure is optimal for the current size (~7,032 lines, 43 files) and provides excellent scalability for future growth.
 
 **Key Achievements:**
-- ✅ Modular structure with backoff/, retry/, utils/ subdirectories
+- ✅ Modular structure with backoff/, core/, retry/, utils/ subdirectories
 - ✅ Context Manager API for batch requests
 - ✅ Circuit Breaker pattern for preventing cascading failures
 - ✅ Custom retry predicates for flexible retry logic

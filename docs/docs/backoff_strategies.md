@@ -26,7 +26,8 @@ works well for most scenarios where you want progressively longer delays between
 **Example:**
 
 ```python
-from aresilient import get_with_automatic_retry, ExponentialBackoff
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import ExponentialBackoff
 
 # Explicit exponential backoff with max delay cap
 response = get_with_automatic_retry(
@@ -64,7 +65,8 @@ useful for services with predictable recovery times.
 **Example:**
 
 ```python
-from aresilient import get_with_automatic_retry, LinearBackoff
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import LinearBackoff
 
 response = get_with_automatic_retry(
     "https://api.example.com/data",
@@ -95,7 +97,8 @@ following the Fibonacci sequence. This provides a more gradual increase than exp
 **Example:**
 
 ```python
-from aresilient import get_with_automatic_retry, FibonacciBackoff
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import FibonacciBackoff
 
 response = get_with_automatic_retry(
     "https://api.example.com/data",
@@ -126,7 +129,8 @@ is useful for testing or when you know the exact delay that works best.
 **Example:**
 
 ```python
-from aresilient import get_with_automatic_retry, ConstantBackoff
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import ConstantBackoff
 
 response = get_with_automatic_retry(
     "https://api.example.com/data",
@@ -141,7 +145,8 @@ You can implement your own backoff strategy by subclassing `BackoffStrategy` and
 `calculate()` method:
 
 ```python
-from aresilient import get_with_automatic_retry, BackoffStrategy
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import BackoffStrategy
 
 
 class SquareBackoff(BackoffStrategy):
@@ -168,7 +173,8 @@ Jitter adds randomization to backoff delays to prevent the "thundering herd" pro
 clients retry simultaneously. Jitter works with all backoff strategies:
 
 ```python
-from aresilient import get_with_automatic_retry, LinearBackoff
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import LinearBackoff
 
 response = get_with_automatic_retry(
     "https://api.example.com/data",
@@ -185,7 +191,8 @@ automatically uses the server's suggested wait time instead of the configured ba
 This ensures compliance with server requirements:
 
 ```python
-from aresilient import get_with_automatic_retry, ExponentialBackoff
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import ExponentialBackoff
 
 response = get_with_automatic_retry(
     "https://api.example.com/data",
@@ -200,7 +207,8 @@ response = get_with_automatic_retry(
 Most strategies support an optional `max_delay` parameter to prevent extremely long waits:
 
 ```python
-from aresilient import get_with_automatic_retry, ExponentialBackoff
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import ExponentialBackoff
 
 response = get_with_automatic_retry(
     "https://api.example.com/data",
@@ -251,7 +259,8 @@ Here's how different strategies compare for the first 6 retry attempts (with `ba
 All backoff strategies work identically with async functions:
 
 ```python
-from aresilient import get_with_automatic_retry_async, FibonacciBackoff
+from aresilient import get_with_automatic_retry_async
+from aresilient.backoff import FibonacciBackoff
 
 
 async def fetch_data():
@@ -267,7 +276,8 @@ async def fetch_data():
 Backoff strategies work seamlessly with `ResilientClient` and `AsyncResilientClient`:
 
 ```python
-from aresilient import ResilientClient, LinearBackoff, ConstantBackoff
+from aresilient import ResilientClient
+from aresilient.backoff import ConstantBackoff, LinearBackoff
 
 # All requests in the context use the same backoff strategy
 with ResilientClient(
@@ -288,7 +298,9 @@ Async context manager example:
 
 ```python
 import asyncio
-from aresilient import AsyncResilientClient, ExponentialBackoff
+
+from aresilient import AsyncResilientClient
+from aresilient.backoff import ExponentialBackoff
 
 
 async def fetch_all():
