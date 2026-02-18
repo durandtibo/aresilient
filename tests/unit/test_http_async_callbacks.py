@@ -20,8 +20,8 @@ from tests.helpers import HTTP_METHODS_ASYNC, AsyncHttpMethodTestCase
 TEST_URL = "https://api.example.com/data"
 
 
-##################################################
-#     Parametrized Tests for Async HTTP Methods #
+#####################################################
+#     Parametrized Tests for Async HTTP Methods     #
 #     with callback functionality               #
 ##################################################
 

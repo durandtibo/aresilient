@@ -115,9 +115,9 @@ async def test_retry_if_checks_response_content(
     mock_asleep.assert_called_once_with(0.3)
 
 
-#####################################################
-#     Tests for retry_if with error responses       #
-#####################################################
+###################################################
+#     Tests for retry_if with error responses     #
+###################################################
 
 
 @pytest.mark.asyncio
@@ -178,9 +178,9 @@ async def test_retry_if_returns_true_for_error_response(
     mock_asleep.assert_called_once_with(0.3)
 
 
-###################################################
-#     Tests for retry_if with exceptions          #
-###################################################
+##############################################
+#     Tests for retry_if with exceptions     #
+##############################################
 
 
 @pytest.mark.asyncio
@@ -304,9 +304,9 @@ async def test_retry_if_exhausts_retries_with_exception(
     assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
-#########################################################
-#     Tests for retry_if with mixed scenarios           #
-#########################################################
+###################################################
+#     Tests for retry_if with mixed scenarios     #
+###################################################
 
 
 @pytest.mark.asyncio
@@ -374,9 +374,9 @@ async def test_retry_if_none_uses_default_behavior(
     mock_asleep.assert_called_once_with(0.3)
 
 
-############################################
-#     Tests for retry_if with callbacks    #
-############################################
+#############################################
+#     Tests for retry_if with callbacks     #
+#############################################
 
 
 @pytest.mark.asyncio

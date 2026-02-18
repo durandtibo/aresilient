@@ -11,9 +11,9 @@ from aresilient import head_async
 HTTPBIN_URL = "https://httpbin.org"
 
 
-###################################################
+################################
 #     Tests for head_async     #
-###################################################
+################################
 # Note: Common async tests (successful request, non-retryable status, headers)
 # are now in test_core_async.py to avoid duplication across HTTP methods.
 # This file contains HEAD-specific async tests only.

@@ -25,8 +25,8 @@ from tests.helpers import (
 TEST_URL = "https://api.example.com/data"
 
 
-##################################################
-#     Parametrized Tests for HTTP Methods       #
+###############################################
+#     Parametrized Tests for HTTP Methods     #
 #     with callback functionality               #
 ##################################################
 

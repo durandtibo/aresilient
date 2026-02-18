@@ -40,7 +40,7 @@ TEST_URL = "https://api.example.com/data"
 
 
 ############################################################
-#     Parametrized Tests for Core HTTP Method Features    #
+#     Parametrized Tests for Core HTTP Method Features     #
 ############################################################
 
 
@@ -324,9 +324,9 @@ def test_client_close_on_exception(
     mock_sleep.assert_not_called()
 
 
-############################################################
-#     Tests for ClientConfig parameter support            #
-############################################################
+####################################################
+#     Tests for ClientConfig parameter support     #
+####################################################
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)

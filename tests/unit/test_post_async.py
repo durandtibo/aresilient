@@ -17,9 +17,9 @@ from aresilient import post_async
 TEST_URL = "https://api.example.com/data"
 
 
-######################################################
+################################
 #     Tests for post_async     #
-######################################################
+################################
 
 
 @pytest.mark.asyncio

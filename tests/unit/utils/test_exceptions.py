@@ -1,3 +1,5 @@
+r"""Unit tests for exception handling utilities."""
+
 from __future__ import annotations
 
 from unittest.mock import Mock, patch
@@ -144,9 +146,9 @@ def test_handle_request_error_various_error_types(exc: httpx.RequestError) -> No
     assert exc_info.value.__cause__ == exc
 
 
-########################################################
-#     Tests for handle_exception_with_callback        #
-########################################################
+####################################################
+#     Tests for handle_exception_with_callback     #
+####################################################
 
 
 def test_handle_exception_with_callback_non_final_attempt() -> None:
@@ -254,9 +256,9 @@ def test_handle_exception_with_callback_reraises_error() -> None:
         )
 
 
-################################################
-#     Tests for raise_final_error             #
-################################################
+#######################################
+#     Tests for raise_final_error     #
+#######################################
 
 
 def test_raise_final_error_with_response() -> None:

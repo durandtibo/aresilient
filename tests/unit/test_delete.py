@@ -15,9 +15,9 @@ from aresilient import delete
 TEST_URL = "https://api.example.com/data"
 
 
-#################################################
+############################
 #     Tests for delete     #
-#################################################
+############################
 
 
 def test_delete_with_data(mock_client: httpx.Client, mock_sleep: Mock) -> None:

@@ -8,9 +8,9 @@ from aresilient import patch
 HTTPBIN_URL = "https://httpbin.org"
 
 
-################################################
+###########################
 #     Tests for patch     #
-################################################
+###########################
 # Note: Common tests (successful request, non-retryable status, headers)
 # are now in test_core.py to avoid duplication across HTTP methods.
 # This file contains PATCH-specific tests only.

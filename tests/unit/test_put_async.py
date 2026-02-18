@@ -16,9 +16,9 @@ from aresilient import put_async
 TEST_URL = "https://api.example.com/data"
 
 
-####################################################
+###############################
 #     Tests for put_async     #
-####################################################
+###############################
 
 
 @pytest.mark.asyncio

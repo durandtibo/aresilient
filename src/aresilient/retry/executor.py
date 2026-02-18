@@ -222,7 +222,12 @@ class RetryExecutor:
 
                 # Mark for retry - record circuit breaker failure
                 last_status_code = response.status_code
-                executor_core.record_response_failure(self.circuit_breaker, response, url, method)
+                executor_core.record_response_failure(
+                    circuit_breaker=self.circuit_breaker,
+                    response=response,
+                    url=url,
+                    method=method,
+                )
                 logger.debug(f"{method} to {url}: will retry ({reason})")
 
             except (httpx.TimeoutException, httpx.RequestError) as exc:
@@ -235,7 +240,9 @@ class RetryExecutor:
 
                 if not should_retry:
                     # Create and raise error immediately
-                    error = executor_core.create_exception_error(exc, url, method, attempt)
+                    error = executor_core.create_exception_error(
+                        exc=exc, url=url, method=method, attempt=attempt
+                    )
                     self.callbacks.on_failure(
                         url=url,
                         method=method,
@@ -248,17 +255,23 @@ class RetryExecutor:
                     raise error from exc
 
                 # Record circuit breaker failure for retryable exception
-                executor_core.record_failure(self.circuit_breaker, exc)
+                executor_core.record_failure(circuit_breaker=self.circuit_breaker, error=exc)
                 logger.debug(f"{method} to {url}: will retry ({reason})")
 
             # Sleep before retry (if not last attempt)
             if attempt < self.config.max_retries:
                 # Check max_total_time BEFORE sleeping
                 executor_core.check_time_budget_exceeded(
-                    self.config, self.callbacks, start_time, url, method, attempt, response
+                    config=self.config,
+                    callbacks=self.callbacks,
+                    start_time=start_time,
+                    url=url,
+                    method=method,
+                    attempt=attempt,
+                    response=response,
                 )
 
-                sleep_time = self.strategy.calculate_delay(attempt, response)
+                sleep_time = self.strategy.calculate_delay(attempt=attempt, response=response)
                 self.callbacks.on_retry(
                     url=url,
                     method=method,

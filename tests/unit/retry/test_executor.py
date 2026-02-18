@@ -22,7 +22,7 @@ def test_retry_executor_creation() -> None:
     )
     callback_config = CallbackConfig()
 
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     assert executor.config is retry_config
     assert executor.strategy is not None
@@ -42,7 +42,7 @@ def test_retry_executor_with_circuit_breaker() -> None:
     callback_config = CallbackConfig()
     circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=10.0)
 
-    executor = RetryExecutor(retry_config, callback_config, circuit_breaker)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config, circuit_breaker=circuit_breaker)
 
     assert executor.circuit_breaker is circuit_breaker
 
@@ -56,7 +56,7 @@ def test_retry_executor_successful_request() -> None:
         jitter_factor=0.0,
     )
     callback_config = CallbackConfig()
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(return_value=mock_response)
@@ -80,7 +80,7 @@ def test_retry_executor_retry_on_retryable_status() -> None:
         jitter_factor=0.0,
     )
     callback_config = CallbackConfig()
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_response_fail = Mock(spec=httpx.Response, status_code=500)
     mock_response_success = Mock(spec=httpx.Response, status_code=200)
@@ -105,7 +105,7 @@ def test_retry_executor_fails_on_non_retryable_status() -> None:
         jitter_factor=0.0,
     )
     callback_config = CallbackConfig()
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_response = Mock(spec=httpx.Response, status_code=404)
     mock_request_func = Mock(return_value=mock_response)
@@ -130,7 +130,7 @@ def test_retry_executor_exhausts_retries() -> None:
         jitter_factor=0.0,
     )
     callback_config = CallbackConfig()
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_response = Mock(spec=httpx.Response, status_code=500)
     mock_request_func = Mock(return_value=mock_response)
@@ -155,7 +155,7 @@ def test_retry_executor_handles_timeout_exception() -> None:
         jitter_factor=0.0,
     )
     callback_config = CallbackConfig()
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[httpx.TimeoutException("Timeout"), mock_response])
@@ -185,7 +185,7 @@ def test_retry_executor_with_callbacks() -> None:
         on_request=on_request_mock,
         on_success=on_success_mock,
     )
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(return_value=mock_response)
@@ -210,7 +210,7 @@ def test_retry_executor_circuit_breaker_records_exception_failure() -> None:
     )
     callback_config = CallbackConfig()
     circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=10.0)
-    executor = RetryExecutor(retry_config, callback_config, circuit_breaker)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config, circuit_breaker=circuit_breaker)
 
     # First attempt fails with timeout, second succeeds
     mock_response = Mock(spec=httpx.Response, status_code=200)
@@ -237,7 +237,7 @@ def test_retry_executor_max_total_time_exceeded_with_response() -> None:
         max_total_time=1.0,
     )
     callback_config = CallbackConfig()
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_response = Mock(spec=httpx.Response, status_code=500)
     mock_request_func = Mock(return_value=mock_response)
@@ -275,7 +275,7 @@ def test_retry_executor_max_total_time_exceeded_with_exception_only() -> None:
         max_total_time=1.0,
     )
     callback_config = CallbackConfig()
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_request_func = Mock(side_effect=httpx.TimeoutException("Timeout"))
 
@@ -312,7 +312,7 @@ def test_retry_executor_handles_request_error() -> None:
         jitter_factor=0.0,
     )
     callback_config = CallbackConfig()
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_response = Mock(spec=httpx.Response, status_code=200)
     mock_request_func = Mock(side_effect=[httpx.RequestError("Connection failed"), mock_response])
@@ -336,7 +336,7 @@ def test_retry_executor_request_error_exhausts_retries() -> None:
         jitter_factor=0.0,
     )
     callback_config = CallbackConfig()
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_request_func = Mock(side_effect=httpx.RequestError("Connection failed"))
 
@@ -363,7 +363,7 @@ def test_retry_executor_timeout_exhausts_retries() -> None:
         jitter_factor=0.0,
     )
     callback_config = CallbackConfig()
-    executor = RetryExecutor(retry_config, callback_config)
+    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config)
 
     mock_request_func = Mock(side_effect=httpx.TimeoutException("Timeout"))
 

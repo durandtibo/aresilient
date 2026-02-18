@@ -8,9 +8,9 @@ from aresilient import post
 HTTPBIN_URL = "https://httpbin.org"
 
 
-###############################################
+##########################
 #     Tests for post     #
-###############################################
+##########################
 # Note: Common tests (successful request, non-retryable status, headers)
 # are now in test_core.py to avoid duplication across HTTP methods.
 # This file contains POST-specific tests only.

@@ -245,7 +245,7 @@ async def test_async_client_request_method(
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
-            response = await client.request("TRACE", TEST_URL)
+            response = await client.request(method="TRACE", url=TEST_URL)
 
         assert response.status_code == 200
 

@@ -19,9 +19,9 @@ from aresilient.request import request
 TEST_URL = "https://api.example.com/data"
 
 
-##################################################
+#############################
 #     Tests for request     #
-##################################################
+#############################
 
 
 def test_request_successful_request(
@@ -647,9 +647,9 @@ def test_request_error_message_includes_url(mock_sleep: Mock) -> None:
     mock_sleep.assert_not_called()
 
 
-##########################################################
-#     Tests for request retry_if   #
-##########################################################
+######################################
+#     Tests for request retry_if     #
+######################################
 
 
 def test_request_retry_if_returns_false_for_success(
@@ -987,9 +987,9 @@ def test_request_retry_if_none_uses_default_behavior(
     mock_sleep.assert_called_once_with(0.3)
 
 
-##################################################
+#################################################
 #     Tests for config parameter in request     #
-##################################################
+#################################################
 
 
 def test_request_with_config(

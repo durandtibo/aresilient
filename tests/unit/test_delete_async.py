@@ -17,9 +17,9 @@ from aresilient import delete_async
 TEST_URL = "https://api.example.com/data"
 
 
-########################################################
+##################################
 #     Tests for delete_async     #
-########################################################
+##################################
 
 
 @pytest.mark.asyncio

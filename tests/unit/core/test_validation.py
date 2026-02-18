@@ -1,12 +1,14 @@
+r"""Unit tests for validation functions."""
+
 from __future__ import annotations
 
 import pytest
 
 from aresilient.core import validate_retry_params, validate_timeout
 
-#######################################
+######################################
 #     Tests for validate_timeout     #
-#######################################
+######################################
 
 
 @pytest.mark.parametrize("timeout", [0.1, 1.0, 10.0, 30.0, 100])

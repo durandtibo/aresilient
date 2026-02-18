@@ -15,9 +15,9 @@ from aresilient import patch
 TEST_URL = "https://api.example.com/data"
 
 
-###############################################
+###########################
 #     Tests for patch     #
-###############################################
+###########################
 
 
 def test_patch_with_data(mock_client: httpx.Client, mock_sleep: Mock) -> None:

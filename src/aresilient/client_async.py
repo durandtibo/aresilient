@@ -282,7 +282,7 @@ class AsyncResilientClient:
 
             ```
         """
-        return await self.request("GET", url, **kwargs)
+        return await self.request(method="GET", url=url, **kwargs)
 
     async def post(self, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP POST request with automatic retry logic.
@@ -308,7 +308,7 @@ class AsyncResilientClient:
 
             ```
         """
-        return await self.request("POST", url, **kwargs)
+        return await self.request(method="POST", url=url, **kwargs)
 
     async def put(self, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP PUT request with automatic retry logic.
@@ -334,7 +334,7 @@ class AsyncResilientClient:
 
             ```
         """
-        return await self.request("PUT", url, **kwargs)
+        return await self.request(method="PUT", url=url, **kwargs)
 
     async def delete(self, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP DELETE request with automatic retry logic.
@@ -358,7 +358,7 @@ class AsyncResilientClient:
 
             ```
         """
-        return await self.request("DELETE", url, **kwargs)
+        return await self.request(method="DELETE", url=url, **kwargs)
 
     async def patch(self, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP PATCH request with automatic retry logic.
@@ -384,7 +384,7 @@ class AsyncResilientClient:
 
             ```
         """
-        return await self.request("PATCH", url, **kwargs)
+        return await self.request(method="PATCH", url=url, **kwargs)
 
     async def head(self, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP HEAD request with automatic retry logic.
@@ -408,7 +408,7 @@ class AsyncResilientClient:
 
             ```
         """
-        return await self.request("HEAD", url, **kwargs)
+        return await self.request(method="HEAD", url=url, **kwargs)
 
     async def options(self, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP OPTIONS request with automatic retry logic.
@@ -432,4 +432,4 @@ class AsyncResilientClient:
 
             ```
         """
-        return await self.request("OPTIONS", url, **kwargs)
+        return await self.request(method="OPTIONS", url=url, **kwargs)

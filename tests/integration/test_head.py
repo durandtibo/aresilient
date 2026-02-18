@@ -8,9 +8,9 @@ from aresilient import head
 HTTPBIN_URL = "https://httpbin.org"
 
 
-###############################################
+##########################
 #     Tests for head     #
-###############################################
+##########################
 # Note: Common tests (successful request, non-retryable status, headers)
 # are now in test_core.py to avoid duplication across HTTP methods.
 # This file contains HEAD-specific tests only.

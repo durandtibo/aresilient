@@ -15,9 +15,9 @@ from aresilient import put
 TEST_URL = "https://api.example.com/data"
 
 
-#############################################
+#########################
 #     Tests for put     #
-#############################################
+#########################
 
 
 def test_put_with_data(mock_client: httpx.Client, mock_sleep: Mock) -> None:

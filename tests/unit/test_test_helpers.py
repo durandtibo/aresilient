@@ -75,9 +75,9 @@ def test_setup_mock_client_for_method_different_methods(method: str) -> None:
     assert client_method() == response
 
 
-##########################################################
+########################################################
 #     Tests for setup_mock_async_client_for_method     #
-##########################################################
+########################################################
 
 
 def test_setup_mock_async_client_for_method_default_status() -> None:
