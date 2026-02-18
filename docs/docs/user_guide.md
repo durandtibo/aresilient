@@ -132,7 +132,9 @@ from aresilient import (
 )
 ```
 
-**Note**: All async functions support the same parameters as their synchronous counterparts, including:
+**Note**: All async functions support the same parameters as their synchronous counterparts,
+including:
+
 - `max_retries`, `backoff_factor`, `jitter_factor`
 - `status_forcelist`, `retry_if`
 - `on_request`, `on_retry`, `on_success`, `on_failure` callbacks
@@ -358,7 +360,8 @@ strategy and when to use them.
 
 ### Customizing Retryable Status Codes
 
-By default, `aresilient` retries on status codes 429, 500, 502, 503, and 504. You can customize this:
+By default, `aresilient` retries on status codes 429, 500, 502, 503, and 504. You can customize
+this:
 
 ```python
 from aresilient import get_with_automatic_retry
@@ -681,8 +684,8 @@ except Exception as e:
    are made
 4. **After recovery_timeout**: Circuit enters HALF_OPEN state
 5. **In HALF_OPEN**: One test request is attempted
-   - If successful: Circuit closes (back to CLOSED state)
-   - If fails: Circuit reopens (back to OPEN state) for another recovery_timeout period
+    - If successful: Circuit closes (back to CLOSED state)
+    - If fails: Circuit reopens (back to OPEN state) for another recovery_timeout period
 
 ### Circuit Breaker with Multiple Endpoints
 
@@ -1030,7 +1033,10 @@ data = asyncio.run(fetch_data())
 
 ## Callbacks and Observability
 
-`aresilient` provides a comprehensive callback/event system for observability, enabling you to hook into the retry lifecycle for logging, metrics collection, alerting, and custom behavior. This is particularly useful for production applications where you need to monitor HTTP request patterns, track retry rates, and integrate with your observability stack.
+`aresilient` provides a comprehensive callback/event system for observability, enabling you to hook
+into the retry lifecycle for logging, metrics collection, alerting, and custom behavior. This is
+particularly useful for production applications where you need to monitor HTTP request patterns,
+track retry rates, and integrate with your observability stack.
 
 ### Available Callbacks
 
@@ -1041,7 +1047,8 @@ The library provides four lifecycle hooks:
 - **`on_success`**: Called when a request succeeds
 - **`on_failure`**: Called when all retries are exhausted and the request fails
 
-All callbacks are optional and can be used independently or together. They work with both synchronous and asynchronous functions.
+All callbacks are optional and can be used independently or together. They work with both
+synchronous and asynchronous functions.
 
 ### Callback Signatures
 
@@ -1162,6 +1169,7 @@ except Exception as e:
 ```
 
 Example output:
+
 ```
 [REQUEST] GET https://api.example.com/data - Attempt 1/4
 [RETRY] GET https://api.example.com/data - Attempt 2/4, waiting 0.30s, reason=status=503
@@ -1399,7 +1407,9 @@ async def fetch_data():
 asyncio.run(fetch_data())
 ```
 
-**Note**: Callbacks themselves are synchronous functions even when used with async HTTP methods. If you need to perform async operations in callbacks (e.g., async logging), you'll need to handle that separately.
+**Note**: Callbacks themselves are synchronous functions even when used with async HTTP methods. If
+you need to perform async operations in callbacks (e.g., async logging), you'll need to handle that
+separately.
 
 ### Custom Alerting on Failures
 
@@ -1486,15 +1496,20 @@ response = get_with_automatic_retry(
 
 ### Best Practices for Callbacks
 
-1. **Keep callbacks lightweight**: Callbacks are called synchronously and will block the request flow. Avoid heavy computations or blocking I/O.
+1. **Keep callbacks lightweight**: Callbacks are called synchronously and will block the request
+   flow. Avoid heavy computations or blocking I/O.
 
-2. **Handle exceptions in callbacks**: If a callback raises an exception, it will propagate and potentially abort the request. Wrap callback code in try/except if needed.
+2. **Handle exceptions in callbacks**: If a callback raises an exception, it will propagate and
+   potentially abort the request. Wrap callback code in try/except if needed.
 
-3. **Use structured logging**: Include relevant context (URL, method, attempt number) in log messages for better debugging.
+3. **Use structured logging**: Include relevant context (URL, method, attempt number) in log
+   messages for better debugging.
 
-4. **Sample high-volume metrics**: For high-traffic applications, consider sampling metrics to reduce overhead.
+4. **Sample high-volume metrics**: For high-traffic applications, consider sampling metrics to
+   reduce overhead.
 
-5. **Separate concerns**: Use `on_retry` for retry-specific metrics, `on_success` for latency tracking, and `on_failure` for alerting.
+5. **Separate concerns**: Use `on_retry` for retry-specific metrics, `on_success` for latency
+   tracking, and `on_failure` for alerting.
 
 ## Error Handling
 
@@ -1857,6 +1872,7 @@ response = get_with_automatic_retry("https://api.example.com/data")
 ```
 
 Example debug output:
+
 ```
 DEBUG:aresilient.request:GET request to https://api.example.com/data failed with status 503 (attempt 1/4)
 DEBUG:aresilient.utils:Waiting 0.30s before retry

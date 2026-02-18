@@ -165,5 +165,6 @@ Then install the pre-commit hooks:
 pre-commit install
 ```
 
-See [CONTRIBUTING.md](https://github.com/durandtibo/aresilient/blob/main/.github/CONTRIBUTING.md) for
+See [CONTRIBUTING.md](https://github.com/durandtibo/aresilient/blob/main/.github/CONTRIBUTING.md)
+for
 more information about contributing.

@@ -66,17 +66,20 @@ HTTP communications, making your applications more robust and fault-tolerant.
   codes (429, 500, 502, 503, 504 by default)
 - **Multiple Backoff Strategies**: Choose from Exponential (default), Linear, Fibonacci, or Constant
   backoff, or implement your own custom strategy
-- **Optional Jitter**: Add randomized jitter to prevent thundering herd problems and avoid overwhelming servers
+- **Optional Jitter**: Add randomized jitter to prevent thundering herd problems and avoid
+  overwhelming servers
 - **Retry-After Header Support**: Respects server-specified retry delays from `Retry-After` headers
   (supports both integer seconds and HTTP-date formats)
 - **Circuit Breaker Pattern**: Prevent cascading failures with built-in circuit breaker support
   (CLOSED, OPEN, HALF_OPEN states)
 - **Context Manager API**: Manage multiple requests with shared configuration using ResilientClient
   and AsyncResilientClient
-- **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
+- **Complete HTTP Method Support**: Supports all common HTTP methods (GET, POST, PUT, DELETE, PATCH,
+  HEAD, OPTIONS)
 - **Full Async Support**: Fully supports asynchronous requests for high-performance applications
 - **Built on httpx**: Leverages the modern, async-capable httpx library
-- **Advanced Configuration**: Customize timeout, retry attempts, backoff strategies, jitter, retryable
+- **Advanced Configuration**: Customize timeout, retry attempts, backoff strategies, jitter,
+  retryable
   status codes, max total time, and max wait time
 - **Custom Retry Predicates**: Define custom logic for retry decisions based on response content,
   headers, or business rules using the `retry_if` parameter

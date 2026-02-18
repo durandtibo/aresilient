@@ -8,9 +8,14 @@
 
 ## Executive Summary
 
-This document reviews the current architecture of the **aresilient** library, a Python library for resilient HTTP requests supporting both synchronous and asynchronous APIs. The library has grown to approximately 6,600 lines across 40 modules and successfully transitioned from a flat structure to a modular architecture. However, significant code duplication exists between sync and async implementations (14 paired modules, ~3,300 lines duplicated).
+This document reviews the current architecture of the **aresilient** library, a Python library for
+resilient HTTP requests supporting both synchronous and asynchronous APIs. The library has grown to
+approximately 6,600 lines across 40 modules and successfully transitioned from a flat structure to a
+modular architecture. However, significant code duplication exists between sync and async
+implementations (14 paired modules, ~3,300 lines duplicated).
 
 **Key Findings:**
+
 - ✅ Current modular structure is well-organized and scalable
 - ⚠️ Significant duplication between sync/async implementations (~50% of codebase)
 - ⚠️ Maintenance burden: changes must be made twice
@@ -18,7 +23,9 @@ This document reviews the current architecture of the **aresilient** library, a 
 
 **Recommendations:**
 This document proposes three alternative architectural approaches with varying levels of change:
-1. **Minimal Change:** Extract shared logic to reduce duplication while maintaining current structure
+
+1. **Minimal Change:** Extract shared logic to reduce duplication while maintaining current
+   structure
 2. **Moderate Refactor:** Shared core with thin sync/async wrappers
 3. **Advanced Pattern:** Template-based code generation or protocol-based abstraction
 
@@ -99,41 +106,42 @@ src/aresilient/
 
 #### Sync/Async Paired Modules (14 pairs)
 
-| Module Type           | Sync Lines | Async Lines | Total | Similarity |
-|-----------------------|------------|-------------|-------|------------|
-| **HTTP Clients**      | 385        | 412         | 797   | ~90%       |
-| **Core Request**      | 177        | 181         | 358   | ~95%       |
-| **GET Method**        | 152        | 158         | 310   | ~98%       |
-| **POST Method**       | 155        | 160         | 315   | ~98%       |
-| **PUT Method**        | 154        | 160         | 314   | ~98%       |
-| **DELETE Method**     | 156        | 160         | 316   | ~98%       |
-| **PATCH Method**      | 155        | 160         | 315   | ~98%       |
-| **HEAD Method**       | 165        | 167         | 332   | ~98%       |
-| **OPTIONS Method**    | 163        | 167         | 330   | ~98%       |
-| **Retry Executors**   | 326        | 343         | 669   | ~93%       |
-| **TOTAL**             | **1,988**  | **2,068**   | **4,056** | **~95%** |
+| Module Type         | Sync Lines | Async Lines | Total     | Similarity |
+|---------------------|------------|-------------|-----------|------------|
+| **HTTP Clients**    | 385        | 412         | 797       | ~90%       |
+| **Core Request**    | 177        | 181         | 358       | ~95%       |
+| **GET Method**      | 152        | 158         | 310       | ~98%       |
+| **POST Method**     | 155        | 160         | 315       | ~98%       |
+| **PUT Method**      | 154        | 160         | 314       | ~98%       |
+| **DELETE Method**   | 156        | 160         | 316       | ~98%       |
+| **PATCH Method**    | 155        | 160         | 315       | ~98%       |
+| **HEAD Method**     | 165        | 167         | 332       | ~98%       |
+| **OPTIONS Method**  | 163        | 167         | 330       | ~98%       |
+| **Retry Executors** | 326        | 343         | 669       | ~93%       |
+| **TOTAL**           | **1,988**  | **2,068**   | **4,056** | **~95%**   |
 
-**Key Observation:** Approximately **61%** of the codebase (4,056 / 6,612 lines) consists of sync/async pairs with **~95% similarity**.
+**Key Observation:** Approximately **61%** of the codebase (4,056 / 6,612 lines) consists of
+sync/async pairs with **~95% similarity**.
 
 #### Duplication Breakdown by Category
 
 1. **Nearly Identical (98% similarity):**
-   - HTTP method wrappers (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
-   - Only differences: `async`/`await` keywords, client type hints
+    - HTTP method wrappers (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
+    - Only differences: `async`/`await` keywords, client type hints
 
 2. **High Similarity (90-95%):**
-   - Context manager clients (client.py vs client_async.py)
-   - Core request functions (request.py vs request_async.py)
-   - Retry executors (executor.py vs executor_async.py)
-   - Differences: async keywords + slightly different error handling patterns
+    - Context manager clients (client.py vs client_async.py)
+    - Core request functions (request.py vs request_async.py)
+    - Retry executors (executor.py vs executor_async.py)
+    - Differences: async keywords + slightly different error handling patterns
 
 3. **Fully Shared (no duplication):**
-   - Configuration (config.py)
-   - Exceptions (exceptions.py)
-   - Callbacks (callbacks.py)
-   - Circuit breaker (circuit_breaker.py)
-   - Utilities (utils/*)
-   - Backoff strategies (backoff/*)
+    - Configuration (config.py)
+    - Exceptions (exceptions.py)
+    - Callbacks (callbacks.py)
+    - Circuit breaker (circuit_breaker.py)
+    - Utilities (utils/*)
+    - Backoff strategies (backoff/*)
 
 ### 1.3 Strengths of Current Architecture
 
@@ -149,6 +157,7 @@ src/aresilient/
 ### 1.4 Current Development Workflow
 
 **When adding a new feature:**
+
 1. Implement in sync version (e.g., `get.py`)
 2. Copy to async version (e.g., `get_async.py`)
 3. Add `async`/`await` keywords
@@ -158,6 +167,7 @@ src/aresilient/
 7. Update documentation for both
 
 **Example:** Adding HEAD and OPTIONS methods required:
+
 - 4 implementation files (head.py, head_async.py, options.py, options_async.py)
 - 4 test files (test_head.py, test_head_async.py, test_options.py, test_options_async.py)
 - ~664 lines of mostly duplicated code
@@ -173,6 +183,7 @@ src/aresilient/
 **Issue:** Every feature change requires modification in two places.
 
 **Example:**
+
 ```python
 # Change in get.py
 def get_with_automatic_retry(
@@ -201,6 +212,7 @@ async def get_with_automatic_retry_async(
 ```
 
 **Impact:**
+
 - 2x development time for features
 - 2x documentation maintenance
 - 2x testing effort
@@ -211,12 +223,14 @@ async def get_with_automatic_retry_async(
 **Issue:** Sync and async versions can unintentionally diverge in behavior.
 
 **Example Scenarios:**
+
 - Bug fix applied to sync but not async
 - Parameter validation differs between versions
 - Default values updated in one but not the other
 - Error handling logic inconsistent
 
 **Real Risk:**
+
 ```python
 # Sync version
 if response.status_code in status_forcelist:
@@ -228,6 +242,7 @@ if response.status_code in status_forcelist and attempt < max_retries:
 ```
 
 **Impact:**
+
 - Inconsistent behavior between sync and async APIs
 - Users encounter different bugs depending on which API they use
 - Difficult to catch in code review
@@ -238,11 +253,13 @@ if response.status_code in status_forcelist and attempt < max_retries:
 **Issue:** Test suites are nearly identical.
 
 **Statistics:**
+
 - 789 total unit tests
 - Approximately 50% are sync/async pairs
 - Similar test patterns repeated with `async`/`await`
 
 **Example:**
+
 ```python
 # test_get.py
 def test_successful_request():
@@ -257,6 +274,7 @@ async def test_successful_request():
 ```
 
 **Impact:**
+
 - 2x test maintenance
 - Slower test suite execution
 - More code to review
@@ -266,11 +284,13 @@ async def test_successful_request():
 #### Concern 1: Linear Growth
 
 **Current Pattern:**
+
 - Adding 1 HTTP method = 2 implementation files + 2 test files
 - Adding 1 feature to retry logic = changes in 2 executors
 - Adding 1 client feature = changes in 2 client files
 
 **Projection:**
+
 - At 10 HTTP methods: 20 implementation files
 - At 15 HTTP methods: 30 implementation files
 - Current: 14 sync/async pairs (28 files)
@@ -280,6 +300,7 @@ async def test_successful_request():
 **Issue:** Developers must remember to update both versions.
 
 **Example Checklist for Adding a Feature:**
+
 - [ ] Update sync implementation
 - [ ] Update async implementation
 - [ ] Update sync tests
@@ -291,6 +312,7 @@ async def test_successful_request():
 - [ ] Ensure error messages are consistent
 
 **Impact:**
+
 - Higher chance of errors
 - Slower development velocity
 - Steeper learning curve for contributors
@@ -300,6 +322,7 @@ async def test_successful_request():
 #### Example 1: httpx
 
 **Approach:** Shared core with sync/async wrappers
+
 ```python
 # httpx uses a shared Request/Response model
 # Thin wrappers for sync vs async
@@ -314,26 +337,31 @@ class AsyncClient:
 ```
 
 **Benefits:**
+
 - Single source of truth for core logic
 - Reduced duplication
 
 #### Example 2: aiohttp vs requests
 
 **Approach:** Separate libraries
+
 - `requests`: Pure synchronous
 - `aiohttp`: Pure asynchronous
 
 **Benefits:**
+
 - No mixing of concerns
 - Each optimized for its paradigm
 
 **Drawbacks:**
+
 - Different APIs
 - Feature parity not guaranteed
 
 #### Example 3: urllib3
 
 **Approach:** Synchronous only, async support via compatibility layer
+
 ```python
 # urllib3 is sync-only
 # httpx provides async version with similar API
@@ -341,30 +369,36 @@ class AsyncClient:
 
 ### 2.4 Technical Debt Assessment
 
-| Issue                          | Severity | Impact | Urgency |
-|--------------------------------|----------|--------|---------|
-| Code duplication (~4,000 lines)| High     | High   | Medium  |
-| Maintenance burden (2x work)   | High     | High   | Medium  |
-| Risk of divergence             | Medium   | High   | Medium  |
-| Testing redundancy             | Medium   | Medium | Low     |
-| Scalability constraints        | Medium   | Medium | Low     |
-| Documentation duplication      | Medium   | Medium | Low     |
+| Issue                           | Severity | Impact | Urgency |
+|---------------------------------|----------|--------|---------|
+| Code duplication (~4,000 lines) | High     | High   | Medium  |
+| Maintenance burden (2x work)    | High     | High   | Medium  |
+| Risk of divergence              | Medium   | High   | Medium  |
+| Testing redundancy              | Medium   | Medium | Low     |
+| Scalability constraints         | Medium   | Medium | Low     |
+| Documentation duplication       | Medium   | Medium | Low     |
 
-**Overall Assessment:** 🟡 Moderate technical debt that should be addressed proactively before library grows further.
+**Overall Assessment:** 🟡 Moderate technical debt that should be addressed proactively before
+library grows further.
 
 ---
 
 ## 3. Proposed Architectural Alternatives
 
-This section presents alternative architectures, each with increasing levels of change and benefit. We begin by examining how **httpx**, a widely-used HTTP library, successfully handles both sync and async APIs, as this provides a proven real-world pattern that can inform our approach.
+This section presents alternative architectures, each with increasing levels of change and benefit.
+We begin by examining how **httpx**, a widely-used HTTP library, successfully handles both sync and
+async APIs, as this provides a proven real-world pattern that can inform our approach.
 
 ### 3.1 The httpx Pattern: Industry Reference
 
-**Background:** The [httpx library](https://github.com/encode/httpx) is a modern HTTP client for Python that supports both synchronous and asynchronous APIs. It has successfully solved the same sync/async duality challenge that aresilient faces.
+**Background:** The [httpx library](https://github.com/encode/httpx) is a modern HTTP client for
+Python that supports both synchronous and asynchronous APIs. It has successfully solved the same
+sync/async duality challenge that aresilient faces.
 
 #### How httpx Implements Sync/Async Support
 
 **Core Architecture:**
+
 ```
 httpx/
 ├── Shared Components (No Duplication):
@@ -385,17 +419,22 @@ httpx/
 
 **Key Design Principles:**
 
-1. **Shared Core Models:** Request, Response, Headers, and other data structures are defined once and used by both sync and async code.
+1. **Shared Core Models:** Request, Response, Headers, and other data structures are defined once
+   and used by both sync and async code.
 
-2. **Parallel Implementation:** Rather than using inheritance or complex abstractions, httpx maintains separate but parallel `Client` and `AsyncClient` classes.
+2. **Parallel Implementation:** Rather than using inheritance or complex abstractions, httpx
+   maintains separate but parallel `Client` and `AsyncClient` classes.
 
-3. **Transport Layer Abstraction:** The actual I/O differences are isolated in transport classes (`HTTPTransport` vs `AsyncHTTPTransport`).
+3. **Transport Layer Abstraction:** The actual I/O differences are isolated in transport classes (
+   `HTTPTransport` vs `AsyncHTTPTransport`).
 
-4. **Minimal Duplication:** Only the parts that truly need to differ (async/await keywords, event loop interaction) are duplicated.
+4. **Minimal Duplication:** Only the parts that truly need to differ (async/await keywords, event
+   loop interaction) are duplicated.
 
 #### Implementation Example from httpx
 
 **Shared Model (httpx/_models.py):**
+
 ```python
 class Request:
     """HTTP Request - Used by both sync and async."""
@@ -417,6 +456,7 @@ class Response:
 ```
 
 **Synchronous Client (httpx/_client.py):**
+
 ```python
 class Client:
     def __init__(self, transport=None):
@@ -433,6 +473,7 @@ class Client:
 ```
 
 **Asynchronous Client (httpx/_client.py):**
+
 ```python
 class AsyncClient:
     def __init__(self, transport=None):
@@ -451,6 +492,7 @@ class AsyncClient:
 #### What httpx Shares vs. Duplicates
 
 **Shared (0% Duplication):**
+
 - ✅ Request/Response models
 - ✅ Configuration classes
 - ✅ Authentication handlers
@@ -462,6 +504,7 @@ class AsyncClient:
 - ✅ SSL/TLS settings
 
 **Duplicated (Necessary for sync/async):**
+
 - ⚠️ Client classes (~500 lines each)
 - ⚠️ Transport layers (~800 lines each)
 - ⚠️ Connection pools (~400 lines each)
@@ -492,25 +535,29 @@ class AsyncClient:
 
 httpx's pattern is **highly relevant** to aresilient because:
 
-1. **Similar Problem Space:** Both libraries wrap HTTP clients with additional functionality (httpx adds features, aresilient adds resilience)
+1. **Similar Problem Space:** Both libraries wrap HTTP clients with additional functionality (httpx
+   adds features, aresilient adds resilience)
 
 2. **Same httpx Dependency:** aresilient already uses httpx, making the pattern natural
 
-3. **Proven at Scale:** httpx is used by thousands of projects, demonstrating the pattern works in production
+3. **Proven at Scale:** httpx is used by thousands of projects, demonstrating the pattern works in
+   production
 
 4. **Right Size:** httpx is ~15K lines (similar order of magnitude to aresilient's 6.6K lines)
 
 **How aresilient Currently Compares:**
 
-| Aspect | httpx | aresilient Current | Gap |
-|--------|-------|-------------------|-----|
-| Shared models | ✅ Yes | ✅ Yes (callbacks, config) | None |
-| Shared core logic | ✅ Yes | ⚠️ Partial (backoff, validators) | Medium |
-| Client duplication | ~25% | ~50% | High |
-| HTTP method duplication | Minimal (wrappers) | High (full functions) | High |
-| Overall duplication | ~20% | ~50% | High |
+| Aspect                  | httpx              | aresilient Current               | Gap    |
+|-------------------------|--------------------|----------------------------------|--------|
+| Shared models           | ✅ Yes              | ✅ Yes (callbacks, config)        | None   |
+| Shared core logic       | ✅ Yes              | ⚠️ Partial (backoff, validators) | Medium |
+| Client duplication      | ~25%               | ~50%                             | High   |
+| HTTP method duplication | Minimal (wrappers) | High (full functions)            | High   |
+| Overall duplication     | ~20%               | ~50%                             | High   |
 
-**Key Insight:** aresilient could reduce duplication from 50% to ~25% by following httpx's pattern more closely, specifically by:
+**Key Insight:** aresilient could reduce duplication from 50% to ~25% by following httpx's pattern
+more closely, specifically by:
+
 - Extracting more shared logic (like retry decision-making)
 - Making HTTP method wrappers thinner
 - Consolidating configuration handling
@@ -555,7 +602,8 @@ To adopt httpx's pattern, aresilient should:
            return boolean
    ```
 
-**Result:** Following httpx's pattern would reduce aresilient's duplication from ~50% to ~25%, while maintaining clarity and performance.
+**Result:** Following httpx's pattern would reduce aresilient's duplication from ~50% to ~25%, while
+maintaining clarity and performance.
 
 ### 3.2 Option A: Minimal Refactor - Extract Shared Logic
 
@@ -602,6 +650,7 @@ src/aresilient/
 #### Implementation Example
 
 **Before (Duplicated):**
+
 ```python
 # get.py
 def get_with_automatic_retry(url, *, timeout, max_retries, **kwargs):
@@ -616,6 +665,7 @@ async def get_with_automatic_retry_async(url, *, timeout, max_retries, **kwargs)
 ```
 
 **After (Shared Core):**
+
 ```python
 # core/http_method.py
 class HttpMethodLogic:
@@ -673,14 +723,14 @@ async def get_with_automatic_retry_async(url, *, timeout, max_retries, **kwargs)
 
 #### Implementation Effort
 
-| Phase                          | Effort    | Risk   |
-|--------------------------------|-----------|--------|
-| Create core/ module            | 8 hours   | Low    |
-| Refactor HTTP method wrappers  | 16 hours  | Medium |
-| Refactor retry executors       | 12 hours  | Medium |
-| Update tests                   | 8 hours   | Low    |
-| Documentation updates          | 4 hours   | Low    |
-| **TOTAL**                      | **48 hours** | **Medium** |
+| Phase                         | Effort       | Risk       |
+|-------------------------------|--------------|------------|
+| Create core/ module           | 8 hours      | Low        |
+| Refactor HTTP method wrappers | 16 hours     | Medium     |
+| Refactor retry executors      | 12 hours     | Medium     |
+| Update tests                  | 8 hours      | Low        |
+| Documentation updates         | 4 hours      | Low        |
+| **TOTAL**                     | **48 hours** | **Medium** |
 
 ### 3.3 Option B: Moderate Refactor - Shared Core with Protocol Abstraction
 
@@ -729,6 +779,7 @@ src/aresilient/
 #### Implementation Example
 
 **Core Protocol:**
+
 ```python
 # core/protocol.py
 from typing import Protocol, runtime_checkable, TypeVar
@@ -765,6 +816,7 @@ class AsyncHttpClient:
 ```
 
 **Unified Engine:**
+
 ```python
 # core/engine.py
 from typing import Generic, TypeVar, Callable, Union
@@ -821,6 +873,7 @@ class RequestEngine(Generic[ClientT, ResponseT]):
 ```
 
 **Simple Facades:**
+
 ```python
 # Sync methods.py (all methods in one file)
 from core.engine import RequestEngine
@@ -879,23 +932,25 @@ async def get_with_automatic_retry_async(url, **kwargs):
 
 #### Implementation Effort
 
-| Phase                          | Effort    | Risk   |
-|--------------------------------|-----------|--------|
-| Design protocols               | 8 hours   | Low    |
-| Implement core engine          | 24 hours  | High   |
-| Create adapters                | 8 hours   | Medium |
-| Refactor to facades            | 24 hours  | High   |
-| Update tests                   | 16 hours  | Medium |
-| Documentation updates          | 8 hours   | Low    |
-| **TOTAL**                      | **88 hours** | **High** |
+| Phase                 | Effort       | Risk     |
+|-----------------------|--------------|----------|
+| Design protocols      | 8 hours      | Low      |
+| Implement core engine | 24 hours     | High     |
+| Create adapters       | 8 hours      | Medium   |
+| Refactor to facades   | 24 hours     | High     |
+| Update tests          | 16 hours     | Medium   |
+| Documentation updates | 8 hours      | Low      |
+| **TOTAL**             | **88 hours** | **High** |
 
 ### 3.4 Option C: Advanced Pattern - Code Generation
 
-**Philosophy:** Generate sync/async code from a single source of truth using templates or decorators.
+**Philosophy:** Generate sync/async code from a single source of truth using templates or
+decorators.
 
 #### Approach 1: Template-Based Generation
 
 **Structure:**
+
 ```
 src/aresilient/
 ├── templates/                     - NEW: Code templates
@@ -913,6 +968,7 @@ src/aresilient/
 ```
 
 **Template Example:**
+
 ```jinja2
 {# http_method.py.jinja2 #}
 {% if is_async %}async {% endif %}def {{ method }}_with_automatic_retry{% if is_async %}_async{% endif %}(
@@ -937,6 +993,7 @@ src/aresilient/
 ```
 
 **Build Process:**
+
 ```bash
 # Generate code during build
 python -m aresilient.generators.generate
@@ -946,6 +1003,7 @@ python -m aresilient.generators.generate
 #### Approach 2: Decorator-Based Generation
 
 **Structure:**
+
 ```python
 # core/decorators.py
 def http_method(method: str):
@@ -997,16 +1055,16 @@ def get_base(url, client, **kwargs):
 
 #### Implementation Effort
 
-| Phase                          | Effort    | Risk   |
-|--------------------------------|-----------|--------|
-| Design template system         | 16 hours  | Medium |
-| Create templates               | 24 hours  | High   |
-| Build generation pipeline      | 16 hours  | High   |
-| Update build system            | 8 hours   | Medium |
-| Migrate existing code          | 32 hours  | High   |
-| Update tests                   | 16 hours  | Medium |
-| Documentation                  | 8 hours   | Low    |
-| **TOTAL**                      | **120 hours** | **Very High** |
+| Phase                     | Effort        | Risk          |
+|---------------------------|---------------|---------------|
+| Design template system    | 16 hours      | Medium        |
+| Create templates          | 24 hours      | High          |
+| Build generation pipeline | 16 hours      | High          |
+| Update build system       | 8 hours       | Medium        |
+| Migrate existing code     | 32 hours      | High          |
+| Update tests              | 16 hours      | Medium        |
+| Documentation             | 8 hours       | Low           |
+| **TOTAL**                 | **120 hours** | **Very High** |
 
 **Recommendation:** ❌ **Not recommended** for this library. Over-engineered for current needs.
 
@@ -1016,50 +1074,56 @@ def get_base(url, client, **kwargs):
 
 ### 4.1 Comparison Matrix
 
-| Aspect                  | Current | httpx Pattern | Option A (Extract) | Option B (Protocol) | Option C (Generate) |
-|-------------------------|---------|---------------|-------------------|---------------------|---------------------|
-| **Code Duplication**    | ~4,000  | ~3,000 (25%)  | ~2,000 (30%)      | ~1,200 (18%)        | ~0 (0%)             |
-| **Maintenance Burden**  | High    | Medium        | Medium            | Low                 | Very Low            |
-| **Implementation Effort** | 0     | 0 (reference) | 48 hours          | 88 hours            | 120 hours           |
-| **Complexity**          | Low     | Low           | Medium            | High                | Very High           |
-| **Risk**                | N/A     | N/A           | Medium            | High                | Very High           |
-| **Backward Compat.**    | ✅      | ✅            | ✅                | ✅                  | ✅                  |
-| **Type Safety**         | ✅      | ✅            | ✅                | ✅                  | ⚠️                  |
-| **IDE Support**         | ✅      | ✅            | ✅                | ✅                  | ⚠️                  |
-| **Debuggability**       | ✅      | ✅            | ✅                | ⚠️                  | ❌                  |
-| **Learning Curve**      | Low     | Low           | Low               | Medium              | High                |
-| **Future Flexibility**  | Medium  | High          | High              | High                | Medium              |
-| **Performance**         | ✅      | ✅            | ✅                | ✅                  | ✅                  |
-| **Production Proven**   | ⚠️      | ✅ (httpx)    | ⚠️                | ⚠️                  | ⚠️                  |
+| Aspect                    | Current | httpx Pattern | Option A (Extract) | Option B (Protocol) | Option C (Generate) |
+|---------------------------|---------|---------------|--------------------|---------------------|---------------------|
+| **Code Duplication**      | ~4,000  | ~3,000 (25%)  | ~2,000 (30%)       | ~1,200 (18%)        | ~0 (0%)             |
+| **Maintenance Burden**    | High    | Medium        | Medium             | Low                 | Very Low            |
+| **Implementation Effort** | 0       | 0 (reference) | 48 hours           | 88 hours            | 120 hours           |
+| **Complexity**            | Low     | Low           | Medium             | High                | Very High           |
+| **Risk**                  | N/A     | N/A           | Medium             | High                | Very High           |
+| **Backward Compat.**      | ✅       | ✅             | ✅                  | ✅                   | ✅                   |
+| **Type Safety**           | ✅       | ✅             | ✅                  | ✅                   | ⚠️                  |
+| **IDE Support**           | ✅       | ✅             | ✅                  | ✅                   | ⚠️                  |
+| **Debuggability**         | ✅       | ✅             | ✅                  | ⚠️                  | ❌                   |
+| **Learning Curve**        | Low     | Low           | Low                | Medium              | High                |
+| **Future Flexibility**    | Medium  | High          | High               | High                | Medium              |
+| **Performance**           | ✅       | ✅             | ✅                  | ✅                   | ✅                   |
+| **Production Proven**     | ⚠️      | ✅ (httpx)     | ⚠️                 | ⚠️                  | ⚠️                  |
 
-**Note:** The "httpx Pattern" column represents how httpx (a mature, widely-used library) handles sync/async, serving as a real-world reference point rather than a proposed option.
+**Note:** The "httpx Pattern" column represents how httpx (a mature, widely-used library) handles
+sync/async, serving as a real-world reference point rather than a proposed option.
 
 ### 4.2 Trade-off Analysis
 
 #### Simplicity vs. Maintainability
 
 **Current Architecture:**
+
 - ✅ Simple: Flat, explicit sync/async separation
 - ❌ Maintainability: High duplication, 2x effort
 
 **httpx Pattern (Reference):**
+
 - ✅ Simple: Clear separation, minimal abstractions
 - ✅ Good maintainability: ~25% duplication (better than current)
 - ✅ Production proven: Used by thousands of projects
 - **Key lesson:** Demonstrates that some duplication is acceptable if managed well
 
 **Option A (Extract Shared Logic):**
+
 - ✅ Balanced: Some abstraction, still straightforward
 - ✅ Better maintainability: 50% less duplication than current
 - ✅ Aligned with httpx: Similar philosophy, adapted to aresilient's needs
 - Slight complexity increase acceptable for large benefit
 
 **Option B (Protocol Abstraction):**
+
 - ❌ More complex: Protocols, generics, type variables
 - ✅ Excellent maintainability: Minimal duplication
 - Higher complexity may not justify benefit at current size
 
 **Option C (Code Generation):**
+
 - ❌ Very complex: Build system, templates, generation
 - ✅ Perfect maintainability: Zero duplication
 - Complexity far exceeds benefit for this library
@@ -1067,20 +1131,24 @@ def get_base(url, client, **kwargs):
 #### Developer Experience vs. User Experience
 
 **Current:**
+
 - Developer: Easy to understand, hard to maintain
 - User: Simple, clear API
 
 **Option A:**
+
 - Developer: Still easy, easier to maintain
 - User: Unchanged (backward compatible)
 - **Winner:** Best balance
 
 **Option B:**
+
 - Developer: Steeper learning curve, but easier maintenance
 - User: Unchanged (backward compatible)
 - **Risk:** New contributors may struggle with abstractions
 
 **Option C:**
+
 - Developer: Difficult to understand, difficult to contribute
 - User: Unchanged (backward compatible)
 - **Risk:** High barrier to contribution
@@ -1088,18 +1156,22 @@ def get_base(url, client, **kwargs):
 #### Short-term vs. Long-term
 
 **Current:**
+
 - Short-term: No effort required
 - Long-term: Technical debt accumulates
 
 **Option A:**
+
 - Short-term: Moderate effort (48 hours)
 - Long-term: Significant improvement, reduced debt
 
 **Option B:**
+
 - Short-term: High effort (88 hours)
 - Long-term: Excellent architecture, but may be over-engineered
 
 **Option C:**
+
 - Short-term: Very high effort (120 hours)
 - Long-term: Perfect DRY, but maintenance of generation system
 
@@ -1108,6 +1180,7 @@ def get_base(url, client, **kwargs):
 #### When to Choose Current (No Change)
 
 Choose if:
+
 - Library is stable with few changes
 - Team is small (1-2 developers)
 - No plans for major growth
@@ -1116,6 +1189,7 @@ Choose if:
 #### When to Choose Option A (Extract Shared Logic)
 
 Choose if:
+
 - Library is actively developed ✅
 - Adding features frequently ✅
 - Team has 2+ contributors ✅
@@ -1128,6 +1202,7 @@ Choose if:
 #### When to Choose Option B (Protocol Abstraction)
 
 Choose if:
+
 - Library is large (10,000+ lines)
 - Heavy refactor acceptable
 - Team comfortable with advanced Python
@@ -1139,6 +1214,7 @@ Choose if:
 #### When to Choose Option C (Code Generation)
 
 Choose if:
+
 - Library has 50+ sync/async pairs
 - Extreme DRY required
 - Build system already complex
@@ -1164,70 +1240,81 @@ Choose if:
    ```
 
 2. **Extract shared validation:**
-   - Move parameter validation to core/validation.py
-   - Both sync and async import from core
+    - Move parameter validation to core/validation.py
+    - Both sync and async import from core
 
 3. **Extract retry decision logic:**
-   - Move should_retry logic to core/retry_logic.py
-   - Share between sync and async executors
+    - Move should_retry logic to core/retry_logic.py
+    - Share between sync and async executors
 
 #### Phase 2: HTTP Methods (Week 2-3)
 
 4. **Refactor one HTTP method as proof of concept:**
-   - Choose GET (most commonly used)
-   - Extract shared logic to core/http_logic.py
-   - Update get.py to use core
-   - Update get_async.py to use core
-   - Verify tests pass
+    - Choose GET (most commonly used)
+    - Extract shared logic to core/http_logic.py
+    - Update get.py to use core
+    - Update get_async.py to use core
+    - Verify tests pass
 
 5. **Apply pattern to remaining methods:**
-   - POST, PUT, DELETE, PATCH, HEAD, OPTIONS
-   - Use GET as template
-   - Automated where possible
+    - POST, PUT, DELETE, PATCH, HEAD, OPTIONS
+    - Use GET as template
+    - Automated where possible
 
 #### Phase 3: Executors (Week 3-4)
 
 6. **Refactor retry executors:**
-   - Extract shared logic to retry/executor_core.py
-   - Update executor.py and executor_async.py
-   - Verify all retry tests pass
+    - Extract shared logic to retry/executor_core.py
+    - Update executor.py and executor_async.py
+    - Verify all retry tests pass
 
 #### Phase 4: Clients (Week 4)
 
 7. **Refactor context manager clients:**
-   - Extract shared client logic
-   - Update client.py and client_async.py
-   - Verify context manager tests pass
+    - Extract shared client logic
+    - Update client.py and client_async.py
+    - Verify context manager tests pass
 
 ##### Phase 4 Design Considerations: Configuration Object vs. Direct Attribute Access
 
 **Design Philosophy:**
-While backward compatibility is important, it should not prevent us from making necessary improvements to the library's design and user experience. Breaking changes are acceptable when they result in a cleaner API, better maintainability, and improved code quality. Users can adapt to well-documented changes, especially when they provide clear benefits.
+While backward compatibility is important, it should not prevent us from making necessary
+improvements to the library's design and user experience. Breaking changes are acceptable when they
+result in a cleaner API, better maintainability, and improved code quality. Users can adapt to
+well-documented changes, especially when they provide clear benefits.
 
 **Context:**
-The initial Phase 4 implementation extracted shared client logic into helper functions that directly accessed protected attributes (`client_instance._max_retries`, etc.). This approach raised concerns about encapsulation violations.
+The initial Phase 4 implementation extracted shared client logic into helper functions that directly
+accessed protected attributes (`client_instance._max_retries`, etc.). This approach raised concerns
+about encapsulation violations.
 
 **Alternative Approaches:**
 
 **Approach A: Current Implementation (Direct Attribute Access)**
+
 ```python
-def store_client_config(client_instance: Any, *, timeout, max_retries, ...):
+def store_client_config(client_instance: Any, *, timeout, max_retries, **kwargs):
     client_instance._timeout = timeout
     client_instance._max_retries = max_retries
     # ...
 
-def merge_request_params(client_instance: Any, *, max_retries=None, ...):
+
+def merge_request_params(client_instance: Any, *, max_retries=None, **kwargs):
     return {
-        "max_retries": max_retries if max_retries is not None else client_instance._max_retries,
+        "max_retries": (
+            max_retries if max_retries is not None else client_instance._max_retries
+        ),
         # ...
     }
 ```
 
 **Approach B: Configuration Dataclass (Recommended)**
+
 ```python
 @dataclass
 class ClientConfig:
     """Configuration for ResilientClient."""
+
     timeout: float | httpx.Timeout = DEFAULT_TIMEOUT
     max_retries: int = DEFAULT_MAX_RETRIES
     backoff_factor: float = DEFAULT_BACKOFF_FACTOR
@@ -1243,8 +1330,9 @@ class ClientConfig:
     on_success: Callable[[ResponseInfo], None] | None = None
     on_failure: Callable[[FailureInfo], None] | None = None
 
+
 class ResilientClient:
-    def __init__(self, *, timeout=..., max_retries=..., ...):
+    def __init__(self, *, timeout=..., max_retries=..., **kwargs):
         validate_retry_params(...)
         self._config = ClientConfig(
             timeout=timeout,
@@ -1254,7 +1342,7 @@ class ResilientClient:
         self._client: httpx.Client | None = None
         self._entered = False
 
-    def request(self, method, url, *, max_retries=None, ...):
+    def request(self, method, url, *, max_retries=None, **kwargs):
         client = self._ensure_client()
         # Merge config with request-specific overrides
         config = self._config.merge(
@@ -1262,41 +1350,49 @@ class ResilientClient:
             # ...
         )
         return request_with_automatic_retry(
-            url=url, method=method, request_func=getattr(client, method.lower()),
-            **config.to_dict(), **kwargs
+            url=url,
+            method=method,
+            request_func=getattr(client, method.lower()),
+            **config.to_dict(),
+            **kwargs
         )
 ```
 
 **Trade-offs Comparison:**
 
-| Aspect | Approach A (Direct Access) | Approach B (Dataclass Config) |
-|--------|---------------------------|-------------------------------|
-| **Encapsulation** | ❌ Poor - External functions access protected attributes | ✅ Good - Config is a public object with defined interface |
-| **Type Safety** | ⚠️ Moderate - Parameters typed but instance attributes use `Any` | ✅ Strong - Dataclass provides full type information |
-| **IDE Support** | ⚠️ Limited - No autocomplete for attributes on `Any` type | ✅ Excellent - Full autocomplete and type hints |
-| **Maintainability** | ⚠️ Fragile - Adding/removing params requires updating multiple functions | ✅ Robust - Changes centralized in dataclass definition |
-| **Code Duplication** | ✅ Reduced - Shared helper functions | ✅ Reduced - Config object shared |
-| **Testability** | ⚠️ Moderate - Must mock entire client instance | ✅ Easy - Can test config object independently |
-| **Backward Compatibility** | ✅ Full - Client API unchanged | ✅ Full - Client API unchanged (internal change only) |
-| **Implementation Complexity** | ✅ Simple - Direct attribute assignment | ⚠️ Moderate - Requires dataclass + merge logic |
-| **Memory Overhead** | ✅ Minimal - Direct attributes | ⚠️ Small - Additional dataclass instance |
-| **Parameter Validation** | ✅ Current - validate_retry_params() | ✅ Can be integrated - __post_init__ or property setters |
-| **Debugging** | ⚠️ Harder - Configuration spread across attributes | ✅ Easier - Single config object to inspect |
+| Aspect                        | Approach A (Direct Access)                                               | Approach B (Dataclass Config)                             |
+|-------------------------------|--------------------------------------------------------------------------|-----------------------------------------------------------|
+| **Encapsulation**             | ❌ Poor - External functions access protected attributes                  | ✅ Good - Config is a public object with defined interface |
+| **Type Safety**               | ⚠️ Moderate - Parameters typed but instance attributes use `Any`         | ✅ Strong - Dataclass provides full type information       |
+| **IDE Support**               | ⚠️ Limited - No autocomplete for attributes on `Any` type                | ✅ Excellent - Full autocomplete and type hints            |
+| **Maintainability**           | ⚠️ Fragile - Adding/removing params requires updating multiple functions | ✅ Robust - Changes centralized in dataclass definition    |
+| **Code Duplication**          | ✅ Reduced - Shared helper functions                                      | ✅ Reduced - Config object shared                          |
+| **Testability**               | ⚠️ Moderate - Must mock entire client instance                           | ✅ Easy - Can test config object independently             |
+| **Backward Compatibility**    | ✅ Full - Client API unchanged                                            | ✅ Full - Client API unchanged (internal change only)      |
+| **Implementation Complexity** | ✅ Simple - Direct attribute assignment                                   | ⚠️ Moderate - Requires dataclass + merge logic            |
+| **Memory Overhead**           | ✅ Minimal - Direct attributes                                            | ⚠️ Small - Additional dataclass instance                  |
+| **Parameter Validation**      | ✅ Current - validate_retry_params()                                      | ✅ Can be integrated - __post_init__ or property setters   |
+| **Debugging**                 | ⚠️ Harder - Configuration spread across attributes                       | ✅ Easier - Single config object to inspect                |
 
 **Recommendation: Approach B (Configuration Dataclass)**
 
 **Rationale:**
-1. **Better Encapsulation**: The dataclass approach doesn't violate encapsulation by accessing protected attributes from external functions
+
+1. **Better Encapsulation**: The dataclass approach doesn't violate encapsulation by accessing
+   protected attributes from external functions
 2. **Type Safety**: Provides better IDE support and type checking
 3. **Maintainability**: Centralizes configuration in a single, well-defined structure
-4. **Extensibility**: Makes it easier to add features like config serialization, validation, or immutability
+4. **Extensibility**: Makes it easier to add features like config serialization, validation, or
+   immutability
 5. **Consistency**: Aligns with Python best practices for configuration management
 
 ##### Design Decision: Per-Request Parameter Overrides
 
-**Question:** Should the client allow per-request overrides of retry parameters (e.g., different `max_retries` for different requests)?
+**Question:** Should the client allow per-request overrides of retry parameters (e.g., different
+`max_retries` for different requests)?
 
 **Current Behavior (Before Refactor):**
+
 ```python
 with ResilientClient(max_retries=3) as client:
     # Uses client default (3 retries)
@@ -1309,12 +1405,14 @@ with ResilientClient(max_retries=3) as client:
 **Option 1: Allow Per-Request Overrides (Current)**
 
 Pros:
+
 - ✅ **Flexibility**: Different endpoints may need different retry strategies
 - ✅ **Backward Compatibility**: Existing public API supports this pattern
 - ✅ **Use Case Support**: Critical operations can have more aggressive retry logic
 - ✅ **Gradual Migration**: Can start with conservative defaults and override as needed
 
 Cons:
+
 - ❌ **Complexity**: More code to merge configs per request
 - ❌ **Inconsistency**: Same client may behave differently for different requests
 - ❌ **Harder to Reason About**: Need to check both client config and request params
@@ -1323,12 +1421,14 @@ Cons:
 **Option 2: Fixed Configuration Per Client (Simplified)**
 
 Pros:
+
 - ✅ **Simplicity**: Client configuration is immutable and predictable
 - ✅ **Consistency**: All requests through a client use the same retry strategy
 - ✅ **Easier to Reason About**: Single source of truth for retry behavior
 - ✅ **Reduced Code**: No need for merge logic
 
 Cons:
+
 - ❌ **Less Flexibility**: Cannot adjust retry strategy per endpoint
 - ❌ **Breaking Change**: Would require API change (removing override parameters)
 - ❌ **Workaround Required**: Need multiple client instances for different strategies
@@ -1337,12 +1437,16 @@ Cons:
 **Recommendation: Option 1 (Allow Per-Request Overrides)**
 
 **Rationale:**
-1. **Backward Compatibility**: The current public API already supports per-request overrides. Removing this would be a breaking change.
-2. **Real-World Use Cases**: Different endpoints often have different reliability requirements (e.g., critical vs. best-effort operations).
+
+1. **Backward Compatibility**: The current public API already supports per-request overrides.
+   Removing this would be a breaking change.
+2. **Real-World Use Cases**: Different endpoints often have different reliability requirements (
+   e.g., critical vs. best-effort operations).
 3. **Implementation Cost**: The merge logic is straightforward with a dataclass approach.
 4. **User Flexibility**: Users can choose to use only defaults or override as needed.
 
 **Example Use Case:**
+
 ```python
 with ResilientClient(max_retries=3, timeout=10) as client:
     # Standard operation - use defaults
@@ -1353,7 +1457,7 @@ with ResilientClient(max_retries=3, timeout=10) as client:
         "https://api.example.com/payments",
         max_retries=10,
         timeout=30,
-        json=payment_data
+        json=payment_data,
     )
 
     # Best-effort analytics - fail fast
@@ -1361,11 +1465,12 @@ with ResilientClient(max_retries=3, timeout=10) as client:
         "https://analytics.example.com/events",
         max_retries=0,
         timeout=5,
-        json=event_data
+        json=event_data,
     )
 ```
 
 **Implementation with ClientConfig:**
+
 ```python
 @dataclass
 class ClientConfig:
@@ -1383,16 +1488,18 @@ class ClientConfig:
 3. Add `merge()` method to create new config with per-request overrides
 4. Add `to_dict()` method to convert to kwargs for retry functions
 5. Update `ResilientClient` and `AsyncResilientClient` to:
-   - Accept `ClientConfig` directly OR individual parameters (for backward compatibility)
-   - Use `_config.merge()` in request methods to handle overrides
+    - Accept `ClientConfig` directly OR individual parameters (for backward compatibility)
+    - Use `_config.merge()` in request methods to handle overrides
 6. Remove `store_client_config()` and `merge_request_params()` functions
 
 **Migration Impact:**
+
 - Internal only - no public API changes
 - All existing tests should pass without modification
 - Slightly more code but significantly better design
 
 **Code Size Comparison:**
+
 - Approach A: ~150 lines (current implementation)
 - Approach B: ~200 lines (dataclass + methods)
 - Trade-off: 50 extra lines for better design and maintainability
@@ -1400,21 +1507,22 @@ class ClientConfig:
 #### Phase 5: Testing and Documentation (Week 5)
 
 8. **Comprehensive testing:**
-   - Run full test suite
-   - Add integration tests
-   - Verify backward compatibility
-   - Performance benchmarks
+    - Run full test suite
+    - Add integration tests
+    - Verify backward compatibility
+    - Performance benchmarks
 
 9. **Update documentation:**
-   - Update architecture docs
-   - Update contributor guide
-   - Add migration notes
+    - Update architecture docs
+    - Update contributor guide
+    - Add migration notes
 
 ### 5.2 Backward Compatibility Strategy
 
 #### Guarantee: No Breaking Changes
 
 **Public API remains identical:**
+
 ```python
 # Before refactor
 from aresilient import get_with_automatic_retry
@@ -1428,6 +1536,7 @@ response = get_with_automatic_retry("https://api.example.com")
 ```
 
 **Internal imports may change:**
+
 ```python
 # Before (direct import)
 from aresilient.request import request_with_automatic_retry
@@ -1440,12 +1549,14 @@ from aresilient.core.retry_logic import RetryLogic  # New internal API
 #### Deprecation Strategy
 
 **If any internal APIs must change:**
+
 1. Keep old API with deprecation warning
 2. Document migration path
 3. Provide 2-3 releases before removal
 4. Update all examples to new API
 
 **Example:**
+
 ```python
 # Old internal API (deprecated)
 def _should_retry(response, status_codes):
@@ -1462,17 +1573,17 @@ def _should_retry(response, status_codes):
 #### Test Coverage Requirements
 
 1. **Maintain 100% backward compatibility:**
-   - All existing tests must pass unchanged
-   - No test modifications except for internal testing
+    - All existing tests must pass unchanged
+    - No test modifications except for internal testing
 
 2. **Add integration tests:**
-   - Test sync and async produce identical results
-   - Test core logic directly
-   - Test edge cases in shared code
+    - Test sync and async produce identical results
+    - Test core logic directly
+    - Test edge cases in shared code
 
 3. **Performance benchmarks:**
-   - Ensure no performance regression
-   - Benchmark before and after refactor
+    - Ensure no performance regression
+    - Benchmark before and after refactor
 
 #### Test Organization
 
@@ -1497,6 +1608,7 @@ tests/
 #### High Risk: Behavioral Changes
 
 **Mitigation:**
+
 - Extract logic incrementally
 - Test after each extraction
 - Use property-based testing to verify equivalence
@@ -1505,6 +1617,7 @@ tests/
 #### Medium Risk: Performance Regression
 
 **Mitigation:**
+
 - Benchmark before refactor
 - Benchmark after each phase
 - Monitor function call depth
@@ -1513,6 +1626,7 @@ tests/
 #### Low Risk: Documentation Drift
 
 **Mitigation:**
+
 - Update docs simultaneously with code
 - Review docs in code review
 - Automated doc tests
@@ -1531,22 +1645,26 @@ tests/
 4. ✅ **Backward Compatible:** No API changes
 5. ✅ **Maintainable:** Reduces duplication without excessive complexity
 6. ✅ **Future-Proof:** Can evolve to Option B later if needed
-7. ✅ **Industry Validated:** Aligns with the proven httpx pattern, adapted for aresilient's resilience focus
+7. ✅ **Industry Validated:** Aligns with the proven httpx pattern, adapted for aresilient's
+   resilience focus
 
 **Relationship to httpx Pattern:**
 
 Option A essentially adapts httpx's approach to aresilient's context:
+
 - **Like httpx:** Maintains separate sync/async modules with shared core
 - **Like httpx:** Keeps simple, clear APIs without complex abstractions
 - **Adapted for aresilient:** Focuses on extracting retry/resilience logic rather than HTTP models
 - **Target:** Achieve ~25-30% duplication (similar to httpx's ~25%) down from current 50%
 
 **Not Option B because:**
+
 - Premature for current library size
 - Higher risk with limited additional benefit
 - Can migrate to B later if library grows significantly
 
 **Not Option C because:**
+
 - Over-engineered for this use case
 - High complexity, limited benefit
 - Maintenance burden of generation system
@@ -1562,70 +1680,75 @@ Option A essentially adapts httpx's approach to aresilient's context:
 #### Short-term (Q2 2026)
 
 4. ✅ **Complete Option A implementation**
-   - All phases (1-5) implemented as outlined in section 5.1
-   - `core/` module created with shared HTTP logic (`http_logic.py`), retry logic (`retry_logic.py`), validation (`validation.py`), and client configuration (`config.py` with `ClientConfig` dataclass)
-   - HTTP method wrappers refactored as thin wrappers delegating to `core/http_logic.py`
-   - Retry executors refactored with shared `retry/executor_core.py`
-   - Context manager clients (`ResilientClient`, `AsyncResilientClient`) refactored to use `ClientConfig` dataclass
-   - All tests passing
+    - All phases (1-5) implemented as outlined in section 5.1
+    - `core/` module created with shared HTTP logic (`http_logic.py`), retry logic (
+      `retry_logic.py`), validation (`validation.py`), and client configuration (`config.py` with
+      `ClientConfig` dataclass)
+    - HTTP method wrappers refactored as thin wrappers delegating to `core/http_logic.py`
+    - Retry executors refactored with shared `retry/executor_core.py`
+    - Context manager clients (`ResilientClient`, `AsyncResilientClient`) refactored to use
+      `ClientConfig` dataclass
+    - All tests passing
 
 5. ✅ **Measure Impact**
-   - Sync/async paired module lines reduced from ~4,056 to ~3,779
-   - Shared core logic extracted: ~687 lines in `core/` + 176 lines in `retry/executor_core.py` (~863 lines no longer duplicated)
-   - Maintenance burden reduced: shared logic changed once, applied to both sync and async
+    - Sync/async paired module lines reduced from ~4,056 to ~3,779
+    - Shared core logic extracted: ~687 lines in `core/` + 176 lines in `retry/executor_core.py` (~
+      863 lines no longer duplicated)
+    - Maintenance burden reduced: shared logic changed once, applied to both sync and async
 
 #### Medium-term (Q3-Q4 2026)
 
 6. 🔍 **Monitor library growth**
-   - Track total lines of code
-   - Track number of sync/async pairs
-   - Evaluate if further refactoring needed
+    - Track total lines of code
+    - Track number of sync/async pairs
+    - Evaluate if further refactoring needed
 
 7. 📚 **Documentation improvements**
-   - Update architecture documentation
-   - Create contributor guide
-   - Add examples using shared core
+    - Update architecture documentation
+    - Create contributor guide
+    - Add examples using shared core
 
 #### Long-term (2027+)
 
 8. 🔄 **Re-evaluate architecture**
-   - If library exceeds 10,000 lines, consider Option B
-   - If 20+ sync/async pairs, consider more aggressive refactor
-   - Continue to balance simplicity and maintainability
+    - If library exceeds 10,000 lines, consider Option B
+    - If 20+ sync/async pairs, consider more aggressive refactor
+    - Continue to balance simplicity and maintainability
 
 ### 6.3 Success Metrics
 
 #### Code Metrics
 
-| Metric                    | Current | Target | Status |
-|---------------------------|---------|--------|--------|
-| Total lines of code       | 6,612   | 5,000  | ✅ 7,035 (includes new shared `core/` module; target revised — adding a shared core adds lines upfront but prevents duplication growth) |
-| Sync/async paired lines   | 4,056   | 2,000  | ✅ 3,779 (~7% reduction; key logic moved to shared core) |
-| Duplication percentage    | 61%     | 30%    | ✅ ~863 lines of duplicated logic moved to shared core |
-| Modules with duplication  | 14      | 7      | ✅ Core module now shared across all paired wrappers |
+| Metric                   | Current | Target | Status                                                                                                                                 |
+|--------------------------|---------|--------|----------------------------------------------------------------------------------------------------------------------------------------|
+| Total lines of code      | 6,612   | 5,000  | ✅ 7,035 (includes new shared `core/` module; target revised — adding a shared core adds lines upfront but prevents duplication growth) |
+| Sync/async paired lines  | 4,056   | 2,000  | ✅ 3,779 (~7% reduction; key logic moved to shared core)                                                                                |
+| Duplication percentage   | 61%     | 30%    | ✅ ~863 lines of duplicated logic moved to shared core                                                                                  |
+| Modules with duplication | 14      | 7      | ✅ Core module now shared across all paired wrappers                                                                                    |
 
 #### Development Metrics
 
-| Metric                         | Current | Target | Status |
-|--------------------------------|---------|--------|--------|
-| Time to add HTTP method        | 4 hours | 2 hours | ✅ ~2 hours (thin wrapper + shared core) |
-| Time to add retry feature      | 8 hours | 4 hours | ✅ ~4 hours (change once in shared core) |
-| Test coverage                  | High    | High    | ✅    |
-| Contributor onboarding time    | 2 days  | 1 day   | ✅ Shared core reduces surface to learn |
+| Metric                      | Current | Target  | Status                                  |
+|-----------------------------|---------|---------|-----------------------------------------|
+| Time to add HTTP method     | 4 hours | 2 hours | ✅ ~2 hours (thin wrapper + shared core) |
+| Time to add retry feature   | 8 hours | 4 hours | ✅ ~4 hours (change once in shared core) |
+| Test coverage               | High    | High    | ✅                                       |
+| Contributor onboarding time | 2 days  | 1 day   | ✅ Shared core reduces surface to learn  |
 
 #### Quality Metrics
 
-| Metric                    | Current | Target | Status |
-|---------------------------|---------|--------|--------|
-| Bugs due to sync/async divergence | Low | Zero | ✅ Shared core eliminates divergence in retry/validation logic |
-| Code review time          | Medium  | Low    | ✅ Fewer files to review; logic centralised in core |
-| Backward compatibility    | 100%    | 100%   | ✅     |
+| Metric                            | Current | Target | Status                                                        |
+|-----------------------------------|---------|--------|---------------------------------------------------------------|
+| Bugs due to sync/async divergence | Low     | Zero   | ✅ Shared core eliminates divergence in retry/validation logic |
+| Code review time                  | Medium  | Low    | ✅ Fewer files to review; logic centralised in core            |
+| Backward compatibility            | 100%    | 100%   | ✅                                                             |
 
 ### 6.4 Decision
 
 **Final Recommendation:** ✅ **Implement Option A (Extract Shared Logic)**
 
 **Rationale:**
+
 - Optimal balance of effort vs. benefit
 - Reduces technical debt significantly
 - Low risk, high value
@@ -1633,10 +1756,13 @@ Option A essentially adapts httpx's approach to aresilient's context:
 - Positions library well for future growth
 
 **Next Steps:**
-1. ✅ Option A implemented — `core/` module created, all HTTP method wrappers and retry executors refactored
+
+1. ✅ Option A implemented — `core/` module created, all HTTP method wrappers and retry executors
+   refactored
 2. Monitor library growth and re-evaluate if it exceeds 10,000 lines (Q3-Q4 2026)
 3. Continue documentation improvements and contributor guide updates
-4. Consider Option B (Protocol Abstraction) only if the library grows beyond 10,000 lines or adds 20+ sync/async pairs
+4. Consider Option B (Protocol Abstraction) only if the library grows beyond 10,000 lines or adds
+   20+ sync/async pairs
 
 ---
 
@@ -1647,6 +1773,7 @@ Option A essentially adapts httpx's approach to aresilient's context:
 #### A.1 Current Duplication Example
 
 **get.py (Sync):**
+
 ```python
 def get_with_automatic_retry(
     url: str,
@@ -1675,6 +1802,7 @@ def get_with_automatic_retry(
 ```
 
 **get_async.py (Async - 98% identical):**
+
 ```python
 async def get_with_automatic_retry_async(
     url: str,
@@ -1707,6 +1835,7 @@ async def get_with_automatic_retry_async(
 #### A.2 Option A Refactored Example
 
 **core/http_method.py (Shared):**
+
 ```python
 from typing import Any
 from aresilient.core.config import (
@@ -1743,6 +1872,7 @@ class HttpMethodConfig:
 ```
 
 **get.py (Sync - Thin wrapper):**
+
 ```python
 import httpx
 from aresilient.core.http_method import HttpMethodConfig
@@ -1766,6 +1896,7 @@ def get_with_automatic_retry(
 ```
 
 **get_async.py (Async - Thin wrapper):**
+
 ```python
 import httpx
 from aresilient.core.http_method import HttpMethodConfig
@@ -1789,6 +1920,7 @@ async def get_with_automatic_retry_async(
 ```
 
 **Result:**
+
 - Shared logic: 20 lines (in core/)
 - Sync wrapper: 15 lines (down from 20)
 - Async wrapper: 16 lines (down from 21)
@@ -1798,27 +1930,27 @@ async def get_with_automatic_retry_async(
 ### B. References
 
 1. **Python Documentation:**
-   - [PEP 544 - Protocols: Structural subtyping](https://peps.python.org/pep-0544/)
-   - [PEP 585 - Type Hinting Generics](https://peps.python.org/pep-0585/)
+    - [PEP 544 - Protocols: Structural subtyping](https://peps.python.org/pep-0544/)
+    - [PEP 585 - Type Hinting Generics](https://peps.python.org/pep-0585/)
 
 2. **Similar Libraries:**
-   - [httpx: Sync/async HTTP client](https://www.python-httpx.org/)
-     - GitHub: [encode/httpx](https://github.com/encode/httpx)
-     - Excellent example of managing sync/async duality
-     - ~15K lines with ~25% duplication (primarily in client/transport layers)
-   - [urllib3: HTTP client with retry logic](https://urllib3.readthedocs.io/)
-   - [tenacity: Retry library](https://tenacity.readthedocs.io/)
-   - [AIOHTTP: Async HTTP client/server](https://docs.aiohttp.org/)
-     - Pure async approach (no sync support)
+    - [httpx: Sync/async HTTP client](https://www.python-httpx.org/)
+        - GitHub: [encode/httpx](https://github.com/encode/httpx)
+        - Excellent example of managing sync/async duality
+        - ~15K lines with ~25% duplication (primarily in client/transport layers)
+    - [urllib3: HTTP client with retry logic](https://urllib3.readthedocs.io/)
+    - [tenacity: Retry library](https://tenacity.readthedocs.io/)
+    - [AIOHTTP: Async HTTP client/server](https://docs.aiohttp.org/)
+        - Pure async approach (no sync support)
 
 3. **Articles and Discussions:**
-   - "How to write a dual sync/async library in Python" - Various blog posts and discussions
-   - httpx design philosophy and architecture decisions
+    - "How to write a dual sync/async library in Python" - Various blog posts and discussions
+    - httpx design philosophy and architecture decisions
 
 4. **Design Patterns:**
-   - Martin Fowler: "Refactoring: Improving the Design of Existing Code"
-   - "Clean Architecture" by Robert C. Martin
-   - "Design Patterns: Elements of Reusable Object-Oriented Software"
+    - Martin Fowler: "Refactoring: Improving the Design of Existing Code"
+    - "Clean Architecture" by Robert C. Martin
+    - "Design Patterns: Elements of Reusable Object-Oriented Software"
 
 ### C. Glossary
 
