@@ -24,6 +24,12 @@ class RetryStrategy:
     This class encapsulates the logic for calculating sleep times between
     retry attempts using configurable backoff strategies and jitter.
 
+    Args:
+        backoff_factor: Factor for exponential backoff calculations.
+        jitter_factor: Factor for adding random jitter to delays.
+        backoff_strategy: Optional custom backoff strategy instance.
+        max_wait_time: Optional maximum wait time cap in seconds.
+
     Attributes:
         backoff_factor: Factor for exponential backoff calculations.
         jitter_factor: Factor for adding random jitter to delays.
@@ -38,14 +44,6 @@ class RetryStrategy:
         backoff_strategy: BackoffStrategy | None = None,
         max_wait_time: float | None = None,
     ) -> None:
-        """Initialize retry strategy.
-
-        Args:
-            backoff_factor: Factor for exponential backoff.
-            jitter_factor: Factor for adding random jitter.
-            backoff_strategy: Optional custom backoff strategy.
-            max_wait_time: Optional maximum wait time cap.
-        """
         self.backoff_factor = backoff_factor
         self.jitter_factor = jitter_factor
         self.backoff_strategy = backoff_strategy
