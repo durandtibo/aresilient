@@ -151,16 +151,17 @@ def handle_exception_with_callback(
     except HttpRequestError as err:
         # This is the final attempt - call on_failure callback
         if on_failure is not None:
-            failure_info = FailureInfo(
-                url=url,
-                method=method,
-                attempt=attempt + 1,
-                max_retries=max_retries,
-                error=err,
-                status_code=None,
-                total_time=time.time() - start_time,
+            on_failure(
+                FailureInfo(
+                    url=url,
+                    method=method,
+                    attempt=attempt + 1,
+                    max_retries=max_retries,
+                    error=err,
+                    status_code=None,
+                    total_time=time.time() - start_time,
+                )
             )
-            on_failure(failure_info)
         raise
 
 
@@ -199,16 +200,17 @@ def raise_final_error(
 
         # Call on_failure callback
         if on_failure is not None:
-            failure_info = FailureInfo(
-                url=url,
-                method=method,
-                attempt=max_retries + 1,
-                max_retries=max_retries,
-                error=error,
-                status_code=None,
-                total_time=total_time,
+            on_failure(
+                FailureInfo(
+                    url=url,
+                    method=method,
+                    attempt=max_retries + 1,
+                    max_retries=max_retries,
+                    error=error,
+                    status_code=None,
+                    total_time=total_time,
+                )
             )
-            on_failure(failure_info)
 
         raise error
 
@@ -225,15 +227,16 @@ def raise_final_error(
 
     # Call on_failure callback
     if on_failure is not None:
-        failure_info = FailureInfo(
-            url=url,
-            method=method,
-            attempt=max_retries + 1,
-            max_retries=max_retries,
-            error=error,
-            status_code=response.status_code,
-            total_time=total_time,
+        on_failure(
+            FailureInfo(
+                url=url,
+                method=method,
+                attempt=max_retries + 1,
+                max_retries=max_retries,
+                error=error,
+                status_code=response.status_code,
+                total_time=total_time,
+            )
         )
-        on_failure(failure_info)
 
     raise error
