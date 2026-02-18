@@ -7,11 +7,11 @@ from unittest.mock import Mock, call
 import httpx
 import pytest
 
-from aresilient import (
+from aresilient import HttpRequestError
+from aresilient.core import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
     RETRY_STATUS_CODES,
-    HttpRequestError,
 )
 from aresilient.request import request_with_automatic_retry
 

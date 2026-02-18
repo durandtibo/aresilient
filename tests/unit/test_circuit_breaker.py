@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from aresilient import CircuitBreaker, CircuitBreakerError, CircuitState
+from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError, CircuitState
 
 ####################################
 #     Tests for CircuitBreaker     #
