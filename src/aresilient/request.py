@@ -7,7 +7,7 @@ __all__ = ["request_with_automatic_retry"]
 
 from typing import TYPE_CHECKING, Any
 
-from aresilient.config import (
+from aresilient.core.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
     RETRY_STATUS_CODES,

@@ -15,13 +15,13 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 
-from aresilient.config import (
+from aresilient.core.config import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
     DEFAULT_TIMEOUT,
     RETRY_STATUS_CODES,
+    ClientConfig,
 )
-from aresilient.core.config import ClientConfig
 from aresilient.core.validation import validate_timeout
 from aresilient.request_async import request_with_automatic_retry_async
 

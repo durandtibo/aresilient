@@ -1706,7 +1706,7 @@ async def get_with_automatic_retry_async(
 **core/http_method.py (Shared):**
 ```python
 from typing import Any
-from aresilient.config import (
+from aresilient.core.config import (
     DEFAULT_TIMEOUT,
     DEFAULT_MAX_RETRIES,
     DEFAULT_BACKOFF_FACTOR,
