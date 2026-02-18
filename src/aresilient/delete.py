@@ -1,4 +1,5 @@
-r"""Contains synchronous HTTP DELETE request with automatic retry logic."""
+r"""Contains synchronous HTTP DELETE request with automatic retry
+logic."""
 
 from __future__ import annotations
 
@@ -7,8 +8,8 @@ __all__ = ["delete"]
 from typing import TYPE_CHECKING, Any
 
 from aresilient.core.config import (
-    ClientConfig,
     DEFAULT_TIMEOUT,
+    ClientConfig,
 )
 from aresilient.core.http_logic import execute_http_method
 
@@ -57,7 +58,9 @@ def delete(
         >>> from aresilient import delete
         >>> from aresilient.core import ClientConfig
         >>> config = ClientConfig(max_retries=5)
-        >>> response = delete("https://api.example.com/resource/123", config=config)  # doctest: +SKIP
+        >>> response = delete(
+        ...     "https://api.example.com/resource/123", config=config
+        ... )  # doctest: +SKIP
 
         ```
     """

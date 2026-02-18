@@ -9,10 +9,9 @@ from __future__ import annotations
 from unittest.mock import Mock, call, patch
 
 import httpx
-
-from aresilient.core import ClientConfig
 import pytest
 
+from aresilient.core import ClientConfig
 from tests.helpers import (
     HTTP_METHODS,
     HttpMethodTestCase,

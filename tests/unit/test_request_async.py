@@ -695,7 +695,8 @@ async def test_request_async_with_config(
 
 @pytest.mark.asyncio
 async def test_request_async_config_values_are_used(mock_asleep: Mock) -> None:
-    """Test that config values control retry behavior in async request."""
+    """Test that config values control retry behavior in async
+    request."""
     config = ClientConfig(max_retries=0)
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_request_func = AsyncMock(return_value=mock_fail_response)

@@ -7,8 +7,8 @@ __all__ = ["get"]
 from typing import TYPE_CHECKING, Any
 
 from aresilient.core.config import (
-    ClientConfig,
     DEFAULT_TIMEOUT,
+    ClientConfig,
 )
 from aresilient.core.http_logic import execute_http_method
 
@@ -24,8 +24,8 @@ def get(
     timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
     **kwargs: Any,
 ) -> httpx.Response:
-    r"""Send an HTTP GET request with automatic retry logic for
-    transient errors.
+    r"""Send an HTTP GET request with automatic retry logic for transient
+    errors.
 
     This function performs an HTTP GET request with a configured retry
     policy for transient server errors (429, 500, 502, 503, 504). It applies

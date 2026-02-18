@@ -9,8 +9,8 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError, request
-from aresilient.core import ClientConfig
 from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
+from aresilient.core import ClientConfig
 
 ##############################################
 #     Tests for CircuitBreaker with HTTP     #

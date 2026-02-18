@@ -7,8 +7,8 @@ from unittest.mock import Mock, call, patch
 
 import httpx
 
-from aresilient.request import request
 from aresilient.core import ClientConfig
+from aresilient.request import request
 
 TEST_URL = "https://api.example.com/data"
 

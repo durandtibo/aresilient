@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, Mock, call, patch
 import httpx
 import pytest
 
-from aresilient.request_async import request_async
 from aresilient.core import ClientConfig
+from aresilient.request_async import request_async
 
 TEST_URL = "https://api.example.com/data"
 
@@ -151,7 +151,9 @@ async def test_request_with_jitter_applied_async(mock_asleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            config=ClientConfig(status_forcelist=(503,), backoff_factor=1.0, jitter_factor=1.0),  # Jitter factor of 1.0
+            config=ClientConfig(
+                status_forcelist=(503,), backoff_factor=1.0, jitter_factor=1.0
+            ),  # Jitter factor of 1.0
         )
 
     assert response == mock_success_response

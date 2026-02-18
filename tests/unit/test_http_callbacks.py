@@ -40,7 +40,9 @@ def test_http_method_on_request_callback(
     """Test that on_request callback is called for all HTTP methods."""
     mock_client, _ = setup_mock_client_for_method(test_case.client_method, test_case.status_code)
 
-    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(on_request=mock_callback))
+    response = test_case.method_func(
+        TEST_URL, client=mock_client, config=ClientConfig(on_request=mock_callback)
+    )
 
     assert response.status_code == test_case.status_code
     mock_callback.assert_called_once()
@@ -61,7 +63,9 @@ def test_http_method_on_success_callback(
     requests."""
     mock_client, _ = setup_mock_client_for_method(test_case.client_method, test_case.status_code)
 
-    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(on_success=mock_callback))
+    response = test_case.method_func(
+        TEST_URL, client=mock_client, config=ClientConfig(on_success=mock_callback)
+    )
 
     assert response.status_code == test_case.status_code
     mock_callback.assert_called_once()
@@ -86,7 +90,9 @@ def test_http_method_on_retry_callback(
         test_case.client_method, [mock_fail_response, mock_success_response]
     )
 
-    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(on_retry=mock_callback))
+    response = test_case.method_func(
+        TEST_URL, client=mock_client, config=ClientConfig(on_retry=mock_callback)
+    )
 
     assert response.status_code == test_case.status_code
     mock_callback.assert_called_once()
