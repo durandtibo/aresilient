@@ -8,6 +8,11 @@ logic, and HTTP method handling.
 from __future__ import annotations
 
 __all__ = [
+    "DEFAULT_BACKOFF_FACTOR",
+    "DEFAULT_MAX_RETRIES",
+    "DEFAULT_TIMEOUT",
+    "RETRY_STATUS_CODES",
+    "ClientConfig",
     "execute_http_method",
     "execute_http_method_async",
     "should_retry_exception",
@@ -15,6 +20,14 @@ __all__ = [
     "validate_retry_params",
 ]
 
+
+from aresilient.core.config import (
+    DEFAULT_BACKOFF_FACTOR,
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_TIMEOUT,
+    RETRY_STATUS_CODES,
+    ClientConfig,
+)
 from aresilient.core.http_logic import (
     execute_http_method,
     execute_http_method_async,
