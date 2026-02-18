@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from aresilient.core.validation import validate_timeout
-from aresilient.utils import validate_retry_params
+from aresilient.core import validate_retry_params, validate_timeout
 
 #######################################
 #     Tests for validate_timeout     #

@@ -18,6 +18,7 @@ __all__ = [
     "should_retry_exception",
     "should_retry_response",
     "validate_retry_params",
+    "validate_timeout",
 ]
 
 
@@ -36,4 +37,4 @@ from aresilient.core.retry_logic import (
     should_retry_exception,
     should_retry_response,
 )
-from aresilient.core.validation import validate_retry_params
+from aresilient.core.validation import validate_retry_params, validate_timeout
