@@ -9,9 +9,9 @@ from aresilient import get_async
 HTTPBIN_URL = "https://httpbin.org"
 
 
-####################################################
+###############################
 #     Tests for get_async     #
-####################################################
+###############################
 # Note: Common async tests (successful request, non-retryable status, headers, query params)
 # are now in test_core_async.py to avoid duplication across HTTP methods.
 # This file contains GET-specific async tests only.

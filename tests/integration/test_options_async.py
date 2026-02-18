@@ -11,9 +11,9 @@ from aresilient import options_async
 HTTPBIN_URL = "https://httpbin.org"
 
 
-#####################################################
+###################################
 #     Tests for options_async     #
-#####################################################
+###################################
 # Note: Common async tests (successful request, headers)
 # are now in test_core_async.py to avoid duplication across HTTP methods.
 # This file contains OPTIONS-specific async tests only.

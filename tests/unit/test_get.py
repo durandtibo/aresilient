@@ -17,9 +17,9 @@ if TYPE_CHECKING:
 TEST_URL = "https://api.example.com/data"
 
 
-##############################################
+#########################
 #     Tests for get     #
-##############################################
+#########################
 
 
 def test_get_with_params(mock_sleep: Mock) -> None:

@@ -118,5 +118,9 @@ async def request_async(
     )
 
     # Create executor and execute request
-    executor = AsyncRetryExecutor(retry_config, callback_config, config.circuit_breaker)
-    return await executor.execute(url, method, request_func, **kwargs)
+    executor = AsyncRetryExecutor(
+        retry_config=retry_config,
+        callback_config=callback_config,
+        circuit_breaker=config.circuit_breaker,
+    )
+    return await executor.execute(url=url, method=method, request_func=request_func, **kwargs)

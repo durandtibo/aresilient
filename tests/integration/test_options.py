@@ -8,9 +8,9 @@ from aresilient import options
 HTTPBIN_URL = "https://httpbin.org"
 
 
-#################################################
+#############################
 #     Tests for options     #
-#################################################
+#############################
 # Note: Common tests (successful request, headers)
 # are now in test_core.py to avoid duplication across HTTP methods.
 # This file contains OPTIONS-specific tests only.

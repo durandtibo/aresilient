@@ -36,7 +36,7 @@ TEST_URL = "https://api.example.com/data"
 
 
 ############################################################
-#     Parametrized Tests for Core HTTP Method Features    #
+#     Parametrized Tests for Core HTTP Method Features     #
 ############################################################
 
 
@@ -350,7 +350,7 @@ async def test_client_close_on_exception(
 
 
 ############################################################
-#     Tests for ClientConfig parameter support (async)    #
+#     Tests for ClientConfig parameter support (async)     #
 ############################################################
 
 

@@ -10,9 +10,9 @@ from aresilient.request import request
 HTTPBIN_URL = "https://httpbin.org"
 
 
-##################################################
+#############################
 #     Tests for request     #
-##################################################
+#############################
 
 
 def test_request_successful_request() -> None:

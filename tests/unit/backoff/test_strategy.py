@@ -1,3 +1,5 @@
+r"""Unit tests for backoff strategy implementations."""
+
 from __future__ import annotations
 
 import pytest
@@ -10,9 +12,9 @@ from aresilient.backoff import (
     LinearBackoff,
 )
 
-##############################################
+########################################
 #     Tests for ExponentialBackoff     #
-##############################################
+########################################
 
 
 def test_exponential_backoff_basic() -> None:
@@ -63,9 +65,9 @@ def test_exponential_backoff_zero_base_delay() -> None:
     assert backoff.calculate(5) == 0.0
 
 
-##############################################
-#     Tests for LinearBackoff         #
-##############################################
+###################################
+#     Tests for LinearBackoff     #
+###################################
 
 
 def test_linear_backoff_basic() -> None:
@@ -115,9 +117,9 @@ def test_linear_backoff_zero_base_delay() -> None:
     assert backoff.calculate(5) == 0.0
 
 
-##############################################
-#     Tests for FibonacciBackoff      #
-##############################################
+######################################
+#     Tests for FibonacciBackoff     #
+######################################
 
 
 def test_fibonacci_backoff_basic() -> None:
@@ -185,9 +187,9 @@ def test_fibonacci_backoff_zero_base_delay() -> None:
     assert backoff.calculate(5) == 0.0
 
 
-##############################################
-#     Tests for ConstantBackoff       #
-##############################################
+#####################################
+#     Tests for ConstantBackoff     #
+#####################################
 
 
 def test_constant_backoff_basic() -> None:
@@ -220,9 +222,9 @@ def test_constant_backoff_zero_delay() -> None:
     assert backoff.calculate(5) == 0.0
 
 
-##############################################
-#     Tests for BackoffStrategy ABC   #
-##############################################
+#########################################
+#     Tests for BackoffStrategy ABC     #
+#########################################
 
 
 def test_backoff_strategy_is_abstract() -> None:
@@ -245,9 +247,9 @@ def test_custom_backoff_strategy() -> None:
     assert backoff.calculate(2) == 25
 
 
-##############################################
-#     Integration Tests               #
-##############################################
+#############################
+#     Integration Tests     #
+#############################
 
 
 def test_different_strategies_comparison() -> None:

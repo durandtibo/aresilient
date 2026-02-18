@@ -17,9 +17,9 @@ if TYPE_CHECKING:
 TEST_URL = "https://api.example.com/data"
 
 
-###############################################
+##########################
 #     Tests for post     #
-###############################################
+##########################
 
 
 def test_post_with_data(mock_sleep: Mock) -> None:

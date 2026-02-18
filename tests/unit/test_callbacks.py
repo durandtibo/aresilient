@@ -554,9 +554,9 @@ def test_callbacks_with_custom_backoff_factor(
     mock_sleep.assert_called_once_with(2.0)
 
 
-################################################
-#     Tests for invoke_on_request             #
-################################################
+#######################################
+#     Tests for invoke_on_request     #
+#######################################
 
 
 def test_invoke_on_request_with_none_callback() -> None:
@@ -609,9 +609,9 @@ def test_invoke_on_request_converts_attempt_to_1_indexed() -> None:
     assert call_args.attempt == 1
 
 
-################################################
-#     Tests for invoke_on_success             #
-################################################
+#######################################
+#     Tests for invoke_on_success     #
+#######################################
 
 
 def test_invoke_on_success_with_none_callback() -> None:
@@ -678,9 +678,9 @@ def test_invoke_on_success_calculates_total_time() -> None:
     assert call_args.total_time == 10.0
 
 
-################################################
-#     Tests for invoke_on_retry               #
-################################################
+#####################################
+#     Tests for invoke_on_retry     #
+#####################################
 
 
 def test_invoke_on_retry_with_none_callback() -> None:

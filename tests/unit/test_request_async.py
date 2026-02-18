@@ -10,9 +10,9 @@ import pytest
 from aresilient import HttpRequestError, request_async
 from aresilient.core import ClientConfig
 
-########################################################
+###################################
 #     Tests for request_async     #
-########################################################
+###################################
 
 
 @pytest.mark.asyncio
@@ -313,9 +313,9 @@ async def test_request_async_timeout_exception_after_successful_attempts(
     mock_asleep.assert_called_once_with(0.3)
 
 
-##################################################################
+############################################
 #     Tests for request_async retry_if     #
-##################################################################
+############################################
 
 
 @pytest.mark.asyncio
@@ -668,9 +668,9 @@ async def test_request_async_retry_if_none_uses_default_behavior(
     mock_asleep.assert_called_once_with(0.3)
 
 
-######################################################
-#     Tests for config parameter in request_async   #
-######################################################
+#######################################################
+#     Tests for config parameter in request_async     #
+#######################################################
 
 
 @pytest.mark.asyncio

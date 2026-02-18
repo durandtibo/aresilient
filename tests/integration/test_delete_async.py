@@ -9,9 +9,9 @@ from aresilient import delete_async
 HTTPBIN_URL = "https://httpbin.org"
 
 
-#######################################################
+##################################
 #     Tests for delete_async     #
-#######################################################
+##################################
 # Note: Common async tests (successful request, non-retryable status, headers, query params)
 # are now in test_core_async.py to avoid duplication across HTTP methods.
 # This file contains DELETE-specific async tests only.

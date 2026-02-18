@@ -1,3 +1,5 @@
+r"""Unit tests for Retry-After header parsing utilities."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

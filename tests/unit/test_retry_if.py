@@ -109,9 +109,9 @@ def test_retry_if_checks_response_content(test_case: HttpMethodTestCase, mock_sl
     mock_sleep.assert_called_once_with(0.3)
 
 
-#####################################################
-#     Tests for retry_if with error responses       #
-#####################################################
+###################################################
+#     Tests for retry_if with error responses     #
+###################################################
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -210,9 +210,9 @@ def test_retry_if_does_not_retry_non_retryable_status(
     mock_sleep.assert_not_called()
 
 
-###################################################
-#     Tests for retry_if with exceptions          #
-###################################################
+##############################################
+#     Tests for retry_if with exceptions     #
+##############################################
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -319,9 +319,9 @@ def test_retry_if_exhausts_retries_with_exception(
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
-#########################################################
-#     Tests for retry_if with mixed scenarios           #
-#########################################################
+###################################################
+#     Tests for retry_if with mixed scenarios     #
+###################################################
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -381,9 +381,9 @@ def test_retry_if_none_uses_default_behavior(
     mock_sleep.assert_called_once_with(0.3)
 
 
-############################################
-#     Tests for retry_if with callbacks    #
-############################################
+#############################################
+#     Tests for retry_if with callbacks     #
+#############################################
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)

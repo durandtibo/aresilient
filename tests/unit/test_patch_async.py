@@ -17,9 +17,9 @@ from aresilient import patch_async
 TEST_URL = "https://api.example.com/data"
 
 
-######################################################
+#################################
 #     Tests for patch_async     #
-######################################################
+#################################
 
 
 @pytest.mark.asyncio

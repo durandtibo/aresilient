@@ -213,7 +213,7 @@ def test_client_request_method(mock_sleep: Mock, mock_response: httpx.Response) 
         mock_client_class.return_value = mock_client
 
         with ResilientClient() as client:
-            response = client.request("TRACE", TEST_URL)
+            response = client.request(method="TRACE", url=TEST_URL)
 
         assert response.status_code == 200
 

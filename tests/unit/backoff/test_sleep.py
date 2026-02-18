@@ -1,3 +1,5 @@
+r"""Unit tests for backoff sleep time calculation."""
+
 from __future__ import annotations
 
 from unittest.mock import Mock, patch
@@ -16,7 +18,7 @@ from aresilient.backoff import calculate_sleep_time
 def test_calculate_sleep_time_exponential_backoff(attempt: int, sleep_time: float) -> None:
     """Test exponential backoff calculation without jitter."""
     assert (
-        calculate_sleep_time(attempt, backoff_factor=0.3, jitter_factor=0.0, response=None)
+        calculate_sleep_time(attempt=attempt, backoff_factor=0.3, jitter_factor=0.0, response=None)
         == sleep_time
     )
 

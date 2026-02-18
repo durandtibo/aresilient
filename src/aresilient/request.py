@@ -114,5 +114,9 @@ def request(
     )
 
     # Create executor and execute request
-    executor = RetryExecutor(retry_config, callback_config, config.circuit_breaker)
-    return executor.execute(url, method, request_func, **kwargs)
+    executor = RetryExecutor(
+        retry_config=retry_config,
+        callback_config=callback_config,
+        circuit_breaker=config.circuit_breaker,
+    )
+    return executor.execute(url=url, method=method, request_func=request_func, **kwargs)

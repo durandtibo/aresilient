@@ -66,10 +66,10 @@ class RetryStrategy:
             Sleep time in seconds.
         """
         return calculate_sleep_time(
-            attempt,
-            self.backoff_factor,
-            self.jitter_factor,
-            response,
-            self.backoff_strategy,
-            self.max_wait_time,
+            attempt=attempt,
+            backoff_factor=self.backoff_factor,
+            jitter_factor=self.jitter_factor,
+            response=response,
+            backoff_strategy=self.backoff_strategy,
+            max_wait_time=self.max_wait_time,
         )
