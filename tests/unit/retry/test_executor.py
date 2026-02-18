@@ -42,7 +42,9 @@ def test_retry_executor_with_circuit_breaker() -> None:
     callback_config = CallbackConfig()
     circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=10.0)
 
-    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config, circuit_breaker=circuit_breaker)
+    executor = RetryExecutor(
+        retry_config=retry_config, callback_config=callback_config, circuit_breaker=circuit_breaker
+    )
 
     assert executor.circuit_breaker is circuit_breaker
 
@@ -210,7 +212,9 @@ def test_retry_executor_circuit_breaker_records_exception_failure() -> None:
     )
     callback_config = CallbackConfig()
     circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=10.0)
-    executor = RetryExecutor(retry_config=retry_config, callback_config=callback_config, circuit_breaker=circuit_breaker)
+    executor = RetryExecutor(
+        retry_config=retry_config, callback_config=callback_config, circuit_breaker=circuit_breaker
+    )
 
     # First attempt fails with timeout, second succeeds
     mock_response = Mock(spec=httpx.Response, status_code=200)
