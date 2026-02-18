@@ -452,7 +452,8 @@ than passing the same parameters to every function call.
 ### Using ResilientClient (Sync)
 
 ```python
-from aresilient import ResilientClient, LinearBackoff
+from aresilient import ResilientClient
+from aresilient.backoff import LinearBackoff
 
 # Create a client with shared configuration
 with ResilientClient(
@@ -490,7 +491,9 @@ with ResilientClient(
 
 ```python
 import asyncio
-from aresilient import AsyncResilientClient, ExponentialBackoff
+
+from aresilient import AsyncResilientClient
+from aresilient.backoff import ExponentialBackoff
 
 
 async def fetch_all_data():
@@ -651,7 +654,8 @@ A circuit breaker has three states:
 ### Basic Circuit Breaker Usage
 
 ```python
-from aresilient import get_with_automatic_retry, CircuitBreaker
+from aresilient import get_with_automatic_retry
+from aresilient.circuit_breaker import CircuitBreaker
 
 # Create a circuit breaker
 circuit_breaker = CircuitBreaker(
@@ -685,7 +689,8 @@ except Exception as e:
 Share a circuit breaker across multiple endpoints:
 
 ```python
-from aresilient import get_with_automatic_retry, CircuitBreaker
+from aresilient import get_with_automatic_retry
+from aresilient.circuit_breaker import CircuitBreaker
 
 # Shared circuit breaker for API service
 api_circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
@@ -705,7 +710,8 @@ response2 = get_with_automatic_retry(
 ### Circuit Breaker with Context Manager
 
 ```python
-from aresilient import ResilientClient, CircuitBreaker
+from aresilient import ResilientClient
+from aresilient.circuit_breaker import CircuitBreaker
 
 # Create circuit breaker
 circuit = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
@@ -723,7 +729,8 @@ with ResilientClient(
 ### Handling Circuit Breaker Errors
 
 ```python
-from aresilient import get_with_automatic_retry, CircuitBreaker, CircuitBreakerError
+from aresilient import get_with_automatic_retry
+from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
 
@@ -742,7 +749,7 @@ except Exception as e:
 ### Monitoring Circuit State
 
 ```python
-from aresilient import CircuitBreaker, CircuitState
+from aresilient.circuit_breaker import CircuitBreaker, CircuitState
 
 circuit = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
 
@@ -1863,7 +1870,8 @@ For production use, keep the default log level (INFO or WARNING) to avoid excess
 Protect your application from cascading failures when calling external services:
 
 ```python
-from aresilient import ResilientClient, CircuitBreaker
+from aresilient import ResilientClient
+from aresilient.circuit_breaker import CircuitBreaker
 
 # Create circuit breakers for different services
 payment_circuit = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)

@@ -127,7 +127,8 @@ response = get_with_automatic_retry(
 ### Using Different Backoff Strategies
 
 ```python
-from aresilient import get_with_automatic_retry, LinearBackoff, FibonacciBackoff
+from aresilient import get_with_automatic_retry
+from aresilient.backoff import FibonacciBackoff, LinearBackoff
 
 # Linear backoff (1s, 2s, 3s, 4s...)
 response = get_with_automatic_retry(
@@ -159,7 +160,8 @@ with ResilientClient(max_retries=5, timeout=30.0) as client:
 ### Using Circuit Breaker
 
 ```python
-from aresilient import get_with_automatic_retry, CircuitBreaker
+from aresilient import get_with_automatic_retry
+from aresilient.circuit_breaker import CircuitBreaker
 
 # Prevent cascading failures with circuit breaker
 circuit_breaker = CircuitBreaker(
