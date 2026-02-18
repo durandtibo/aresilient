@@ -19,8 +19,8 @@ from aresilient.core.config import (
     RETRY_STATUS_CODES,
 )
 from aresilient.core.validation import validate_retry_params
-from aresilient.request import request_with_automatic_retry
-from aresilient.request_async import request_with_automatic_retry_async
+from aresilient.request import request
+from aresilient.request_async import request_async
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -103,7 +103,7 @@ def execute_http_method(
     try:
         # Get the appropriate request method from the client
         request_func = getattr(client, method.lower())
-        return request_with_automatic_retry(
+        return request(
             url=url,
             method=method,
             request_func=request_func,
@@ -200,7 +200,7 @@ async def execute_http_method_async(
     try:
         # Get the appropriate request method from the client
         request_func = getattr(client, method.lower())
-        return await request_with_automatic_retry_async(
+        return await request_async(
             url=url,
             method=method,
             request_func=request_func,

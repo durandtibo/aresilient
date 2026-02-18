@@ -10,7 +10,7 @@ import pytest
 from aresilient.callbacks import RequestInfo, RetryInfo
 from aresilient.core import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES
 from aresilient.exceptions import HttpRequestError
-from aresilient.request_async import request_with_automatic_retry_async
+from aresilient.request_async import request_async
 
 TEST_URL = "https://api.example.com/data"
 
@@ -28,7 +28,7 @@ async def test_on_request_callback_called_on_first_attempt_async(
     (async)."""
     on_request_callback = Mock()
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
@@ -53,7 +53,7 @@ async def test_on_request_callback_called_on_each_retry_async(
         side_effect=[mock_response_fail, mock_response_fail, mock_response]
     )
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
@@ -84,7 +84,7 @@ async def test_on_retry_callback_called_before_retry_async(
     on_retry_callback = Mock()
     mock_async_request_func = AsyncMock(side_effect=[mock_response_fail, mock_response])
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
@@ -115,7 +115,7 @@ async def test_on_retry_callback_not_called_on_first_success_async(
     on first attempt (async)."""
     on_retry_callback = Mock()
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
@@ -139,7 +139,7 @@ async def test_on_retry_callback_with_timeout_exception_async(
         side_effect=[httpx.TimeoutException("timeout"), mock_response]
     )
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
@@ -172,7 +172,7 @@ async def test_on_success_callback_called_on_success_async(
     (async)."""
     on_success_callback = Mock()
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
@@ -203,7 +203,7 @@ async def test_on_success_callback_after_retries_async(
         side_effect=[mock_response_fail, mock_response_fail, mock_response]
     )
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
@@ -237,7 +237,7 @@ async def test_on_success_callback_not_called_on_failure_async(
         HttpRequestError,
         match=r"GET request to https://api.example.com/data failed with status 500 after 3 attempts",
     ):
-        await request_with_automatic_retry_async(
+        await request_async(
             url=TEST_URL,
             method="GET",
             request_func=mock_async_request_func,
@@ -266,7 +266,7 @@ async def test_on_failure_callback_called_on_retryable_status_failure_async(
     mock_async_request_func = AsyncMock(return_value=mock_response_fail)
 
     with pytest.raises(HttpRequestError, match=r"GET request to https://api.example.com/data"):
-        await request_with_automatic_retry_async(
+        await request_async(
             url=TEST_URL,
             method="GET",
             request_func=mock_async_request_func,
@@ -295,7 +295,7 @@ async def test_on_failure_callback_not_called_on_success_async(
     (async)."""
     on_failure_callback = Mock()
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
@@ -325,7 +325,7 @@ async def test_all_callbacks_together_on_success_async(
 
     mock_async_request_func = AsyncMock(side_effect=[mock_response_fail, mock_response])
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
@@ -371,7 +371,7 @@ async def test_all_callbacks_together_on_failure_async(
     mock_async_request_func = AsyncMock(return_value=mock_response_fail)
 
     with pytest.raises(HttpRequestError):
-        await request_with_automatic_retry_async(
+        await request_async(
             url=TEST_URL,
             method="GET",
             request_func=mock_async_request_func,
@@ -432,7 +432,7 @@ async def test_callbacks_with_custom_max_retries_async(
 
     mock_async_request_func = AsyncMock(side_effect=[mock_response_fail, mock_response])
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
@@ -473,7 +473,7 @@ async def test_callbacks_with_custom_backoff_factor_async(
 
     mock_async_request_func = AsyncMock(side_effect=[mock_response_fail, mock_response])
 
-    response = await request_with_automatic_retry_async(
+    response = await request_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,

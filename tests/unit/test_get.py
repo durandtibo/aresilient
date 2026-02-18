@@ -1,4 +1,4 @@
-r"""Unit tests for get_with_automatic_retry function.
+r"""Unit tests for get function.
 
 This file contains tests that are specific to the GET HTTP method.
 Common tests across all HTTP methods are in test_core.py.
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from tests.helpers import assert_successful_request, setup_mock_client_for_method
 
 if TYPE_CHECKING:
@@ -18,11 +18,11 @@ TEST_URL = "https://api.example.com/data"
 
 
 ##############################################
-#     Tests for get_with_automatic_retry     #
+#     Tests for get     #
 ##############################################
 
 
-def test_get_with_automatic_retry_with_params(mock_sleep: Mock) -> None:
+def test_get_with_params(mock_sleep: Mock) -> None:
     """Test GET request with query parameters.
 
     This is GET-specific because query parameters are typically used
@@ -34,7 +34,7 @@ def test_get_with_automatic_retry_with_params(mock_sleep: Mock) -> None:
 
     # Use utility function to assert successful request
     assert_successful_request(
-        get_with_automatic_retry,
+        get,
         TEST_URL,
         client,
         params={"page": 1, "limit": 10},

@@ -1,4 +1,4 @@
-r"""Unit tests for get_with_automatic_retry_async function.
+r"""Unit tests for get_async function.
 
 This file contains tests that are specific to the async GET HTTP method.
 Common tests across all async HTTP methods are in test_core_async.py.
@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 from tests.helpers import (
     assert_successful_request_async,
     setup_mock_async_client_for_method,
@@ -23,12 +23,12 @@ TEST_URL = "https://api.example.com/data"
 
 
 ####################################################
-#     Tests for get_with_automatic_retry_async     #
+#     Tests for get_async     #
 ####################################################
 
 
 @pytest.mark.asyncio
-async def test_get_with_automatic_retry_async_with_params(mock_asleep: Mock) -> None:
+async def test_get_async_with_params(mock_asleep: Mock) -> None:
     """Test async GET request with query parameters.
 
     This is GET-specific because query parameters are typically used
@@ -40,7 +40,7 @@ async def test_get_with_automatic_retry_async_with_params(mock_asleep: Mock) -> 
 
     # Use utility function to assert successful request
     await assert_successful_request_async(
-        get_with_automatic_retry_async,
+        get_async,
         TEST_URL,
         client,
         params={"page": 1, "limit": 10},

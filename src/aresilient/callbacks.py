@@ -12,14 +12,12 @@ The callback system provides four key lifecycle hooks:
 
 Example:
     ```pycon
-    >>> from aresilient import get_with_automatic_retry
+    >>> from aresilient import get
     >>> from aresilient.callbacks import RetryInfo
     >>> def log_retry(retry_info: RetryInfo):
     ...     print(f"Retry {retry_info.attempt}/{retry_info.max_retries + 1}")
     ...
-    >>> response = get_with_automatic_retry(
-    ...     "https://api.example.com/data", on_retry=log_retry
-    ... )  # doctest: +SKIP
+    >>> response = get("https://api.example.com/data", on_retry=log_retry)  # doctest: +SKIP
 
     ```
 """

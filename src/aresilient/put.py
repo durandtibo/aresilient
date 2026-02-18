@@ -2,7 +2,7 @@ r"""Contains synchronous HTTP PUT request with automatic retry logic."""
 
 from __future__ import annotations
 
-__all__ = ["put_with_automatic_retry"]
+__all__ = ["put"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-def put_with_automatic_retry(
+def put(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -110,8 +110,8 @@ def put_with_automatic_retry(
 
     Example:
         ```pycon
-        >>> from aresilient import put_with_automatic_retry
-        >>> response = put_with_automatic_retry(
+        >>> from aresilient import put
+        >>> response = put(
         ...     "https://api.example.com/resource/123", json={"name": "updated"}
         ... )  # doctest: +SKIP
 

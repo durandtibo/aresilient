@@ -3,7 +3,7 @@ logic."""
 
 from __future__ import annotations
 
-__all__ = ["delete_with_automatic_retry"]
+__all__ = ["delete"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-def delete_with_automatic_retry(
+def delete(
     url: str,
     *,
     client: httpx.Client | None = None,
@@ -111,10 +111,8 @@ def delete_with_automatic_retry(
 
     Example:
         ```pycon
-        >>> from aresilient import delete_with_automatic_retry
-        >>> response = delete_with_automatic_retry(
-        ...     "https://api.example.com/resource/123"
-        ... )  # doctest: +SKIP
+        >>> from aresilient import delete
+        >>> response = delete("https://api.example.com/resource/123")  # doctest: +SKIP
 
         ```
     """

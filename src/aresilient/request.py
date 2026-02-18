@@ -3,7 +3,7 @@ automatic retry logic."""
 
 from __future__ import annotations
 
-__all__ = ["request_with_automatic_retry"]
+__all__ = ["request"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from aresilient.circuit_breaker import CircuitBreaker
 
 
-def request_with_automatic_retry(
+def request(
     url: str,
     method: str,
     request_func: Callable[..., httpx.Response],
@@ -131,13 +131,13 @@ def request_with_automatic_retry(
     Example:
         ```pycon
         >>> import httpx
-        >>> from aresilient import request_with_automatic_retry
+        >>> from aresilient import request
         >>> from aresilient.backoff import LinearBackoff
         >>> def log_retry(info):
         ...     print(f"Retry {info.attempt}/{info.max_retries + 1}")
         ...
         >>> with httpx.Client() as client:
-        ...     response = request_with_automatic_retry(
+        ...     response = request(
         ...         url="https://api.example.com/data",
         ...         method="GET",
         ...         request_func=client.get,

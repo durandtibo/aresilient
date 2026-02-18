@@ -55,10 +55,10 @@ python -c "import aresilient; print(aresilient.__version__)"
 Or try a simple example:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Make a simple GET request (this is a safe example that won't actually execute)
-# response = get_with_automatic_retry("https://api.example.com/data")
+# response = get("https://api.example.com/data")
 # print(response.json())
 
 # Verify the module is properly imported
@@ -71,7 +71,7 @@ To verify async support is working:
 
 ```python
 import asyncio
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 
 async def test_async():

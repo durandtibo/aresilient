@@ -3,7 +3,7 @@ logic."""
 
 from __future__ import annotations
 
-__all__ = ["options_with_automatic_retry_async"]
+__all__ = ["options_async"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-async def options_with_automatic_retry_async(
+async def options_async(
     url: str,
     *,
     client: httpx.AsyncClient | None = None,
@@ -117,11 +117,9 @@ async def options_with_automatic_retry_async(
     Example:
         ```pycon
         >>> import asyncio
-        >>> from aresilient import options_with_automatic_retry_async
+        >>> from aresilient import options_async
         >>> async def example():
-        ...     response = await options_with_automatic_retry_async(
-        ...         "https://api.example.com/resource"
-        ...     )
+        ...     response = await options_async("https://api.example.com/resource")
         ...     allowed_methods = response.headers.get("Allow")
         ...     print(f"Allowed methods: {allowed_methods}")
         ...     return response

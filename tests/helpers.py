@@ -29,20 +29,20 @@ import httpx
 import pytest
 
 from aresilient import (
-    delete_with_automatic_retry,
-    delete_with_automatic_retry_async,
-    get_with_automatic_retry,
-    get_with_automatic_retry_async,
-    head_with_automatic_retry,
-    head_with_automatic_retry_async,
-    options_with_automatic_retry,
-    options_with_automatic_retry_async,
-    patch_with_automatic_retry,
-    patch_with_automatic_retry_async,
-    post_with_automatic_retry,
-    post_with_automatic_retry_async,
-    put_with_automatic_retry,
-    put_with_automatic_retry_async,
+    delete,
+    delete_async,
+    get,
+    get_async,
+    head,
+    head_async,
+    options,
+    options_async,
+    patch,
+    patch_async,
+    post,
+    post_async,
+    put,
+    put_async,
 )
 
 if TYPE_CHECKING:
@@ -58,7 +58,7 @@ class HttpMethodTestCase:
 
     Attributes:
         method_name: The HTTP method name (e.g., "GET", "POST").
-        method_func: The function to test (e.g., get_with_automatic_retry).
+        method_func: The function to test (e.g., get).
         client_method: The httpx.Client method name (e.g., "get", "post").
         status_code: Expected success status code.
         test_url: The full test URL (e.g., "https://httpbin.org/get"). Optional.
@@ -79,7 +79,7 @@ class AsyncHttpMethodTestCase:
 
     Attributes:
         method_name: The HTTP method name (e.g., "GET", "POST").
-        method_func: The async function to test (e.g., get_with_automatic_retry_async).
+        method_func: The async function to test (e.g., get_async).
         client_method: The httpx.AsyncClient method name (e.g., "get", "post").
         status_code: Expected success status code.
         test_url: The full test URL (e.g., "https://httpbin.org/get"). Optional.
@@ -99,7 +99,7 @@ HTTP_METHODS = [
     pytest.param(
         HttpMethodTestCase(
             method_name="GET",
-            method_func=get_with_automatic_retry,
+            method_func=get,
             client_method="get",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/get",
@@ -110,7 +110,7 @@ HTTP_METHODS = [
     pytest.param(
         HttpMethodTestCase(
             method_name="POST",
-            method_func=post_with_automatic_retry,
+            method_func=post,
             client_method="post",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/post",
@@ -121,7 +121,7 @@ HTTP_METHODS = [
     pytest.param(
         HttpMethodTestCase(
             method_name="PUT",
-            method_func=put_with_automatic_retry,
+            method_func=put,
             client_method="put",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/put",
@@ -132,7 +132,7 @@ HTTP_METHODS = [
     pytest.param(
         HttpMethodTestCase(
             method_name="DELETE",
-            method_func=delete_with_automatic_retry,
+            method_func=delete,
             client_method="delete",
             status_code=204,
             test_url=f"{HTTPBIN_URL}/delete",
@@ -143,7 +143,7 @@ HTTP_METHODS = [
     pytest.param(
         HttpMethodTestCase(
             method_name="PATCH",
-            method_func=patch_with_automatic_retry,
+            method_func=patch,
             client_method="patch",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/patch",
@@ -154,7 +154,7 @@ HTTP_METHODS = [
     pytest.param(
         HttpMethodTestCase(
             method_name="HEAD",
-            method_func=head_with_automatic_retry,
+            method_func=head,
             client_method="head",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/get",
@@ -165,7 +165,7 @@ HTTP_METHODS = [
     pytest.param(
         HttpMethodTestCase(
             method_name="OPTIONS",
-            method_func=options_with_automatic_retry,
+            method_func=options,
             client_method="options",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/get",
@@ -181,7 +181,7 @@ HTTP_METHODS_ASYNC = [
     pytest.param(
         AsyncHttpMethodTestCase(
             method_name="GET",
-            method_func=get_with_automatic_retry_async,
+            method_func=get_async,
             client_method="get",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/get",
@@ -192,7 +192,7 @@ HTTP_METHODS_ASYNC = [
     pytest.param(
         AsyncHttpMethodTestCase(
             method_name="POST",
-            method_func=post_with_automatic_retry_async,
+            method_func=post_async,
             client_method="post",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/post",
@@ -203,7 +203,7 @@ HTTP_METHODS_ASYNC = [
     pytest.param(
         AsyncHttpMethodTestCase(
             method_name="PUT",
-            method_func=put_with_automatic_retry_async,
+            method_func=put_async,
             client_method="put",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/put",
@@ -214,7 +214,7 @@ HTTP_METHODS_ASYNC = [
     pytest.param(
         AsyncHttpMethodTestCase(
             method_name="DELETE",
-            method_func=delete_with_automatic_retry_async,
+            method_func=delete_async,
             client_method="delete",
             status_code=204,
             test_url=f"{HTTPBIN_URL}/delete",
@@ -225,7 +225,7 @@ HTTP_METHODS_ASYNC = [
     pytest.param(
         AsyncHttpMethodTestCase(
             method_name="PATCH",
-            method_func=patch_with_automatic_retry_async,
+            method_func=patch_async,
             client_method="patch",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/patch",
@@ -236,7 +236,7 @@ HTTP_METHODS_ASYNC = [
     pytest.param(
         AsyncHttpMethodTestCase(
             method_name="HEAD",
-            method_func=head_with_automatic_retry_async,
+            method_func=head_async,
             client_method="head",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/get",
@@ -247,7 +247,7 @@ HTTP_METHODS_ASYNC = [
     pytest.param(
         AsyncHttpMethodTestCase(
             method_name="OPTIONS",
-            method_func=options_with_automatic_retry_async,
+            method_func=options_async,
             client_method="options",
             status_code=200,
             test_url=f"{HTTPBIN_URL}/get",
@@ -283,7 +283,7 @@ def setup_mock_client_for_method(
 
     Example:
         >>> client, response = setup_mock_client_for_method("get", 200)
-        >>> result = get_with_automatic_retry("https://example.com", client=client)
+        >>> result = get("https://example.com", client=client)
         >>> assert result.status_code == 200
     """
     if response_kwargs is None:
@@ -323,7 +323,7 @@ def setup_mock_async_client_for_method(
     Example:
         ```pycon
         >>> client, response = setup_mock_async_client_for_method("get", 200)
-        >>> result = await get_with_automatic_retry_async("https://example.com", client=client)
+        >>> result = await get_async("https://example.com", client=client)
         >>> assert result.status_code == 200
 
         ```
@@ -352,7 +352,7 @@ def assert_successful_request(
     and asserting its status code, reducing test boilerplate.
 
     Args:
-        method_func: The request function to call (e.g., get_with_automatic_retry).
+        method_func: The request function to call (e.g., get).
         url: The URL to request.
         client: The httpx.Client to use for the request.
         expected_status: The expected HTTP status code. Default is 200.
@@ -369,7 +369,7 @@ def assert_successful_request(
         ```pycon
         >>> client, _ = setup_mock_client_for_method("get", 200)
         >>> response = assert_successful_request(
-        ...     get_with_automatic_retry,
+        ...     get,
         ...     "https://example.com",
         ...     client,
         ...     headers={"X-Custom": "value"},
@@ -398,7 +398,7 @@ async def assert_successful_request_async(
 
     Args:
         method_func: The async request function to call (e.g.,
-            get_with_automatic_retry_async).
+            get_async).
         url: The URL to request.
         client: The httpx.AsyncClient to use for the request.
         expected_status: The expected HTTP status code. Default is 200.
@@ -415,7 +415,7 @@ async def assert_successful_request_async(
         ```pycon
         >>> client, _ = setup_mock_async_client_for_method("get", 200)
         >>> response = await assert_successful_request_async(
-        ...     get_with_automatic_retry_async,
+        ...     get_async,
         ...     "https://example.com",
         ...     client,
         ...     headers={"X-Custom": "value"},

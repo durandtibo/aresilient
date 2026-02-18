@@ -27,11 +27,11 @@ works well for most scenarios where you want progressively longer delays between
 **Example:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import ExponentialBackoff
 
 # Explicit exponential backoff with max delay cap
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=10.0),
 )
@@ -41,10 +41,10 @@ response = get_with_automatic_retry(
 **Default behavior** (when no `backoff_strategy` is specified):
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Uses exponential backoff with backoff_factor
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_factor=0.3,  # Equivalent to ExponentialBackoff(base_delay=0.3)
 )
@@ -67,17 +67,17 @@ useful for services with predictable recovery times.
 **Example:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import LinearBackoff
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=LinearBackoff(base_delay=1.0),
 )
 # Delays: 1s, 2s, 3s, 4s, 5s...
 
 # With max_delay cap
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=LinearBackoff(base_delay=2.0, max_delay=8.0),
 )
@@ -100,17 +100,17 @@ following the Fibonacci sequence. This provides a more gradual increase than exp
 **Example:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import FibonacciBackoff
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=FibonacciBackoff(base_delay=1.0),
 )
 # Delays: 1s, 1s, 2s, 3s, 5s, 8s, 13s...
 
 # With max_delay cap
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0),
 )
@@ -133,10 +133,10 @@ is useful for testing or when you know the exact delay that works best.
 **Example:**
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import ConstantBackoff
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=ConstantBackoff(delay=2.5),
 )
@@ -149,7 +149,7 @@ You can implement your own backoff strategy by subclassing `BackoffStrategy` and
 `calculate()` method:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import BackoffStrategy
 
 
@@ -164,7 +164,7 @@ class SquareBackoff(BackoffStrategy):
         return self.base_delay * ((attempt + 1) ** 2)
 
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=SquareBackoff(base_delay=0.5),
 )
@@ -177,10 +177,10 @@ Jitter adds randomization to backoff delays to prevent the "thundering herd" pro
 clients retry simultaneously. Jitter works with all backoff strategies:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import LinearBackoff
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=LinearBackoff(base_delay=1.0),
     jitter_factor=0.1,  # Add up to 10% random jitter
@@ -195,10 +195,10 @@ automatically uses the server's suggested wait time instead of the configured ba
 This ensures compliance with server requirements:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import ExponentialBackoff
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=ExponentialBackoff(base_delay=1.0),
 )
@@ -211,10 +211,10 @@ response = get_with_automatic_retry(
 Most strategies support an optional `max_delay` parameter to prevent extremely long waits:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import ExponentialBackoff
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=ExponentialBackoff(base_delay=1.0, max_delay=30.0),
     max_retries=10,
@@ -263,12 +263,12 @@ Here's how different strategies compare for the first 6 retry attempts (with `ba
 All backoff strategies work identically with async functions:
 
 ```python
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 from aresilient.backoff import FibonacciBackoff
 
 
 async def fetch_data():
-    response = await get_with_automatic_retry_async(
+    response = await get_async(
         "https://api.example.com/data",
         backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0),
     )

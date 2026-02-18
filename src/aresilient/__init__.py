@@ -19,12 +19,12 @@ Key Features:
 
 Example:
     ```pycon
-    >>> from aresilient import get_with_automatic_retry
+    >>> from aresilient import get
     >>> from aresilient.backoff import LinearBackoff
     >>> # Use default exponential backoff
-    >>> response = get_with_automatic_retry("https://api.example.com/data")  # doctest: +SKIP
+    >>> response = get("https://api.example.com/data")  # doctest: +SKIP
     >>> # Use linear backoff strategy
-    >>> response = get_with_automatic_retry(
+    >>> response = get(
     ...     "https://api.example.com/data", backoff_strategy=LinearBackoff(base_delay=1.0)
     ... )  # doctest: +SKIP
     >>> # Use context manager for multiple requests
@@ -44,45 +44,45 @@ __all__ = [
     "HttpRequestError",
     "ResilientClient",
     "__version__",
-    "delete_with_automatic_retry",
-    "delete_with_automatic_retry_async",
-    "get_with_automatic_retry",
-    "get_with_automatic_retry_async",
-    "head_with_automatic_retry",
-    "head_with_automatic_retry_async",
-    "options_with_automatic_retry",
-    "options_with_automatic_retry_async",
-    "patch_with_automatic_retry",
-    "patch_with_automatic_retry_async",
-    "post_with_automatic_retry",
-    "post_with_automatic_retry_async",
-    "put_with_automatic_retry",
-    "put_with_automatic_retry_async",
-    "request_with_automatic_retry",
-    "request_with_automatic_retry_async",
+    "delete",
+    "delete_async",
+    "get",
+    "get_async",
+    "head",
+    "head_async",
+    "options",
+    "options_async",
+    "patch",
+    "patch_async",
+    "post",
+    "post_async",
+    "put",
+    "put_async",
+    "request",
+    "request_async",
 ]
 
 from importlib.metadata import PackageNotFoundError, version
 
 from aresilient.client import ResilientClient
 from aresilient.client_async import AsyncResilientClient
-from aresilient.delete import delete_with_automatic_retry
-from aresilient.delete_async import delete_with_automatic_retry_async
+from aresilient.delete import delete
+from aresilient.delete_async import delete_async
 from aresilient.exceptions import HttpRequestError
-from aresilient.get import get_with_automatic_retry
-from aresilient.get_async import get_with_automatic_retry_async
-from aresilient.head import head_with_automatic_retry
-from aresilient.head_async import head_with_automatic_retry_async
-from aresilient.options import options_with_automatic_retry
-from aresilient.options_async import options_with_automatic_retry_async
-from aresilient.patch import patch_with_automatic_retry
-from aresilient.patch_async import patch_with_automatic_retry_async
-from aresilient.post import post_with_automatic_retry
-from aresilient.post_async import post_with_automatic_retry_async
-from aresilient.put import put_with_automatic_retry
-from aresilient.put_async import put_with_automatic_retry_async
-from aresilient.request import request_with_automatic_retry
-from aresilient.request_async import request_with_automatic_retry_async
+from aresilient.get import get
+from aresilient.get_async import get_async
+from aresilient.head import head
+from aresilient.head_async import head_async
+from aresilient.options import options
+from aresilient.options_async import options_async
+from aresilient.patch import patch
+from aresilient.patch_async import patch_async
+from aresilient.post import post
+from aresilient.post_async import post_async
+from aresilient.put import put
+from aresilient.put_async import put_async
+from aresilient.request import request
+from aresilient.request_async import request_async
 
 try:
     __version__ = version(__name__)

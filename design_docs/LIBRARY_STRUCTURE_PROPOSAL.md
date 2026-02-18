@@ -72,7 +72,7 @@ Total: 43 Python files, ~7,032 lines
    re-exports
 3. ✅ **Clear sync/async separation**: `*_async.py` naming convention remains intuitive
 4. ✅ **Consistent patterns**: All HTTP method modules follow identical structure
-5. ✅ **Simple imports**: `from aresilient import get_with_automatic_retry` still works
+5. ✅ **Simple imports**: `from aresilient import get` still works
 6. ✅ **Scalable architecture**: Sub-packages allow for future growth
 7. ✅ **Clean responsibilities**: Each file and module has a single, focused purpose
 8. ✅ **Backward compatibility**: Re-exports maintain existing API surface
@@ -101,18 +101,18 @@ Total: 43 Python files, ~7,032 lines
 
 **HTTP Method Functions:**
 
-- Sync: `get_with_automatic_retry`, `post_with_automatic_retry`, `put_with_automatic_retry`,
-  `delete_with_automatic_retry`, `patch_with_automatic_retry`, `head_with_automatic_retry`,
-  `options_with_automatic_retry`
-- Async: `get_with_automatic_retry_async`, `post_with_automatic_retry_async`,
-  `put_with_automatic_retry_async`, `delete_with_automatic_retry_async`,
-  `patch_with_automatic_retry_async`, `head_with_automatic_retry_async`,
-  `options_with_automatic_retry_async`
+- Sync: `get`, `post`, `put`,
+  `delete`, `patch`, `head`,
+  `options`
+- Async: `get_async`, `post_async`,
+  `put_async`, `delete_async`,
+  `patch_async`, `head_async`,
+  `options_async`
 
 **Core Request Functions:**
 
-- `request_with_automatic_retry` (sync)
-- `request_with_automatic_retry_async` (async)
+- `request` (sync)
+- `request_async` (async)
 
 **Exceptions:**
 
@@ -160,11 +160,11 @@ Total: 43 Python files, ~7,032 lines
 from aresilient import ResilientClient, AsyncResilientClient
 
 # Method-specific (most common)
-from aresilient import get_with_automatic_retry
-from aresilient import get_with_automatic_retry_async
+from aresilient import get
+from aresilient import get_async
 
 # Core request function (advanced)
-from aresilient import request_with_automatic_retry
+from aresilient import request
 
 # Backoff strategies
 from aresilient.backoff import LinearBackoff, ExponentialBackoff
@@ -233,8 +233,8 @@ src/aresilient/
 
 ```python
 # Top-level exports for HTTP methods and clients
-from aresilient import get_with_automatic_retry
-from aresilient import get_with_automatic_retry_async
+from aresilient import get
+from aresilient import get_async
 from aresilient import ResilientClient
 
 # Submodule imports for backoff strategies
@@ -340,8 +340,8 @@ src/aresilient/
 3. **User Experience**: Simple imports for common use cases:
    ```python
    # Top-level exports for HTTP methods and clients
-   from aresilient import get_with_automatic_retry
-   from aresilient import get_with_automatic_retry_async
+   from aresilient import get
+   from aresilient import get_async
    from aresilient import ResilientClient
 
    # Submodule imports for extended functionality

@@ -204,7 +204,7 @@ Test utility functions added in `helpers.py` to reduce boilerplate in tests:
        # Use utility function:
        client, response = setup_mock_client_for_method("get", 200)
 
-       result = get_with_automatic_retry("https://example.com", client=client)
+       result = get("https://example.com", client=client)
        assert result.status_code == 200
    ```
 
@@ -222,7 +222,7 @@ Test utility functions added in `helpers.py` to reduce boilerplate in tests:
    async def test_example_async(mock_asleep: Mock) -> None:
        client, response = setup_mock_async_client_for_method("get", 200)
 
-       result = await get_with_automatic_retry_async("https://example.com", client=client)
+       result = await get_async("https://example.com", client=client)
        assert result.status_code == 200
    ```
 
@@ -240,12 +240,12 @@ Test utility functions added in `helpers.py` to reduce boilerplate in tests:
        client, _ = setup_mock_client_for_method("get", 200)
 
        # Instead of:
-       # response = get_with_automatic_retry(url, client=client, headers=headers)
+       # response = get(url, client=client, headers=headers)
        # assert response.status_code == 200
 
        # Use utility:
        response = assert_successful_request(
-           get_with_automatic_retry,
+           get,
            "https://example.com",
            client,
            headers={"X-Custom": "value"},
@@ -272,7 +272,7 @@ Test utility functions added in `helpers.py` to reduce boilerplate in tests:
        client, _ = setup_mock_async_client_for_method("get", 200)
 
        response = await assert_successful_request_async(
-           get_with_automatic_retry_async,
+           get_async,
            "https://example.com",
            client,
            headers={"X-Custom": "value"},

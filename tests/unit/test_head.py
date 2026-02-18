@@ -1,4 +1,4 @@
-r"""Unit tests for head_with_automatic_retry function.
+r"""Unit tests for head function.
 
 This file contains tests that are specific to the HEAD HTTP method.
 Common tests across all HTTP methods are in test_core.py.

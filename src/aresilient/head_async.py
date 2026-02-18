@@ -3,7 +3,7 @@ logic."""
 
 from __future__ import annotations
 
-__all__ = ["head_with_automatic_retry_async"]
+__all__ = ["head_async"]
 
 from typing import TYPE_CHECKING, Any
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
-async def head_with_automatic_retry_async(
+async def head_async(
     url: str,
     *,
     client: httpx.AsyncClient | None = None,
@@ -117,11 +117,9 @@ async def head_with_automatic_retry_async(
     Example:
         ```pycon
         >>> import asyncio
-        >>> from aresilient import head_with_automatic_retry_async
+        >>> from aresilient import head_async
         >>> async def example():
-        ...     response = await head_with_automatic_retry_async(
-        ...         "https://api.example.com/large-file.zip"
-        ...     )
+        ...     response = await head_async("https://api.example.com/large-file.zip")
         ...     if response.status_code == 200:
         ...         print(f"Content-Length: {response.headers.get('Content-Length')}")
         ...     return response

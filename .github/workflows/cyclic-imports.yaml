@@ -25,5 +25,5 @@ jobs:
       - name: check aresilient
         run: |
           python -c "import aresilient"
-          python -c "from aresilient import get_with_automatic_retry"
-          python -c "from aresilient import post_with_automatic_retry"
+          python -c "from aresilient import get"
+          python -c "from aresilient import post"

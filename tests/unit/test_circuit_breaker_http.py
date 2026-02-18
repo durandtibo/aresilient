@@ -8,7 +8,7 @@ from unittest.mock import Mock, call, patch
 import httpx
 import pytest
 
-from aresilient import HttpRequestError, request_with_automatic_retry
+from aresilient import HttpRequestError, request
 from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 ##############################################
@@ -22,7 +22,7 @@ def test_circuit_breaker_with_http_request_success(
     """Test that circuit breaker works with successful HTTP requests."""
     cb = CircuitBreaker(failure_threshold=3)
 
-    result = request_with_automatic_retry(
+    result = request(
         url="https://example.com",
         method="GET",
         request_func=mock_request_func,
@@ -49,7 +49,7 @@ def test_circuit_breaker_opens_after_http_failures(
 
     # Request should exhaust retries and record failures
     with pytest.raises(HttpRequestError):  # HttpRequestError
-        request_with_automatic_retry(
+        request(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
@@ -78,7 +78,7 @@ def test_circuit_breaker_fails_fast_when_open(mock_sleep: Mock) -> None:
 
     # Should fail fast with CircuitBreakerError
     with pytest.raises(CircuitBreakerError, match=r"Circuit breaker is OPEN"):
-        request_with_automatic_retry(
+        request(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
@@ -115,7 +115,7 @@ def test_circuit_breaker_recovers_after_timeout(
         mock_time.return_value = start_time + 0.15
 
         # Should succeed and close the circuit
-        result = request_with_automatic_retry(
+        result = request(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
@@ -154,7 +154,7 @@ def test_circuit_breaker_with_retry_if_predicate(mock_sleep: Mock) -> None:
         HttpRequestError,
         match=r"GET request to https://example.com failed with status 200 after 3 attempts",
     ):
-        request_with_automatic_retry(
+        request(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
@@ -184,7 +184,7 @@ def test_circuit_breaker_shared_across_requests(
         HttpRequestError,
         match=r"GET request to https://example.com failed with status 500 after 1 attempts",
     ):
-        request_with_automatic_retry(
+        request(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
@@ -199,7 +199,7 @@ def test_circuit_breaker_shared_across_requests(
         HttpRequestError,
         match=r"GET request to https://example.com failed with status 500 after 1 attempts",
     ):
-        request_with_automatic_retry(
+        request(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
@@ -214,7 +214,7 @@ def test_circuit_breaker_shared_across_requests(
         HttpRequestError,
         match=r"GET request to https://example.com failed with status 500 after 1 attempts",
     ):
-        request_with_automatic_retry(
+        request(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
@@ -229,7 +229,7 @@ def test_circuit_breaker_shared_across_requests(
     with pytest.raises(
         CircuitBreakerError, match=r"Circuit breaker is OPEN \(failed 3 times\). Retry after 60.0s"
     ):
-        request_with_automatic_retry(
+        request(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,

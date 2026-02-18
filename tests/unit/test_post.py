@@ -1,4 +1,4 @@
-r"""Unit tests for post_with_automatic_retry function.
+r"""Unit tests for post function.
 
 This file contains tests that are specific to the POST HTTP method.
 Common tests across all HTTP methods are in test_core.py.
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aresilient import post_with_automatic_retry
+from aresilient import post
 from tests.helpers import assert_successful_request, setup_mock_client_for_method
 
 if TYPE_CHECKING:
@@ -18,11 +18,11 @@ TEST_URL = "https://api.example.com/data"
 
 
 ###############################################
-#     Tests for post_with_automatic_retry     #
+#     Tests for post     #
 ###############################################
 
 
-def test_post_with_automatic_retry_with_data(mock_sleep: Mock) -> None:
+def test_post_with_data(mock_sleep: Mock) -> None:
     """Test POST request with form data.
 
     This is POST-specific because form data submission is typically done
@@ -34,7 +34,7 @@ def test_post_with_automatic_retry_with_data(mock_sleep: Mock) -> None:
 
     # Use utility function to assert successful request
     assert_successful_request(
-        post_with_automatic_retry,
+        post,
         TEST_URL,
         client,
         data={"username": "test", "password": "secret"},

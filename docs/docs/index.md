@@ -93,32 +93,30 @@ HTTP communications, making your applications more robust and fault-tolerant.
 ### Basic GET Request
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Simple GET request with automatic retry
-response = get_with_automatic_retry("https://api.example.com/data")
+response = get("https://api.example.com/data")
 print(response.json())
 ```
 
 ### Basic POST Request
 
 ```python
-from aresilient import post_with_automatic_retry
+from aresilient import post
 
 # POST request with JSON payload
-response = post_with_automatic_retry(
-    "https://api.example.com/submit", json={"key": "value"}
-)
+response = post("https://api.example.com/submit", json={"key": "value"})
 print(response.status_code)
 ```
 
 ### Customizing Retry Behavior
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Custom retry configuration
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     max_retries=5,  # Retry up to 5 times
     backoff_factor=1.0,  # Exponential backoff factor
@@ -130,17 +128,17 @@ response = get_with_automatic_retry(
 ### Using Different Backoff Strategies
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import FibonacciBackoff, LinearBackoff
 
 # Linear backoff (1s, 2s, 3s, 4s...)
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=10.0),
 )
 
 # Fibonacci backoff (1s, 1s, 2s, 3s, 5s, 8s...)
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0),
 )
@@ -163,7 +161,7 @@ with ResilientClient(max_retries=5, timeout=30.0) as client:
 ### Using Circuit Breaker
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.circuit_breaker import CircuitBreaker
 
 # Prevent cascading failures with circuit breaker
@@ -172,7 +170,7 @@ circuit_breaker = CircuitBreaker(
     recovery_timeout=60.0,  # Try again after 60 seconds
 )
 
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     circuit_breaker=circuit_breaker,
 )
@@ -182,11 +180,11 @@ response = get_with_automatic_retry(
 
 ```python
 import asyncio
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 
 async def fetch_data():
-    response = await get_with_automatic_retry_async("https://api.example.com/data")
+    response = await get_async("https://api.example.com/data")
     return response.json()
 
 
@@ -199,7 +197,7 @@ print(data)
 
 ```python
 import asyncio
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 
 async def fetch_multiple():
@@ -208,7 +206,7 @@ async def fetch_multiple():
         "https://api.example.com/data2",
         "https://api.example.com/data3",
     ]
-    tasks = [get_with_automatic_retry_async(url) for url in urls]
+    tasks = [get_async(url) for url in urls]
     responses = await asyncio.gather(*tasks)
     return [r.json() for r in responses]
 
