@@ -1199,6 +1199,204 @@ Choose if:
    - Update client.py and client_async.py
    - Verify context manager tests pass
 
+##### Phase 4 Design Considerations: Configuration Object vs. Direct Attribute Access
+
+**Design Philosophy:**
+While backward compatibility is important, it should not prevent us from making necessary improvements to the library's design and user experience. Breaking changes are acceptable when they result in a cleaner API, better maintainability, and improved code quality. Users can adapt to well-documented changes, especially when they provide clear benefits.
+
+**Context:**
+The initial Phase 4 implementation extracted shared client logic into helper functions that directly accessed protected attributes (`client_instance._max_retries`, etc.). This approach raised concerns about encapsulation violations.
+
+**Alternative Approaches:**
+
+**Approach A: Current Implementation (Direct Attribute Access)**
+```python
+def store_client_config(client_instance: Any, *, timeout, max_retries, ...):
+    client_instance._timeout = timeout
+    client_instance._max_retries = max_retries
+    # ...
+
+def merge_request_params(client_instance: Any, *, max_retries=None, ...):
+    return {
+        "max_retries": max_retries if max_retries is not None else client_instance._max_retries,
+        # ...
+    }
+```
+
+**Approach B: Configuration Dataclass (Recommended)**
+```python
+@dataclass
+class ClientConfig:
+    """Configuration for ResilientClient."""
+    timeout: float | httpx.Timeout = DEFAULT_TIMEOUT
+    max_retries: int = DEFAULT_MAX_RETRIES
+    backoff_factor: float = DEFAULT_BACKOFF_FACTOR
+    status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES
+    jitter_factor: float = 0.0
+    retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None
+    backoff_strategy: BackoffStrategy | None = None
+    max_total_time: float | None = None
+    max_wait_time: float | None = None
+    circuit_breaker: CircuitBreaker | None = None
+    on_request: Callable[[RequestInfo], None] | None = None
+    on_retry: Callable[[RetryInfo], None] | None = None
+    on_success: Callable[[ResponseInfo], None] | None = None
+    on_failure: Callable[[FailureInfo], None] | None = None
+
+class ResilientClient:
+    def __init__(self, *, timeout=..., max_retries=..., ...):
+        validate_retry_params(...)
+        self._config = ClientConfig(
+            timeout=timeout,
+            max_retries=max_retries,
+            # ...
+        )
+        self._client: httpx.Client | None = None
+        self._entered = False
+
+    def request(self, method, url, *, max_retries=None, ...):
+        client = self._ensure_client()
+        # Merge config with request-specific overrides
+        config = self._config.merge(
+            max_retries=max_retries,
+            # ...
+        )
+        return request_with_automatic_retry(
+            url=url, method=method, request_func=getattr(client, method.lower()),
+            **config.to_dict(), **kwargs
+        )
+```
+
+**Trade-offs Comparison:**
+
+| Aspect | Approach A (Direct Access) | Approach B (Dataclass Config) |
+|--------|---------------------------|-------------------------------|
+| **Encapsulation** | ❌ Poor - External functions access protected attributes | ✅ Good - Config is a public object with defined interface |
+| **Type Safety** | ⚠️ Moderate - Parameters typed but instance attributes use `Any` | ✅ Strong - Dataclass provides full type information |
+| **IDE Support** | ⚠️ Limited - No autocomplete for attributes on `Any` type | ✅ Excellent - Full autocomplete and type hints |
+| **Maintainability** | ⚠️ Fragile - Adding/removing params requires updating multiple functions | ✅ Robust - Changes centralized in dataclass definition |
+| **Code Duplication** | ✅ Reduced - Shared helper functions | ✅ Reduced - Config object shared |
+| **Testability** | ⚠️ Moderate - Must mock entire client instance | ✅ Easy - Can test config object independently |
+| **Backward Compatibility** | ✅ Full - Client API unchanged | ✅ Full - Client API unchanged (internal change only) |
+| **Implementation Complexity** | ✅ Simple - Direct attribute assignment | ⚠️ Moderate - Requires dataclass + merge logic |
+| **Memory Overhead** | ✅ Minimal - Direct attributes | ⚠️ Small - Additional dataclass instance |
+| **Parameter Validation** | ✅ Current - validate_retry_params() | ✅ Can be integrated - __post_init__ or property setters |
+| **Debugging** | ⚠️ Harder - Configuration spread across attributes | ✅ Easier - Single config object to inspect |
+
+**Recommendation: Approach B (Configuration Dataclass)**
+
+**Rationale:**
+1. **Better Encapsulation**: The dataclass approach doesn't violate encapsulation by accessing protected attributes from external functions
+2. **Type Safety**: Provides better IDE support and type checking
+3. **Maintainability**: Centralizes configuration in a single, well-defined structure
+4. **Extensibility**: Makes it easier to add features like config serialization, validation, or immutability
+5. **Consistency**: Aligns with Python best practices for configuration management
+
+##### Design Decision: Per-Request Parameter Overrides
+
+**Question:** Should the client allow per-request overrides of retry parameters (e.g., different `max_retries` for different requests)?
+
+**Current Behavior (Before Refactor):**
+```python
+with ResilientClient(max_retries=3) as client:
+    # Uses client default (3 retries)
+    response1 = client.get("https://api.example.com/data")
+
+    # Override for this specific request (5 retries)
+    response2 = client.get("https://api.example.com/critical", max_retries=5)
+```
+
+**Option 1: Allow Per-Request Overrides (Current)**
+
+Pros:
+- ✅ **Flexibility**: Different endpoints may need different retry strategies
+- ✅ **Backward Compatibility**: Existing public API supports this pattern
+- ✅ **Use Case Support**: Critical operations can have more aggressive retry logic
+- ✅ **Gradual Migration**: Can start with conservative defaults and override as needed
+
+Cons:
+- ❌ **Complexity**: More code to merge configs per request
+- ❌ **Inconsistency**: Same client may behave differently for different requests
+- ❌ **Harder to Reason About**: Need to check both client config and request params
+- ❌ **Testing Complexity**: Must test both default and override scenarios
+
+**Option 2: Fixed Configuration Per Client (Simplified)**
+
+Pros:
+- ✅ **Simplicity**: Client configuration is immutable and predictable
+- ✅ **Consistency**: All requests through a client use the same retry strategy
+- ✅ **Easier to Reason About**: Single source of truth for retry behavior
+- ✅ **Reduced Code**: No need for merge logic
+
+Cons:
+- ❌ **Less Flexibility**: Cannot adjust retry strategy per endpoint
+- ❌ **Breaking Change**: Would require API change (removing override parameters)
+- ❌ **Workaround Required**: Need multiple client instances for different strategies
+- ❌ **Resource Usage**: Multiple clients = multiple httpx.Client instances
+
+**Recommendation: Option 1 (Allow Per-Request Overrides)**
+
+**Rationale:**
+1. **Backward Compatibility**: The current public API already supports per-request overrides. Removing this would be a breaking change.
+2. **Real-World Use Cases**: Different endpoints often have different reliability requirements (e.g., critical vs. best-effort operations).
+3. **Implementation Cost**: The merge logic is straightforward with a dataclass approach.
+4. **User Flexibility**: Users can choose to use only defaults or override as needed.
+
+**Example Use Case:**
+```python
+with ResilientClient(max_retries=3, timeout=10) as client:
+    # Standard operation - use defaults
+    user_data = client.get("https://api.example.com/users/123")
+
+    # Critical payment - needs more retries and longer timeout
+    payment = client.post(
+        "https://api.example.com/payments",
+        max_retries=10,
+        timeout=30,
+        json=payment_data
+    )
+
+    # Best-effort analytics - fail fast
+    client.post(
+        "https://analytics.example.com/events",
+        max_retries=0,
+        timeout=5,
+        json=event_data
+    )
+```
+
+**Implementation with ClientConfig:**
+```python
+@dataclass
+class ClientConfig:
+    # ... fields ...
+
+    def merge(self, **overrides) -> ClientConfig:
+        """Create a new config with overrides applied."""
+        return replace(self, **{k: v for k, v in overrides.items() if v is not None})
+```
+
+**Implementation Details for Approach B:**
+
+1. Create `ClientConfig` dataclass in `core/client_logic.py`
+2. Implement validation in `__post_init__` method
+3. Add `merge()` method to create new config with per-request overrides
+4. Add `to_dict()` method to convert to kwargs for retry functions
+5. Update `ResilientClient` and `AsyncResilientClient` to:
+   - Accept `ClientConfig` directly OR individual parameters (for backward compatibility)
+   - Use `_config.merge()` in request methods to handle overrides
+6. Remove `store_client_config()` and `merge_request_params()` functions
+
+**Migration Impact:**
+- Internal only - no public API changes
+- All existing tests should pass without modification
+- Slightly more code but significantly better design
+
+**Code Size Comparison:**
+- Approach A: ~150 lines (current implementation)
+- Approach B: ~200 lines (dataclass + methods)
+- Trade-off: 50 extra lines for better design and maintainability
+
 #### Phase 5: Testing and Documentation (Week 5)
 
 8. **Comprehensive testing:**

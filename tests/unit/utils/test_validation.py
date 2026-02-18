@@ -2,7 +2,37 @@ from __future__ import annotations
 
 import pytest
 
+from aresilient.core.validation import validate_timeout
 from aresilient.utils import validate_retry_params
+
+#######################################
+#     Tests for validate_timeout     #
+#######################################
+
+
+@pytest.mark.parametrize("timeout", [0.1, 1.0, 10.0, 30.0, 100])
+def test_validate_timeout_accepts_valid_values(timeout: float) -> None:
+    """Test that validate_timeout accepts valid timeout values."""
+    validate_timeout(timeout)
+
+
+def test_validate_timeout_rejects_zero() -> None:
+    """Test that validate_timeout rejects zero timeout."""
+    with pytest.raises(ValueError, match=r"timeout must be > 0, got 0"):
+        validate_timeout(0)
+
+
+def test_validate_timeout_rejects_negative() -> None:
+    """Test that validate_timeout rejects negative timeout."""
+    with pytest.raises(ValueError, match=r"timeout must be > 0, got -1.0"):
+        validate_timeout(-1.0)
+
+
+def test_validate_timeout_rejects_negative_int() -> None:
+    """Test that validate_timeout rejects negative integer timeout."""
+    with pytest.raises(ValueError, match=r"timeout must be > 0, got -10"):
+        validate_timeout(-10)
+
 
 ###########################################
 #     Tests for validate_retry_params     #

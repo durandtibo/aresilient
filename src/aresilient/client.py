@@ -20,8 +20,9 @@ from aresilient.config import (
     DEFAULT_TIMEOUT,
     RETRY_STATUS_CODES,
 )
+from aresilient.core.config import ClientConfig
+from aresilient.core.validation import validate_timeout
 from aresilient.request import request_with_automatic_retry
-from aresilient.utils import validate_retry_params
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -95,31 +96,28 @@ class ResilientClient:
         on_failure: Callable[[FailureInfo], None] | None = None,
     ) -> None:
         """Initialize the resilient client with retry configuration."""
-        # Validate parameters
-        validate_retry_params(
+        # Validate timeout separately (used for httpx.Client creation, not retry logic)
+        validate_timeout(timeout)
+
+        # Store timeout separately (used for httpx.Client creation)
+        self._timeout = timeout
+
+        # Store retry configuration in ClientConfig dataclass
+        self._config = ClientConfig(
             max_retries=max_retries,
             backoff_factor=backoff_factor,
+            status_forcelist=status_forcelist,
             jitter_factor=jitter_factor,
-            timeout=timeout,
+            retry_if=retry_if,
+            backoff_strategy=backoff_strategy,
             max_total_time=max_total_time,
             max_wait_time=max_wait_time,
+            circuit_breaker=circuit_breaker,
+            on_request=on_request,
+            on_retry=on_retry,
+            on_success=on_success,
+            on_failure=on_failure,
         )
-
-        # Store configuration
-        self._timeout = timeout
-        self._max_retries = max_retries
-        self._backoff_factor = backoff_factor
-        self._status_forcelist = status_forcelist
-        self._jitter_factor = jitter_factor
-        self._retry_if = retry_if
-        self._backoff_strategy = backoff_strategy
-        self._max_total_time = max_total_time
-        self._max_wait_time = max_wait_time
-        self._circuit_breaker = circuit_breaker
-        self._on_request = on_request
-        self._on_retry = on_retry
-        self._on_success = on_success
-        self._on_failure = on_failure
 
         # Client will be created when entering context
         self._client: httpx.Client | None = None
@@ -227,30 +225,28 @@ class ResilientClient:
         """
         client = self._ensure_client()
 
-        # Use client defaults if not overridden
+        # Merge config with request-specific overrides
+        request_config = self._config.merge(
+            max_retries=max_retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=status_forcelist,
+            jitter_factor=jitter_factor,
+            retry_if=retry_if,
+            backoff_strategy=backoff_strategy,
+            max_total_time=max_total_time,
+            max_wait_time=max_wait_time,
+            circuit_breaker=circuit_breaker,
+            on_request=on_request,
+            on_retry=on_retry,
+            on_success=on_success,
+            on_failure=on_failure,
+        )
+
         return request_with_automatic_retry(
             url=url,
             method=method,
             request_func=getattr(client, method.lower()),
-            max_retries=max_retries if max_retries is not None else self._max_retries,
-            backoff_factor=backoff_factor if backoff_factor is not None else self._backoff_factor,
-            status_forcelist=(
-                status_forcelist if status_forcelist is not None else self._status_forcelist
-            ),
-            jitter_factor=jitter_factor if jitter_factor is not None else self._jitter_factor,
-            retry_if=retry_if if retry_if is not None else self._retry_if,
-            backoff_strategy=(
-                backoff_strategy if backoff_strategy is not None else self._backoff_strategy
-            ),
-            max_total_time=max_total_time if max_total_time is not None else self._max_total_time,
-            max_wait_time=max_wait_time if max_wait_time is not None else self._max_wait_time,
-            circuit_breaker=(
-                circuit_breaker if circuit_breaker is not None else self._circuit_breaker
-            ),
-            on_request=on_request if on_request is not None else self._on_request,
-            on_retry=on_retry if on_retry is not None else self._on_retry,
-            on_success=on_success if on_success is not None else self._on_success,
-            on_failure=on_failure if on_failure is not None else self._on_failure,
+            **request_config.to_dict(),
             **kwargs,
         )
 
