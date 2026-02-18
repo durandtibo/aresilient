@@ -256,7 +256,7 @@ class AsyncResilientClient:
             url=url,
             method=method,
             request_func=getattr(client, method.lower()),
-            **request_config.to_dict(),
+            config=request_config,
             **kwargs,
         )
 

@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError, request_async
+from aresilient.core import ClientConfig
 
 ########################################################
 #     Tests for request_async     #
@@ -45,7 +46,7 @@ async def test_request_async_successful_request_after_retries(
         url="https://example.com",
         method="GET",
         request_func=mock_request_func,
-        max_retries=3,
+        config=ClientConfig(max_retries=3),
     )
 
     assert result == mock_response
@@ -95,7 +96,7 @@ async def test_request_async_retryable_status_codes(status_code: int, mock_aslee
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=2,
+            config=ClientConfig(max_retries=2),
         )
 
     assert mock_request_func.call_args_list == [
@@ -122,7 +123,7 @@ async def test_request_async_timeout_exception_retries(
             url="https://example.com",
             method="POST",
             request_func=mock_request_func,
-            max_retries=2,
+            config=ClientConfig(max_retries=2),
         )
 
     assert mock_request_func.call_args_list == [
@@ -146,7 +147,7 @@ async def test_request_async_request_error_retries(mock_asleep: Mock) -> None:
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=2,
+            config=ClientConfig(max_retries=2),
         )
 
     assert mock_request_func.call_args_list == [
@@ -190,7 +191,7 @@ async def test_request_async_max_retries_zero(mock_asleep: Mock) -> None:
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=0,
+            config=ClientConfig(max_retries=0),
         )
 
     mock_request_func.assert_called_once_with(url="https://example.com")
@@ -210,8 +211,7 @@ async def test_request_async_custom_status_forcelist(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=2,
-            status_forcelist=(400, 503),
+            config=ClientConfig(max_retries=2, status_forcelist=(400, 503)),
         )
 
     assert mock_request_func.call_args_list == [
@@ -277,7 +277,7 @@ async def test_request_async_http_request_error_attributes(
             url="https://example.com/api",
             method="DELETE",
             request_func=mock_request_func,
-            max_retries=1,
+            config=ClientConfig(max_retries=1),
         )
 
     error = exc_info.value
@@ -303,7 +303,7 @@ async def test_request_async_timeout_exception_after_successful_attempts(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            max_retries=1,
+            config=ClientConfig(max_retries=1),
         )
 
     assert mock_request_func.call_args_list == [
@@ -335,7 +335,7 @@ async def test_request_async_retry_if_returns_false_for_success(
         url="https://example.com",
         method="GET",
         request_func=mock_async_request_func,
-        retry_if=retry_predicate,
+        config=ClientConfig(retry_if=retry_predicate),
     )
 
     assert response == mock_response
@@ -364,8 +364,7 @@ async def test_request_async_retry_if_returns_true_for_success(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            retry_if=retry_predicate,
-            max_retries=3,
+            config=ClientConfig(retry_if=retry_predicate, max_retries=3),
         )
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6), call(1.2)]
@@ -392,8 +391,7 @@ async def test_request_async_retry_if_checks_response_content(
         url="https://example.com",
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -420,7 +418,7 @@ async def test_request_async_retry_if_returns_false_for_error(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            retry_if=retry_predicate,
+            config=ClientConfig(retry_if=retry_predicate),
         )
 
     # Should only try once since retry_if returns False
@@ -447,8 +445,7 @@ async def test_request_async_retry_if_returns_true_for_error(
         url="https://example.com",
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -475,8 +472,7 @@ async def test_request_async_retry_if_with_custom_status_logic(
         url="https://example.com",
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -503,7 +499,7 @@ async def test_request_async_retry_if_does_not_retry_client_error(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            retry_if=retry_predicate,
+            config=ClientConfig(retry_if=retry_predicate),
         )
 
     # Should only try once
@@ -528,7 +524,7 @@ async def test_request_async_retry_if_returns_false_for_exception(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            retry_if=retry_predicate,
+            config=ClientConfig(retry_if=retry_predicate),
         )
 
     # Should only try once
@@ -555,8 +551,7 @@ async def test_request_async_retry_if_returns_true_for_exception(
         url="https://example.com",
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -584,8 +579,7 @@ async def test_request_async_retry_if_with_connection_error(
         url="https://example.com",
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -611,8 +605,7 @@ async def test_request_async_retry_if_exhausts_retries_with_exception(
             url="https://example.com",
             method="GET",
             request_func=mock_request_func,
-            retry_if=retry_predicate,
-            max_retries=2,
+            config=ClientConfig(retry_if=retry_predicate, max_retries=2),
         )
 
     assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
@@ -646,8 +639,7 @@ async def test_request_async_retry_if_complex_logic(
         url="https://example.com",
         method="GET",
         request_func=mock_request_func,
-        retry_if=retry_predicate,
-        max_retries=3,
+        config=ClientConfig(retry_if=retry_predicate, max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -669,8 +661,7 @@ async def test_request_async_retry_if_none_uses_default_behavior(
         url="https://example.com",
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
-        max_retries=3,
+        config=ClientConfig(status_forcelist=(503,), max_retries=3),
     )
 
     assert response == mock_response_ok
@@ -689,8 +680,6 @@ async def test_request_async_with_config(
     mock_asleep: Mock,
 ) -> None:
     """Test async request using ClientConfig."""
-    from aresilient.core import ClientConfig
-
     config = ClientConfig(max_retries=2, backoff_factor=0.5)
     response = await request_async(
         url="https://example.com",
@@ -707,8 +696,6 @@ async def test_request_async_with_config(
 @pytest.mark.asyncio
 async def test_request_async_config_values_are_used(mock_asleep: Mock) -> None:
     """Test that config values control retry behavior in async request."""
-    from aresilient.core import ClientConfig
-
     config = ClientConfig(max_retries=0)
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_request_func = AsyncMock(return_value=mock_fail_response)
@@ -722,31 +709,6 @@ async def test_request_async_config_values_are_used(mock_asleep: Mock) -> None:
             method="GET",
             request_func=mock_request_func,
             config=config,
-        )
-
-    mock_asleep.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_request_async_individual_params_override_config(mock_asleep: Mock) -> None:
-    """Test that individual params override config values in async request."""
-    from aresilient.core import ClientConfig
-
-    # config says max_retries=5, but individual param overrides to 0
-    config = ClientConfig(max_retries=5)
-    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
-    mock_request_func = AsyncMock(return_value=mock_fail_response)
-
-    with pytest.raises(
-        HttpRequestError,
-        match=r"GET request to .* failed with status 503 after 1 attempts",
-    ):
-        await request_async(
-            url="https://example.com",
-            method="GET",
-            request_func=mock_request_func,
-            config=config,
-            max_retries=0,  # Overrides config.max_retries=5
         )
 
     mock_asleep.assert_not_called()

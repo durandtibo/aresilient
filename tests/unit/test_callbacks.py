@@ -17,6 +17,7 @@ from aresilient.callbacks import (
 from aresilient.core import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES
 from aresilient.exceptions import HttpRequestError
 from aresilient.request import request
+from aresilient.core import ClientConfig
 
 TEST_URL = "https://api.example.com/data"
 
@@ -37,7 +38,7 @@ def test_on_request_callback_called_on_first_attempt(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        on_request=on_request_callback,
+        config=ClientConfig(on_request=on_request_callback),
     )
 
     assert response == mock_response
@@ -59,8 +60,7 @@ def test_on_request_callback_called_on_each_retry(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(500,),
-        on_request=on_request_callback,
+        config=ClientConfig(status_forcelist=(500,), on_request=on_request_callback),
     )
 
     assert response == mock_response
@@ -89,8 +89,7 @@ def test_on_retry_callback_called_before_retry(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(500,),
-        on_retry=on_retry_callback,
+        config=ClientConfig(status_forcelist=(500,), on_retry=on_retry_callback),
     )
 
     assert response == mock_response
@@ -119,7 +118,7 @@ def test_on_retry_callback_not_called_on_first_success(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        on_retry=on_retry_callback,
+        config=ClientConfig(on_retry=on_retry_callback),
     )
 
     assert response == mock_response
@@ -139,7 +138,7 @@ def test_on_retry_callback_with_timeout_exception(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        on_retry=on_retry_callback,
+        config=ClientConfig(on_retry=on_retry_callback),
     )
 
     assert response == mock_response
@@ -167,7 +166,7 @@ def test_on_retry_callback_with_request_error(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        on_retry=on_retry_callback,
+        config=ClientConfig(on_retry=on_retry_callback),
     )
 
     assert response == mock_response
@@ -198,7 +197,7 @@ def test_on_success_callback_called_on_success(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        on_success=on_success_callback,
+        config=ClientConfig(on_success=on_success_callback),
     )
 
     assert response == mock_response
@@ -225,8 +224,7 @@ def test_on_success_callback_after_retries(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(500,),
-        on_success=on_success_callback,
+        config=ClientConfig(status_forcelist=(500,), on_success=on_success_callback),
     )
 
     assert response == mock_response
@@ -257,9 +255,7 @@ def test_on_success_callback_not_called_on_failure(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(500,),
-            max_retries=2,
-            on_success=on_success_callback,
+            config=ClientConfig(status_forcelist=(500,), max_retries=2, on_success=on_success_callback),
         )
 
     on_success_callback.assert_not_called()
@@ -284,9 +280,7 @@ def test_on_failure_callback_called_on_retryable_status_failure(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(500,),
-            max_retries=2,
-            on_failure=on_failure_callback,
+            config=ClientConfig(status_forcelist=(500,), max_retries=2, on_failure=on_failure_callback),
         )
 
     on_failure_callback.assert_called_once()
@@ -312,7 +306,7 @@ def test_on_failure_callback_not_called_on_success(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        on_failure=on_failure_callback,
+        config=ClientConfig(on_failure=on_failure_callback),
     )
 
     assert response == mock_response
@@ -331,8 +325,7 @@ def test_on_failure_callback_with_timeout_error(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            max_retries=1,
-            on_failure=on_failure_callback,
+            config=ClientConfig(max_retries=1, on_failure=on_failure_callback),
         )
 
     on_failure_callback.assert_called_once()
@@ -363,11 +356,13 @@ def test_all_callbacks_together_on_success(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(500,),
-        on_request=on_request_callback,
-        on_retry=on_retry_callback,
-        on_success=on_success_callback,
-        on_failure=on_failure_callback,
+        config=ClientConfig(
+            status_forcelist=(500,),
+            on_request=on_request_callback,
+            on_retry=on_retry_callback,
+            on_success=on_success_callback,
+            on_failure=on_failure_callback,
+        ),
     )
 
     assert response == mock_response
@@ -409,12 +404,14 @@ def test_all_callbacks_together_on_failure(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(500,),
-            max_retries=2,
-            on_request=on_request_callback,
-            on_retry=on_retry_callback,
-            on_success=on_success_callback,
-            on_failure=on_failure_callback,
+            config=ClientConfig(
+                status_forcelist=(500,),
+                max_retries=2,
+                on_request=on_request_callback,
+                on_retry=on_retry_callback,
+                on_success=on_success_callback,
+                on_failure=on_failure_callback,
+            ),
         )
 
     assert on_request_callback.call_args_list == [
@@ -469,7 +466,7 @@ def test_callback_exception_does_not_break_retry_logic(
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            on_request=on_request_callback,
+            config=ClientConfig(on_request=on_request_callback),
         )
 
     mock_sleep.assert_not_called()
@@ -492,10 +489,7 @@ def test_callbacks_with_custom_max_retries(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(500,),
-        max_retries=5,
-        on_request=on_request_callback,
-        on_retry=on_retry_callback,
+        config=ClientConfig(status_forcelist=(500,), max_retries=5, on_request=on_request_callback, on_retry=on_retry_callback),
     )
 
     assert response == mock_response
@@ -531,9 +525,7 @@ def test_callbacks_with_custom_backoff_factor(
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(500,),
-        backoff_factor=2.0,
-        on_retry=on_retry_callback,
+        config=ClientConfig(status_forcelist=(500,), backoff_factor=2.0, on_retry=on_retry_callback),
     )
 
     assert response == mock_response

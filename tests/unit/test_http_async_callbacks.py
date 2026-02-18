@@ -14,6 +14,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
+from aresilient.core import ClientConfig
 from tests.helpers import HTTP_METHODS_ASYNC, AsyncHttpMethodTestCase
 
 TEST_URL = "https://api.example.com/data"
@@ -39,7 +40,7 @@ async def test_http_method_async_on_request_callback(
     setattr(mock_async_client, test_case.client_method, AsyncMock(return_value=mock_response))
 
     response = await test_case.method_func(
-        TEST_URL, client=mock_async_client, on_request=on_request_callback
+        TEST_URL, client=mock_async_client, config=ClientConfig(on_request=on_request_callback)
     )
 
     assert response.status_code == test_case.status_code
@@ -65,7 +66,7 @@ async def test_http_method_async_on_success_callback(
     setattr(mock_async_client, test_case.client_method, AsyncMock(return_value=mock_response))
 
     response = await test_case.method_func(
-        TEST_URL, client=mock_async_client, on_success=on_success_callback
+        TEST_URL, client=mock_async_client, config=ClientConfig(on_success=on_success_callback)
     )
 
     assert response.status_code == test_case.status_code
@@ -96,7 +97,7 @@ async def test_http_method_async_on_retry_callback(
     )
 
     response = await test_case.method_func(
-        TEST_URL, client=mock_async_client, on_retry=on_retry_callback
+        TEST_URL, client=mock_async_client, config=ClientConfig(on_retry=on_retry_callback)
     )
 
     assert response.status_code == test_case.status_code
@@ -125,8 +126,7 @@ async def test_http_method_async_on_failure_callback(
         await test_case.method_func(
             TEST_URL,
             client=mock_async_client,
-            max_retries=2,
-            on_failure=on_failure_callback,
+            config=ClientConfig(max_retries=2, on_failure=on_failure_callback),
         )
 
     on_failure_callback.assert_called_once()
@@ -161,10 +161,12 @@ async def test_http_method_async_all_callbacks_together(
     response = await test_case.method_func(
         TEST_URL,
         client=mock_async_client,
-        on_request=on_request_callback,
-        on_retry=on_retry_callback,
-        on_success=on_success_callback,
-        on_failure=on_failure_callback,
+        config=ClientConfig(
+            on_request=on_request_callback,
+            on_retry=on_retry_callback,
+            on_success=on_success_callback,
+            on_failure=on_failure_callback,
+        ),
     )
 
     assert response.status_code == test_case.status_code
@@ -197,9 +199,11 @@ async def test_http_method_async_callbacks_with_timeout_error(
     response = await test_case.method_func(
         TEST_URL,
         client=mock_async_client,
-        on_request=on_request_callback,
-        on_retry=on_retry_callback,
-        on_failure=on_failure_callback,
+        config=ClientConfig(
+            on_request=on_request_callback,
+            on_retry=on_retry_callback,
+            on_failure=on_failure_callback,
+        ),
     )
 
     assert response.status_code == test_case.status_code

@@ -19,10 +19,6 @@ if TYPE_CHECKING:
 
     import httpx
 
-    from aresilient.backoff import BackoffStrategy
-    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
-    from aresilient.circuit_breaker import CircuitBreaker
-
 
 def request(
     url: str,
@@ -30,21 +26,97 @@ def request(
     request_func: Callable[..., httpx.Response],
     *,
     config: ClientConfig | None = None,
-    max_retries: int | None = None,
-    backoff_factor: float | None = None,
-    status_forcelist: tuple[int, ...] | None = None,
-    jitter_factor: float | None = None,
-    retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
-    backoff_strategy: BackoffStrategy | None = None,
-    max_total_time: float | None = None,
-    max_wait_time: float | None = None,
-    circuit_breaker: CircuitBreaker | None = None,
-    on_request: Callable[[RequestInfo], None] | None = None,
-    on_retry: Callable[[RetryInfo], None] | None = None,
-    on_success: Callable[[ResponseInfo], None] | None = None,
-    on_failure: Callable[[FailureInfo], None] | None = None,
     **kwargs: Any,
 ) -> httpx.Response:
+    """Perform an HTTP request with automatic retry logic.
+
+    This function implements a retry mechanism with exponential backoff for
+    handling transient HTTP errors. It attempts the request up to max_retries + 1
+    times, waiting progressively longer between each retry.
+
+    The retry logic handles three types of failures:
+    1. Retryable HTTP status codes (e.g., 429, 500, 502, 503, 504)
+    2. Timeout exceptions (httpx.TimeoutException)
+    3. General network errors (httpx.RequestError)
+
+    Backoff Strategy:
+    - Default: Exponential backoff: backoff_factor * (2 ** attempt)
+    - Custom: Use backoff_strategy parameter for alternative strategies
+      (Linear, Fibonacci, Constant, or custom implementations)
+    - Jitter: Optional randomization added to prevent thundering herd
+    - Retry-After header: If present in the response (429/503), the server's
+      suggested wait time is used instead of backoff calculation
+
+    Args:
+        url: The URL to send the request to.
+        method: The HTTP method name (e.g., "GET", "POST") for logging.
+        request_func: The function to call to make the request (e.g.,
+            client.get, client.post).
+        config: An optional ClientConfig object with retry configuration.
+            If None, default ClientConfig values are used.
+        **kwargs: Additional keyword arguments passed to the request function.
+
+    Returns:
+        An httpx.Response object containing the server's HTTP response.
+
+    Raises:
+        HttpRequestError: If the request times out, encounters network errors,
+            or fails after exhausting all retries, or if max_total_time is exceeded.
+
+    Example:
+        ```pycon
+        >>> import httpx
+        >>> from aresilient import request
+        >>> from aresilient.backoff import LinearBackoff
+        >>> from aresilient.core import ClientConfig
+        >>> def log_retry(info):
+        ...     print(f"Retry {info.attempt}/{info.max_retries + 1}")
+        ...
+        >>> config = ClientConfig(
+        ...     max_retries=5,
+        ...     backoff_strategy=LinearBackoff(base_delay=1.0),
+        ...     jitter_factor=0.1,
+        ...     max_total_time=30.0,
+        ...     max_wait_time=5.0,
+        ...     on_retry=log_retry,
+        ... )
+        >>> with httpx.Client() as client:
+        ...     response = request(
+        ...         url="https://api.example.com/data",
+        ...         method="GET",
+        ...         request_func=client.get,
+        ...         config=config,
+        ...     )  # doctest: +SKIP
+        ...
+
+        ```
+    """
+    effective_config = config if config is not None else ClientConfig()
+
+    # Create retry configuration
+    retry_config = RetryConfig(
+        max_retries=effective_config.max_retries,
+        backoff_factor=effective_config.backoff_factor,
+        status_forcelist=effective_config.status_forcelist,
+        jitter_factor=effective_config.jitter_factor,
+        retry_if=effective_config.retry_if,
+        backoff_strategy=effective_config.backoff_strategy,
+        max_total_time=effective_config.max_total_time,
+        max_wait_time=effective_config.max_wait_time,
+    )
+
+    # Create callback configuration
+    callback_config = CallbackConfig(
+        on_request=effective_config.on_request,
+        on_retry=effective_config.on_retry,
+        on_success=effective_config.on_success,
+        on_failure=effective_config.on_failure,
+    )
+
+    # Create executor and execute request
+    executor = RetryExecutor(retry_config, callback_config, effective_config.circuit_breaker)
+    return executor.execute(url, method, request_func, **kwargs)
+
     """Perform an HTTP request with automatic retry logic.
 
     This function implements a retry mechanism with exponential backoff for

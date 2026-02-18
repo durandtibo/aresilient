@@ -8,6 +8,7 @@ from unittest.mock import Mock, call, patch
 import httpx
 
 from aresilient.request import request
+from aresilient.core import ClientConfig
 
 TEST_URL = "https://api.example.com/data"
 
@@ -29,7 +30,7 @@ def test_request_with_retry_after_header_integer(mock_sleep: Mock) -> None:
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        config=ClientConfig(status_forcelist=(503,)),
     )
 
     assert response == mock_success_response
@@ -53,7 +54,7 @@ def test_request_with_retry_after_header_multiple_retries(mock_sleep: Mock) -> N
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(429,),
+        config=ClientConfig(status_forcelist=(429,)),
     )
 
     assert response == mock_success_response
@@ -73,7 +74,7 @@ def test_request_without_retry_after_uses_exponential_backoff(mock_sleep: Mock) 
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(503,),
+        config=ClientConfig(status_forcelist=(503,)),
     )
 
     assert response == mock_success_response
@@ -97,7 +98,7 @@ def test_request_with_retry_after_mixed_with_backoff(mock_sleep: Mock) -> None:
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        status_forcelist=(429, 503),
+        config=ClientConfig(status_forcelist=(429, 503)),
     )
 
     assert response == mock_success_response
@@ -125,9 +126,7 @@ def test_request_with_jitter_applied(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(503,),
-            backoff_factor=1.0,
-            jitter_factor=1.0,
+            config=ClientConfig(status_forcelist=(503,), backoff_factor=1.0, jitter_factor=1.0),
         )
 
     assert response == mock_success_response
@@ -150,8 +149,7 @@ def test_request_jitter_with_retry_after(mock_sleep: Mock) -> None:
             url=TEST_URL,
             method="GET",
             request_func=mock_request_func,
-            status_forcelist=(429,),
-            jitter_factor=1.0,
+            config=ClientConfig(status_forcelist=(429,), jitter_factor=1.0),
         )
 
     assert response == mock_success_response

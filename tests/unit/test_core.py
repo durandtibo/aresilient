@@ -29,6 +29,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
+from aresilient.core import ClientConfig
 from tests.helpers import (
     HTTP_METHODS,
     HttpMethodTestCase,
@@ -104,7 +105,7 @@ def test_timeout_exception(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(1 attempts\)",
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=0)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=0))
 
     mock_sleep.assert_not_called()
 
@@ -126,16 +127,16 @@ def test_request_error(
             r"Connection failed"
         ),
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=0)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=0))
 
     mock_sleep.assert_not_called()
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_negative_max_retries(test_case: HttpMethodTestCase) -> None:
-    """Test that negative max_retries raises ValueError."""
+    """Test that negative max_retries raises ValueError via ClientConfig."""
     with pytest.raises(ValueError, match=r"max_retries must be >= 0"):
-        test_case.method_func(TEST_URL, max_retries=-1)
+        test_case.method_func(TEST_URL, config=ClientConfig(max_retries=-1))
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -294,7 +295,7 @@ def test_error_message_includes_url(
             r"after 1 attempts"
         ),
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=0)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=0))
 
     mock_sleep.assert_not_called()
 
@@ -316,7 +317,7 @@ def test_client_close_on_exception(
             match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(1 attempts\)",
         ),
     ):
-        test_case.method_func(TEST_URL, max_retries=0)
+        test_case.method_func(TEST_URL, config=ClientConfig(max_retries=0))
 
     mock_client.close.assert_called_once()
     mock_sleep.assert_not_called()
@@ -333,8 +334,6 @@ def test_successful_request_with_config(
     mock_sleep: Mock,
 ) -> None:
     """Test successful request using ClientConfig."""
-    from aresilient.core import ClientConfig
-
     config = ClientConfig(max_retries=2, backoff_factor=0.1)
     mock_client, _ = setup_mock_client_for_method(test_case.client_method, test_case.status_code)
 
@@ -352,8 +351,6 @@ def test_config_values_are_used(
     mock_sleep: Mock,
 ) -> None:
     """Test that config values are respected when request fails."""
-    from aresilient.core import ClientConfig
-
     config = ClientConfig(max_retries=0)
     mock_response = Mock(spec=httpx.Response, status_code=503)
     mock_client = Mock(spec=httpx.Client)
@@ -369,42 +366,6 @@ def test_config_values_are_used(
         test_case.method_func(TEST_URL, client=mock_client, config=config)
 
     mock_sleep.assert_not_called()
-
-
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-def test_individual_params_override_config(
-    test_case: HttpMethodTestCase,
-    mock_sleep: Mock,
-) -> None:
-    """Test that individual parameters override config values."""
-    from aresilient.core import ClientConfig
-
-    # config says max_retries=5 but we override with max_retries=0
-    config = ClientConfig(max_retries=5)
-    mock_response = Mock(spec=httpx.Response, status_code=503)
-    mock_client = Mock(spec=httpx.Client)
-    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response))
-
-    with pytest.raises(
-        HttpRequestError,
-        match=(
-            rf"{test_case.method_name} request to https://api.example.com/data failed with status 503 "
-            r"after 1 attempts"
-        ),
-    ):
-        # max_retries=0 should override config.max_retries=5
-        test_case.method_func(TEST_URL, client=mock_client, config=config, max_retries=0)
-
-    mock_sleep.assert_not_called()
-
-
-@pytest.mark.parametrize("test_case", HTTP_METHODS)
-def test_config_invalid_params_raise_error(test_case: HttpMethodTestCase) -> None:
-    """Test that invalid config params raise ValueError."""
-    from aresilient.core import ClientConfig
-
-    with pytest.raises(ValueError, match=r"max_retries must be >= 0"):
-        ClientConfig(max_retries=-1)
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)

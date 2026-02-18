@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, Mock, call
 import httpx
 import pytest
 
+from aresilient.core import ClientConfig
 from tests.helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
 
 TEST_URL = "https://api.example.com/data"
@@ -35,9 +36,7 @@ async def test_max_wait_time_caps_backoff_async(
     response = await test_case.method_func(
         TEST_URL,
         client=mock_client,
-        max_retries=5,
-        backoff_factor=2.0,  # Would be 2.0, 4.0, 8.0 without cap
-        max_wait_time=5.0,  # Cap at 5.0 seconds
+        config=ClientConfig(max_retries=5, backoff_factor=2.0, max_wait_time=5.0),
     )
 
     assert response.status_code == test_case.status_code
@@ -63,8 +62,7 @@ async def test_max_wait_time_with_retry_after_header_async(
     response = await test_case.method_func(
         TEST_URL,
         client=mock_client,
-        max_retries=3,
-        max_wait_time=3.0,  # Cap at 3.0 seconds
+        config=ClientConfig(max_retries=3, max_wait_time=3.0),
     )
 
     assert response.status_code == test_case.status_code
@@ -89,9 +87,7 @@ async def test_max_wait_time_below_backoff_async(
     response = await test_case.method_func(
         TEST_URL,
         client=mock_client,
-        max_retries=3,
-        backoff_factor=0.5,  # Would be 0.5, 1.0, 2.0
-        max_wait_time=10.0,  # High cap, won't affect these values
+        config=ClientConfig(max_retries=3, backoff_factor=0.5, max_wait_time=10.0),
     )
 
     assert response.status_code == test_case.status_code
@@ -104,7 +100,7 @@ async def test_max_wait_time_below_backoff_async(
 async def test_negative_max_wait_time_async(test_case: HttpMethodTestCase) -> None:
     """Test that negative max_wait_time raises ValueError."""
     with pytest.raises(ValueError, match=r"max_wait_time must be > 0"):
-        await test_case.method_func(TEST_URL, max_wait_time=-1.0)
+        await test_case.method_func(TEST_URL, config=ClientConfig(max_wait_time=-1.0))
 
 
 @pytest.mark.asyncio
@@ -112,7 +108,7 @@ async def test_negative_max_wait_time_async(test_case: HttpMethodTestCase) -> No
 async def test_zero_max_wait_time_async(test_case: HttpMethodTestCase) -> None:
     """Test that zero max_wait_time raises ValueError."""
     with pytest.raises(ValueError, match=r"max_wait_time must be > 0"):
-        await test_case.method_func(TEST_URL, max_wait_time=0.0)
+        await test_case.method_func(TEST_URL, config=ClientConfig(max_wait_time=0.0))
 
 
 @pytest.mark.asyncio
@@ -133,9 +129,7 @@ async def test_max_wait_time_none_async(
     response = await test_case.method_func(
         TEST_URL,
         client=mock_client,
-        max_retries=5,
-        backoff_factor=2.0,  # Would be 2.0, 4.0, 8.0
-        max_wait_time=None,  # No cap
+        config=ClientConfig(max_retries=5, backoff_factor=2.0, max_wait_time=None),
     )
 
     assert response.status_code == test_case.status_code

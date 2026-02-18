@@ -14,7 +14,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
-from aresilient.core import RETRY_STATUS_CODES
+from aresilient.core import RETRY_STATUS_CODES, ClientConfig
 from tests.helpers import (
     HTTP_METHODS,
     HttpMethodTestCase,
@@ -74,7 +74,7 @@ def test_max_retries_exceeded(
         HttpRequestError,
         match=rf"{test_case.method_name} request to {TEST_URL} failed with status 503 after 3 attempts",
     ) as exc_info:
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=2))
 
     assert exc_info.value.status_code == 503
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
@@ -109,7 +109,7 @@ def test_zero_max_retries(
         HttpRequestError,
         match=rf"{test_case.method_name} request to {TEST_URL} failed with status 503 after 1 attempts",
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=0)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=0))
 
     mock_sleep.assert_not_called()
 
@@ -126,7 +126,7 @@ def test_custom_status_forcelist(
         test_case.client_method, [mock_response_fail, mock_response]
     )
 
-    response = test_case.method_func(TEST_URL, client=mock_client, status_forcelist=(404,))
+    response = test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(status_forcelist=(404,)))
 
     assert response.status_code == test_case.status_code
     mock_sleep.assert_called_once_with(0.3)
@@ -164,7 +164,7 @@ def test_all_retries_with_429(
         HttpRequestError,
         match=rf"{test_case.method_name} request to {TEST_URL} failed with status 429 after 2 attempts",
     ) as exc_info:
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=1)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=1))
 
     assert exc_info.value.status_code == 429
     assert mock_sleep.call_args_list == [call(0.3)]
@@ -184,7 +184,7 @@ def test_timeout_exception_with_retries(
         HttpRequestError,
         match=rf"{test_case.method_name} request to https://api.example.com/data timed out \(3 attempts\)",
     ):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=2))
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
@@ -200,6 +200,6 @@ def test_request_error_with_retries(
     setattr(mock_client, test_case.client_method, client_method)
 
     with pytest.raises(HttpRequestError, match=r"failed after 3 attempts"):
-        test_case.method_func(TEST_URL, client=mock_client, max_retries=2)
+        test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(max_retries=2))
 
     assert mock_sleep.call_args_list == [call(0.3), call(0.6)]

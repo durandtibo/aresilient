@@ -12,6 +12,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
+from aresilient.core import ClientConfig
 from tests.helpers import HTTP_METHODS, HttpMethodTestCase
 
 TEST_URL = "https://api.example.com/data"
@@ -43,8 +44,7 @@ def test_max_total_time_exceeded(
             test_case.method_func(
                 TEST_URL,
                 client=mock_client,
-                max_retries=10,  # High retry count
-                max_total_time=1.0,  # Low time budget
+                config=ClientConfig(max_retries=10, max_total_time=1.0),
             )
 
         # Should fail without retrying due to max_total_time
@@ -80,9 +80,7 @@ def test_max_total_time_not_exceeded(
         response = test_case.method_func(
             TEST_URL,
             client=mock_client,
-            max_retries=3,
-            max_total_time=10.0,  # High time budget
-            backoff_factor=0.3,
+            config=ClientConfig(max_retries=3, max_total_time=10.0, backoff_factor=0.3),
         )
 
     assert response.status_code == test_case.status_code
@@ -93,16 +91,16 @@ def test_max_total_time_not_exceeded(
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_negative_max_total_time(test_case: HttpMethodTestCase) -> None:
-    """Test that negative max_total_time raises ValueError."""
+    """Test that negative max_total_time raises ValueError via ClientConfig."""
     with pytest.raises(ValueError, match=r"max_total_time must be > 0"):
-        test_case.method_func(TEST_URL, max_total_time=-1.0)
+        test_case.method_func(TEST_URL, config=ClientConfig(max_total_time=-1.0))
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_zero_max_total_time(test_case: HttpMethodTestCase) -> None:
-    """Test that zero max_total_time raises ValueError."""
+    """Test that zero max_total_time raises ValueError via ClientConfig."""
     with pytest.raises(ValueError, match=r"max_total_time must be > 0"):
-        test_case.method_func(TEST_URL, max_total_time=0.0)
+        test_case.method_func(TEST_URL, config=ClientConfig(max_total_time=0.0))
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -120,9 +118,7 @@ def test_max_total_time_none(
     response = test_case.method_func(
         TEST_URL,
         client=mock_client,
-        max_retries=3,
-        max_total_time=None,  # No time budget
-        backoff_factor=0.3,
+        config=ClientConfig(max_retries=3, max_total_time=None, backoff_factor=0.3),
     )
 
     assert response.status_code == test_case.status_code

@@ -12,6 +12,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
+from aresilient.core import ClientConfig
 from tests.helpers import HTTP_METHODS_ASYNC, HttpMethodTestCase
 
 TEST_URL = "https://api.example.com/data"
@@ -44,8 +45,7 @@ async def test_max_total_time_exceeded_async(
             await test_case.method_func(
                 TEST_URL,
                 client=mock_client,
-                max_retries=10,  # High retry count
-                max_total_time=1.0,  # Low time budget
+                config=ClientConfig(max_retries=10, max_total_time=1.0),
             )
 
         # Should fail without retrying due to max_total_time
@@ -82,9 +82,7 @@ async def test_max_total_time_not_exceeded_async(
         response = await test_case.method_func(
             TEST_URL,
             client=mock_client,
-            max_retries=3,
-            max_total_time=10.0,  # High time budget
-            backoff_factor=0.3,
+            config=ClientConfig(max_retries=3, max_total_time=10.0, backoff_factor=0.3),
         )
 
     assert response.status_code == test_case.status_code
@@ -98,7 +96,7 @@ async def test_max_total_time_not_exceeded_async(
 async def test_negative_max_total_time_async(test_case: HttpMethodTestCase) -> None:
     """Test that negative max_total_time raises ValueError."""
     with pytest.raises(ValueError, match=r"max_total_time must be > 0"):
-        await test_case.method_func(TEST_URL, max_total_time=-1.0)
+        await test_case.method_func(TEST_URL, config=ClientConfig(max_total_time=-1.0))
 
 
 @pytest.mark.asyncio
@@ -106,7 +104,7 @@ async def test_negative_max_total_time_async(test_case: HttpMethodTestCase) -> N
 async def test_zero_max_total_time_async(test_case: HttpMethodTestCase) -> None:
     """Test that zero max_total_time raises ValueError."""
     with pytest.raises(ValueError, match=r"max_total_time must be > 0"):
-        await test_case.method_func(TEST_URL, max_total_time=0.0)
+        await test_case.method_func(TEST_URL, config=ClientConfig(max_total_time=0.0))
 
 
 @pytest.mark.asyncio
@@ -125,9 +123,7 @@ async def test_max_total_time_none_async(
     response = await test_case.method_func(
         TEST_URL,
         client=mock_client,
-        max_retries=3,
-        max_total_time=None,  # No time budget
-        backoff_factor=0.3,
+        config=ClientConfig(max_retries=3, max_total_time=None, backoff_factor=0.3),
     )
 
     assert response.status_code == test_case.status_code

@@ -11,6 +11,7 @@ from aresilient.callbacks import RequestInfo, RetryInfo
 from aresilient.core import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES
 from aresilient.exceptions import HttpRequestError
 from aresilient.request_async import request_async
+from aresilient.core import ClientConfig
 
 TEST_URL = "https://api.example.com/data"
 
@@ -32,7 +33,7 @@ async def test_on_request_callback_called_on_first_attempt_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        on_request=on_request_callback,
+        config=ClientConfig(on_request=on_request_callback),
     )
 
     assert response == mock_response
@@ -57,8 +58,7 @@ async def test_on_request_callback_called_on_each_retry_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        status_forcelist=(500,),
-        on_request=on_request_callback,
+        config=ClientConfig(status_forcelist=(500,), on_request=on_request_callback),
     )
 
     assert response == mock_response
@@ -88,8 +88,7 @@ async def test_on_retry_callback_called_before_retry_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        status_forcelist=(500,),
-        on_retry=on_retry_callback,
+        config=ClientConfig(status_forcelist=(500,), on_retry=on_retry_callback),
     )
 
     assert response == mock_response
@@ -119,7 +118,7 @@ async def test_on_retry_callback_not_called_on_first_success_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        on_retry=on_retry_callback,
+        config=ClientConfig(on_retry=on_retry_callback),
     )
 
     assert response == mock_response
@@ -143,7 +142,7 @@ async def test_on_retry_callback_with_timeout_exception_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        on_retry=on_retry_callback,
+        config=ClientConfig(on_retry=on_retry_callback),
     )
 
     assert response == mock_response
@@ -176,7 +175,7 @@ async def test_on_success_callback_called_on_success_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        on_success=on_success_callback,
+        config=ClientConfig(on_success=on_success_callback),
     )
 
     assert response == mock_response
@@ -207,8 +206,7 @@ async def test_on_success_callback_after_retries_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        status_forcelist=(500,),
-        on_success=on_success_callback,
+        config=ClientConfig(status_forcelist=(500,), on_success=on_success_callback),
     )
 
     assert response == mock_response
@@ -241,9 +239,7 @@ async def test_on_success_callback_not_called_on_failure_async(
             url=TEST_URL,
             method="GET",
             request_func=mock_async_request_func,
-            status_forcelist=(500,),
-            max_retries=2,
-            on_success=on_success_callback,
+            config=ClientConfig(status_forcelist=(500,), max_retries=2, on_success=on_success_callback),
         )
 
     on_success_callback.assert_not_called()
@@ -270,9 +266,7 @@ async def test_on_failure_callback_called_on_retryable_status_failure_async(
             url=TEST_URL,
             method="GET",
             request_func=mock_async_request_func,
-            status_forcelist=(500,),
-            max_retries=2,
-            on_failure=on_failure_callback,
+            config=ClientConfig(status_forcelist=(500,), max_retries=2, on_failure=on_failure_callback),
         )
 
     on_failure_callback.assert_called_once()
@@ -299,7 +293,7 @@ async def test_on_failure_callback_not_called_on_success_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        on_failure=on_failure_callback,
+        config=ClientConfig(on_failure=on_failure_callback),
     )
 
     assert response == mock_response
@@ -329,11 +323,7 @@ async def test_all_callbacks_together_on_success_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        status_forcelist=(500,),
-        on_request=on_request_callback,
-        on_retry=on_retry_callback,
-        on_success=on_success_callback,
-        on_failure=on_failure_callback,
+        config=ClientConfig(status_forcelist=(500,), on_request=on_request_callback, on_retry=on_retry_callback, on_success=on_success_callback, on_failure=on_failure_callback),
     )
 
     assert response == mock_response
@@ -375,12 +365,7 @@ async def test_all_callbacks_together_on_failure_async(
             url=TEST_URL,
             method="GET",
             request_func=mock_async_request_func,
-            status_forcelist=(500,),
-            max_retries=2,
-            on_request=on_request_callback,
-            on_retry=on_retry_callback,
-            on_success=on_success_callback,
-            on_failure=on_failure_callback,
+            config=ClientConfig(status_forcelist=(500,), max_retries=2, on_request=on_request_callback, on_retry=on_retry_callback, on_success=on_success_callback, on_failure=on_failure_callback),
         )
 
     assert on_request_callback.call_args_list == [
@@ -436,10 +421,7 @@ async def test_callbacks_with_custom_max_retries_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        status_forcelist=(500,),
-        max_retries=5,
-        on_request=on_request_callback,
-        on_retry=on_retry_callback,
+        config=ClientConfig(status_forcelist=(500,), max_retries=5, on_request=on_request_callback, on_retry=on_retry_callback),
     )
 
     assert response == mock_response
@@ -477,9 +459,7 @@ async def test_callbacks_with_custom_backoff_factor_async(
         url=TEST_URL,
         method="GET",
         request_func=mock_async_request_func,
-        status_forcelist=(500,),
-        backoff_factor=2.0,
-        on_retry=on_retry_callback,
+        config=ClientConfig(status_forcelist=(500,), backoff_factor=2.0, on_retry=on_retry_callback),
     )
 
     assert response == mock_response
