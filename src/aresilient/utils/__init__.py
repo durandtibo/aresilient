@@ -16,11 +16,9 @@ __all__ = [
     "handle_timeout_exception",
     "parse_retry_after",
     "raise_final_error",
-    "validate_retry_params",
 ]
 
 
-from aresilient.core.validation import validate_retry_params
 from aresilient.utils.exceptions import (
     handle_exception_with_callback,
     handle_request_error,
