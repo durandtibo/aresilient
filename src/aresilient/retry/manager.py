@@ -11,8 +11,8 @@ __all__ = ["CallbackManager"]
 import time
 from typing import TYPE_CHECKING
 
-from aresilient.callbacks import FailureInfo
-from aresilient.utils.callbacks import (
+from aresilient.callbacks import (
+    FailureInfo,
     invoke_on_request,
     invoke_on_retry,
     invoke_on_success,
