@@ -31,16 +31,14 @@ class CallbackManager:
     points in the HTTP request retry lifecycle, including before requests,
     after success, before retries, and on failures.
 
+    Args:
+        callbacks: Callback configuration.
+
     Attributes:
         callbacks: Configuration containing callback functions for lifecycle events.
     """
 
     def __init__(self, callbacks: CallbackConfig) -> None:
-        """Initialize callback manager.
-
-        Args:
-            callbacks: Callback configuration.
-        """
         self.callbacks = callbacks
 
     def on_request(self, url: str, method: str, attempt: int, max_retries: int) -> None:

@@ -29,6 +29,10 @@ class RetryDecider:
     This class encapsulates the retry decision logic, evaluating HTTP responses
     and exceptions against configured status codes and custom predicates.
 
+    Args:
+        status_forcelist: Tuple of retryable HTTP status codes.
+        retry_if: Optional custom retry predicate.
+
     Attributes:
         status_forcelist: Tuple of HTTP status codes that should trigger retries.
         retry_if: Optional custom predicate for retry decisions.
@@ -39,12 +43,6 @@ class RetryDecider:
         status_forcelist: tuple[int, ...],
         retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None,
     ) -> None:
-        """Initialize retry decider.
-
-        Args:
-            status_forcelist: Tuple of retryable HTTP status codes.
-            retry_if: Optional custom retry predicate.
-        """
         self.status_forcelist = status_forcelist
         self.retry_if = retry_if
 

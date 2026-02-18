@@ -95,7 +95,6 @@ class ResilientClient:
         on_success: Callable[[ResponseInfo], None] | None = None,
         on_failure: Callable[[FailureInfo], None] | None = None,
     ) -> None:
-        """Initialize the resilient client with retry configuration."""
         # Validate timeout separately (used for httpx.Client creation, not retry logic)
         validate_timeout(timeout)
 

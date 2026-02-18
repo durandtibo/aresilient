@@ -71,15 +71,6 @@ class ExponentialBackoff(BackoffStrategy):
     """
 
     def __init__(self, base_delay: float = 0.3, max_delay: float | None = None) -> None:
-        """Initialize exponential backoff strategy.
-
-        Args:
-            base_delay: The base delay factor (default: 0.3).
-            max_delay: Optional maximum delay cap in seconds.
-
-        Raises:
-            ValueError: If base_delay is negative or max_delay is non-positive.
-        """
         if base_delay < 0:
             msg = f"base_delay must be non-negative, got {base_delay}"
             raise ValueError(msg)
@@ -138,15 +129,6 @@ class LinearBackoff(BackoffStrategy):
     """
 
     def __init__(self, base_delay: float = 1.0, max_delay: float | None = None) -> None:
-        """Initialize linear backoff strategy.
-
-        Args:
-            base_delay: The base delay in seconds (default: 1.0).
-            max_delay: Optional maximum delay cap in seconds.
-
-        Raises:
-            ValueError: If base_delay is negative or max_delay is non-positive.
-        """
         if base_delay < 0:
             msg = f"base_delay must be non-negative, got {base_delay}"
             raise ValueError(msg)
@@ -210,15 +192,6 @@ class FibonacciBackoff(BackoffStrategy):
     """
 
     def __init__(self, base_delay: float = 1.0, max_delay: float | None = None) -> None:
-        """Initialize Fibonacci backoff strategy.
-
-        Args:
-            base_delay: The base delay in seconds (default: 1.0).
-            max_delay: Optional maximum delay cap in seconds.
-
-        Raises:
-            ValueError: If base_delay is negative or max_delay is non-positive.
-        """
         if base_delay < 0:
             msg = f"base_delay must be non-negative, got {base_delay}"
             raise ValueError(msg)
@@ -292,14 +265,6 @@ class ConstantBackoff(BackoffStrategy):
     """
 
     def __init__(self, delay: float = 1.0) -> None:
-        """Initialize constant backoff strategy.
-
-        Args:
-            delay: The fixed delay in seconds (default: 1.0).
-
-        Raises:
-            ValueError: If delay is negative.
-        """
         if delay < 0:
             msg = f"delay must be non-negative, got {delay}"
             raise ValueError(msg)

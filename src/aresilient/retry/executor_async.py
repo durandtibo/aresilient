@@ -87,20 +87,6 @@ class AsyncRetryExecutor:
         callback_config: CallbackConfig,
         circuit_breaker: CircuitBreaker | None = None,
     ) -> None:
-        """Initialize async retry executor.
-
-        Creates the executor with the provided configuration and initializes
-        the internal strategy, decider, and callback manager components.
-
-        Args:
-            retry_config: Configuration for retry behavior including max retries,
-                backoff settings, status codes to retry, and time limits.
-            callback_config: Configuration for lifecycle callbacks (on_request,
-                on_retry, on_success, on_failure).
-            circuit_breaker: Optional circuit breaker for fail-fast protection.
-                When provided, the executor will check the circuit breaker before
-                each request and record successes/failures.
-        """
         self.config = retry_config
         self.strategy: RetryStrategy = RetryStrategy(
             backoff_factor=retry_config.backoff_factor,
