@@ -13,7 +13,8 @@ from unittest.mock import Mock, call
 import httpx
 import pytest
 
-from aresilient import RETRY_STATUS_CODES, HttpRequestError
+from aresilient import HttpRequestError
+from aresilient.core import RETRY_STATUS_CODES
 from tests.helpers import (
     HTTP_METHODS,
     HttpMethodTestCase,

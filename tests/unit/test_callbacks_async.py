@@ -7,13 +7,9 @@ from unittest.mock import AsyncMock, Mock, call
 import httpx
 import pytest
 
-from aresilient import (
-    DEFAULT_BACKOFF_FACTOR,
-    DEFAULT_MAX_RETRIES,
-    HttpRequestError,
-    RequestInfo,
-    RetryInfo,
-)
+from aresilient.callbacks import RequestInfo, RetryInfo
+from aresilient.core import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES
+from aresilient.exceptions import HttpRequestError
 from aresilient.request_async import request_with_automatic_retry_async
 
 TEST_URL = "https://api.example.com/data"

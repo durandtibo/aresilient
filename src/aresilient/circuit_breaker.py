@@ -11,7 +11,7 @@ has three states:
 
 Example:
     ```pycon
-    >>> from aresilient import CircuitBreaker, get_with_automatic_retry
+    >>> from aresilient.circuit_breaker import CircuitBreaker, get_with_automatic_retry
     >>> circuit_breaker = CircuitBreaker(
     ...     failure_threshold=5,
     ...     recovery_timeout=60.0,
@@ -66,7 +66,7 @@ class CircuitBreakerError(RuntimeError):
 
     Example:
         ```pycon
-        >>> from aresilient import CircuitBreakerError
+        >>> from aresilient.circuit_breaker import CircuitBreakerError
         >>> raise CircuitBreakerError("Circuit breaker is open")
         Traceback (most recent call last):
             ...
@@ -115,7 +115,7 @@ class CircuitBreaker:
         Basic usage with default settings:
 
         ```pycon
-        >>> from aresilient import CircuitBreaker
+        >>> from aresilient.circuit_breaker import CircuitBreaker
         >>> cb = CircuitBreaker()
         >>> cb.state
         <CircuitState.CLOSED: 'closed'>
@@ -131,7 +131,7 @@ class CircuitBreaker:
         Custom configuration:
 
         ```pycon
-        >>> from aresilient import CircuitBreaker, HttpRequestError
+        >>> from aresilient.circuit_breaker import CircuitBreaker, HttpRequestError
         >>> def on_change(old_state, new_state):
         ...     print(f"Circuit {old_state.value} -> {new_state.value}")
         ...
@@ -147,7 +147,7 @@ class CircuitBreaker:
         Usage with HTTP requests:
 
         ```pycon
-        >>> from aresilient import CircuitBreaker, get_with_automatic_retry
+        >>> from aresilient.circuit_breaker import CircuitBreaker, get_with_automatic_retry
         >>> circuit_breaker = CircuitBreaker(
         ...     failure_threshold=5,
         ...     recovery_timeout=60.0,
@@ -254,7 +254,7 @@ class CircuitBreaker:
 
         Example:
             ```pycon
-            >>> from aresilient import CircuitBreaker
+            >>> from aresilient.circuit_breaker import CircuitBreaker
             >>> cb = CircuitBreaker(failure_threshold=2)
             >>> cb.check()  # Passes when circuit is CLOSED
             >>> cb.record_failure(Exception("error"))
@@ -309,7 +309,7 @@ class CircuitBreaker:
 
         Example:
             ```pycon
-            >>> from aresilient import CircuitBreaker
+            >>> from aresilient.circuit_breaker import CircuitBreaker
             >>> cb = CircuitBreaker(failure_threshold=3)
             >>> def my_request():
             ...     return "success"
@@ -364,7 +364,7 @@ class CircuitBreaker:
 
         Example:
             ```pycon
-            >>> from aresilient import CircuitBreaker
+            >>> from aresilient.circuit_breaker import CircuitBreaker
             >>> cb = CircuitBreaker()
             >>> cb.record_success()
             >>> cb.failure_count
@@ -393,7 +393,7 @@ class CircuitBreaker:
 
         Example:
             ```pycon
-            >>> from aresilient import CircuitBreaker
+            >>> from aresilient.circuit_breaker import CircuitBreaker
             >>> cb = CircuitBreaker(failure_threshold=2)
             >>> cb.record_failure(Exception("error"))
             >>> cb.failure_count
@@ -442,7 +442,7 @@ class CircuitBreaker:
 
         Example:
             ```pycon
-            >>> from aresilient import CircuitBreaker
+            >>> from aresilient.circuit_breaker import CircuitBreaker
             >>> cb = CircuitBreaker(failure_threshold=1)
             >>> cb.record_failure(Exception("error"))
             >>> cb.state

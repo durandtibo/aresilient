@@ -8,12 +8,8 @@ from unittest.mock import Mock, call, patch
 import httpx
 import pytest
 
-from aresilient import (
-    CircuitBreaker,
-    CircuitBreakerError,
-    HttpRequestError,
-    request_with_automatic_retry,
-)
+from aresilient import HttpRequestError, request_with_automatic_retry
+from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 ##############################################
 #     Tests for CircuitBreaker with HTTP     #
