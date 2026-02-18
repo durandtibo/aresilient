@@ -14,9 +14,6 @@ __all__ = [
     "handle_response",
     "handle_response_with_retry_if",
     "handle_timeout_exception",
-    "invoke_on_request",
-    "invoke_on_retry",
-    "invoke_on_success",
     "parse_retry_after",
     "raise_final_error",
     "validate_retry_params",
@@ -24,11 +21,6 @@ __all__ = [
 
 
 from aresilient.core.validation import validate_retry_params
-from aresilient.utils.callbacks import (
-    invoke_on_request,
-    invoke_on_retry,
-    invoke_on_success,
-)
 from aresilient.utils.exceptions import (
     handle_exception_with_callback,
     handle_request_error,
