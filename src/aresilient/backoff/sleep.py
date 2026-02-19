@@ -27,7 +27,7 @@ def calculate_sleep_time(
     attempt: int,
     jitter_factor: float,
     response: httpx.Response | None,
-    backoff_strategy: BackoffStrategy = ExponentialBackoff(),
+    backoff_strategy: BackoffStrategy | None = None,
     max_wait_time: float | None = None,
 ) -> float:
     """Calculate sleep time for retry with backoff strategy and jitter.
@@ -79,9 +79,7 @@ def calculate_sleep_time(
         >>> calculate_sleep_time(attempt=2, jitter_factor=0.0, response=None)
         1.2
         >>> # Third retry with max_wait_time cap
-        >>> calculate_sleep_time(
-        ...     attempt=2, jitter_factor=0.0, response=None, max_wait_time=1.0
-        ... )
+        >>> calculate_sleep_time(attempt=2, jitter_factor=0.0, response=None, max_wait_time=1.0)
         1.0
 
         ```
@@ -97,6 +95,8 @@ def calculate_sleep_time(
         sleep_time = retry_after_sleep
         logger.debug(f"Using Retry-After header value: {sleep_time:.2f}s")
     else:
+        if backoff_strategy is None:
+            backoff_strategy = ExponentialBackoff()
         sleep_time = backoff_strategy.calculate(attempt)
 
     # Apply max_wait_time cap if configured

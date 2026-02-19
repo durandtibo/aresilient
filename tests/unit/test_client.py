@@ -276,6 +276,7 @@ def test_client_validation_timeout_zero(mock_sleep: Mock) -> None:
 
     mock_sleep.assert_not_called()
 
+
 def test_client_shares_configuration_across_requests(
     mock_sleep: Mock, mock_response: httpx.Response
 ) -> None:
