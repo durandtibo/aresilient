@@ -104,32 +104,30 @@ The following is the corresponding `aresilient` versions and supported dependenc
 ### Basic GET Request
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Simple GET request with automatic retry
-response = get_with_automatic_retry("https://api.example.com/data")
+response = get("https://api.example.com/data")
 print(response.json())
 ```
 
 ### Basic POST Request
 
 ```python
-from aresilient import post_with_automatic_retry
+from aresilient import post
 
 # POST request with JSON payload
-response = post_with_automatic_retry(
-    "https://api.example.com/submit", json={"key": "value"}
-)
+response = post("https://api.example.com/submit", json={"key": "value"})
 print(response.status_code)
 ```
 
 ### Customizing Retry Behavior
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Custom retry configuration
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     max_retries=5,  # Retry up to 5 times
     backoff_factor=1.0,  # Exponential backoff factor
@@ -148,11 +146,11 @@ and constant backoff. You can also implement custom strategies. See the
 for detailed examples and guidance.
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.backoff import LinearBackoff
 
 # Use linear backoff instead of exponential
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     backoff_strategy=LinearBackoff(base_delay=1.0),  # 1s, 2s, 3s, 4s...
 )
@@ -162,56 +160,50 @@ response = get_with_automatic_retry(
 
 ```python
 import httpx
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 # Use your own httpx.Client for advanced configuration
 with httpx.Client(headers={"Authorization": "Bearer token"}) as client:
-    response = get_with_automatic_retry(
-        "https://api.example.com/protected", client=client
-    )
+    response = get("https://api.example.com/protected", client=client)
 ```
 
 ### Other HTTP Methods
 
 ```python
 from aresilient import (
-    put_with_automatic_retry,
-    delete_with_automatic_retry,
-    patch_with_automatic_retry,
-    head_with_automatic_retry,
-    options_with_automatic_retry,
+    put,
+    delete,
+    patch,
+    head,
+    options,
 )
 
 # PUT request to update a resource
-response = put_with_automatic_retry(
-    "https://api.example.com/resource/123", json={"name": "updated"}
-)
+response = put("https://api.example.com/resource/123", json={"name": "updated"})
 
 # DELETE request to remove a resource
-response = delete_with_automatic_retry("https://api.example.com/resource/123")
+response = delete("https://api.example.com/resource/123")
 
 # PATCH request to partially update a resource
-response = patch_with_automatic_retry(
-    "https://api.example.com/resource/123", json={"status": "active"}
-)
+response = patch("https://api.example.com/resource/123", json={"status": "active"})
 
 # HEAD request to check resource existence and get metadata
-response = head_with_automatic_retry("https://api.example.com/large-file.zip")
+response = head("https://api.example.com/large-file.zip")
 if response.status_code == 200:
     print(f"File size: {response.headers.get('Content-Length')} bytes")
 
 # OPTIONS request to discover allowed methods
-response = options_with_automatic_retry("https://api.example.com/resource")
+response = options("https://api.example.com/resource")
 print(f"Allowed methods: {response.headers.get('Allow')}")
 ```
 
 ### Error Handling
 
 ```python
-from aresilient import get_with_automatic_retry, HttpRequestError
+from aresilient import get, HttpRequestError
 
 try:
-    response = get_with_automatic_retry("https://api.example.com/data")
+    response = get("https://api.example.com/data")
 except HttpRequestError as e:
     print(f"Request failed: {e}")
     print(f"Method: {e.method}")
@@ -225,11 +217,11 @@ All HTTP methods have async versions for concurrent request processing:
 
 ```python
 import asyncio
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 
 async def fetch_data():
-    response = await get_with_automatic_retry_async("https://api.example.com/data")
+    response = await get_async("https://api.example.com/data")
     return response.json()
 
 
@@ -244,7 +236,7 @@ Process multiple requests concurrently for better performance:
 
 ```python
 import asyncio
-from aresilient import get_with_automatic_retry_async
+from aresilient import get_async
 
 
 async def fetch_multiple():
@@ -253,7 +245,7 @@ async def fetch_multiple():
         "https://api.example.com/data2",
         "https://api.example.com/data3",
     ]
-    tasks = [get_with_automatic_retry_async(url) for url in urls]
+    tasks = [get_async(url) for url in urls]
     responses = await asyncio.gather(*tasks)
     return [r.json() for r in responses]
 
@@ -269,7 +261,7 @@ exception using the `retry_if` parameter. This is useful when you need to retry 
 content, headers, or business logic beyond just status codes.
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 def should_retry(response, exception):
@@ -298,9 +290,7 @@ def should_retry(response, exception):
 
 
 # Use the custom retry predicate
-response = get_with_automatic_retry(
-    "https://api.example.com/data", retry_if=should_retry, max_retries=5
-)
+response = get("https://api.example.com/data", retry_if=should_retry, max_retries=5)
 ```
 
 **Note**: When `retry_if` is provided, it takes precedence over `status_forcelist` for determining
@@ -352,7 +342,7 @@ lifecycle for logging, metrics, alerting, and custom behavior.
 #### Example: Logging Retries
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 def log_request(info):
@@ -384,7 +374,7 @@ def log_failure(info):
 
 
 # Use callbacks to monitor request behavior
-response = get_with_automatic_retry(
+response = get(
     "https://api.example.com/data",
     on_request=log_request,
     on_retry=log_retry,
@@ -396,7 +386,7 @@ response = get_with_automatic_retry(
 #### Example: Metrics Collection
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 
 
 class MetricsCollector:
@@ -423,7 +413,7 @@ metrics = MetricsCollector()
 # Make multiple requests with metrics collection
 for url in urls:
     try:
-        response = get_with_automatic_retry(
+        response = get(
             url,
             on_retry=metrics.on_retry,
             on_success=metrics.on_success,
@@ -496,7 +486,7 @@ states:
 #### Basic Usage
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 # Create a circuit breaker instance
@@ -507,7 +497,7 @@ circuit_breaker = CircuitBreaker(
 
 # Use the circuit breaker with requests
 try:
-    response = get_with_automatic_retry(
+    response = get(
         "https://api.example.com/data",
         circuit_breaker=circuit_breaker,
     )
@@ -522,7 +512,7 @@ A single circuit breaker instance can be shared across multiple requests to prot
 service:
 
 ```python
-from aresilient import get_with_automatic_retry
+from aresilient import get
 from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 # Create a shared circuit breaker for a specific API
@@ -531,7 +521,7 @@ api_circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
 # Use it for multiple endpoints of the same service
 for endpoint in ["/users", "/posts", "/comments"]:
     try:
-        response = get_with_automatic_retry(
+        response = get(
             f"https://api.example.com{endpoint}",
             circuit_breaker=api_circuit_breaker,
         )
@@ -646,7 +636,7 @@ delay from a server.
 
 ## API Reference
 
-### `get_with_automatic_retry()`
+### `get()`
 
 Performs an HTTP GET request with automatic retry logic.
 
@@ -676,7 +666,7 @@ Performs an HTTP GET request with automatic retry logic.
 - `HttpRequestError`: If the request fails after all retries
 - `ValueError`: If parameters are invalid
 
-### `post_with_automatic_retry()`
+### `post()`
 
 Performs an HTTP POST request with automatic retry logic.
 
@@ -705,7 +695,7 @@ Performs an HTTP POST request with automatic retry logic.
 - `HttpRequestError`: If the request fails after all retries
 - `ValueError`: If parameters are invalid
 
-### `put_with_automatic_retry()`
+### `put()`
 
 Performs an HTTP PUT request with automatic retry logic.
 
@@ -734,7 +724,7 @@ Performs an HTTP PUT request with automatic retry logic.
 - `HttpRequestError`: If the request fails after all retries
 - `ValueError`: If parameters are invalid
 
-### `delete_with_automatic_retry()`
+### `delete()`
 
 Performs an HTTP DELETE request with automatic retry logic.
 
@@ -763,7 +753,7 @@ Performs an HTTP DELETE request with automatic retry logic.
 - `HttpRequestError`: If the request fails after all retries
 - `ValueError`: If parameters are invalid
 
-### `patch_with_automatic_retry()`
+### `patch()`
 
 Performs an HTTP PATCH request with automatic retry logic.
 
@@ -792,7 +782,7 @@ Performs an HTTP PATCH request with automatic retry logic.
 - `HttpRequestError`: If the request fails after all retries
 - `ValueError`: If parameters are invalid
 
-### `head_with_automatic_retry()`
+### `head()`
 
 Performs an HTTP HEAD request with automatic retry logic.
 
@@ -825,7 +815,7 @@ Performs an HTTP HEAD request with automatic retry logic.
 checking resource existence, metadata (Content-Length, Last-Modified, ETag), and performing
 lightweight validation.
 
-### `options_with_automatic_retry()`
+### `options()`
 
 Performs an HTTP OPTIONS request with automatic retry logic.
 
@@ -861,13 +851,13 @@ methods via the Allow header, and querying server capabilities.
 
 All synchronous functions have async counterparts with identical parameters:
 
-- `get_with_automatic_retry_async()` - Async version of GET
-- `post_with_automatic_retry_async()` - Async version of POST
-- `put_with_automatic_retry_async()` - Async version of PUT
-- `delete_with_automatic_retry_async()` - Async version of DELETE
-- `patch_with_automatic_retry_async()` - Async version of PATCH
-- `head_with_automatic_retry_async()` - Async version of HEAD
-- `options_with_automatic_retry_async()` - Async version of OPTIONS
+- `get_async()` - Async version of GET
+- `post_async()` - Async version of POST
+- `put_async()` - Async version of PUT
+- `delete_async()` - Async version of DELETE
+- `patch_async()` - Async version of PATCH
+- `head_async()` - Async version of HEAD
+- `options_async()` - Async version of OPTIONS
 
 These functions work exactly like their synchronous counterparts but must be awaited and use
 `httpx.AsyncClient` instead of `httpx.Client`.
@@ -876,8 +866,8 @@ These functions work exactly like their synchronous counterparts but must be awa
 
 For custom HTTP methods or advanced use cases:
 
-- `request_with_automatic_retry()` - Generic synchronous request with retry logic
-- `request_with_automatic_retry_async()` - Generic async request with retry logic
+- `request()` - Generic synchronous request with retry logic
+- `request_async()` - Generic async request with retry logic
 
 These functions allow you to specify any HTTP method (e.g., HEAD, OPTIONS) and provide your own
 request function from an httpx client.
