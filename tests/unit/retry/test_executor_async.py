@@ -16,7 +16,6 @@ def test_async_retry_executor_creation() -> None:
     """Test AsyncRetryExecutor initialization."""
     retry_config = RetryConfig(
         max_retries=3,
-        backoff_factor=0.5,
         status_forcelist=(500, 502, 503),
         jitter_factor=0.0,
     )
@@ -35,7 +34,6 @@ def test_async_retry_executor_with_circuit_breaker() -> None:
     """Test AsyncRetryExecutor with circuit breaker."""
     retry_config = RetryConfig(
         max_retries=3,
-        backoff_factor=0.5,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -54,7 +52,6 @@ async def test_async_retry_executor_successful_request() -> None:
     """Test successful async request without retries."""
     retry_config = RetryConfig(
         max_retries=3,
-        backoff_factor=0.5,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -78,8 +75,7 @@ async def test_async_retry_executor_successful_request() -> None:
 async def test_async_retry_executor_retry_on_retryable_status() -> None:
     """Test async retry on retryable status code."""
     retry_config = RetryConfig(
-        max_retries=2,
-        backoff_factor=0.01,  # Small backoff for test speed
+        max_retries=2,  # Small backoff for test speed
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -105,7 +101,6 @@ async def test_async_retry_executor_fails_on_non_retryable_status() -> None:
     """Test async failure on non-retryable status code."""
     retry_config = RetryConfig(
         max_retries=3,
-        backoff_factor=0.5,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -131,7 +126,6 @@ async def test_async_retry_executor_exhausts_retries() -> None:
     """Test all async retries are exhausted."""
     retry_config = RetryConfig(
         max_retries=2,
-        backoff_factor=0.01,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -157,7 +151,6 @@ async def test_async_retry_executor_handles_timeout_exception() -> None:
     """Test async handling of timeout exception."""
     retry_config = RetryConfig(
         max_retries=2,
-        backoff_factor=0.01,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -185,7 +178,6 @@ async def test_async_retry_executor_with_callbacks() -> None:
 
     retry_config = RetryConfig(
         max_retries=1,
-        backoff_factor=0.01,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -213,7 +205,6 @@ async def test_async_retry_executor_circuit_breaker_records_exception_failure() 
     """Test circuit breaker records failure for retryable exception."""
     retry_config = RetryConfig(
         max_retries=2,
-        backoff_factor=0.01,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -243,7 +234,6 @@ async def test_async_retry_executor_max_total_time_exceeded_with_response() -> N
     """Test max_total_time exceeded with response available."""
     retry_config = RetryConfig(
         max_retries=5,
-        backoff_factor=0.01,
         status_forcelist=(500,),
         jitter_factor=0.0,
         max_total_time=1.0,
@@ -282,7 +272,6 @@ async def test_async_retry_executor_max_total_time_exceeded_with_exception_only(
 
     retry_config = RetryConfig(
         max_retries=5,
-        backoff_factor=0.01,
         status_forcelist=(500,),
         jitter_factor=0.0,
         max_total_time=1.0,
@@ -321,7 +310,6 @@ async def test_async_retry_executor_handles_request_error() -> None:
     """Test handling of RequestError exception."""
     retry_config = RetryConfig(
         max_retries=2,
-        backoff_factor=0.01,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -348,7 +336,6 @@ async def test_async_retry_executor_request_error_exhausts_retries() -> None:
     """Test RequestError exhausts all retries."""
     retry_config = RetryConfig(
         max_retries=2,
-        backoff_factor=0.01,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -376,7 +363,6 @@ async def test_async_retry_executor_timeout_exhausts_retries() -> None:
     """Test TimeoutException exhausts all retries."""
     retry_config = RetryConfig(
         max_retries=2,
-        backoff_factor=0.01,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )
@@ -405,7 +391,6 @@ async def test_async_retry_executor_circuit_breaker_records_status_code_failure(
     code."""
     retry_config = RetryConfig(
         max_retries=2,
-        backoff_factor=0.01,
         status_forcelist=(500,),
         jitter_factor=0.0,
     )

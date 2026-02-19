@@ -25,10 +25,9 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 def calculate_sleep_time(
     attempt: int,
-    backoff_factor: float,
     jitter_factor: float,
     response: httpx.Response | None,
-    backoff_strategy: BackoffStrategy | None = None,
+    backoff_strategy: BackoffStrategy = ExponentialBackoff(),
     max_wait_time: float | None = None,
 ) -> float:
     """Calculate sleep time for retry with backoff strategy and jitter.
@@ -41,7 +40,7 @@ def calculate_sleep_time(
     The sleep time is calculated as follows:
     1. Determine base sleep time:
        - If Retry-After header is present: use that value
-       - Otherwise: use backoff_strategy.calculate(attempt) (defaults to exponential)
+       - Otherwise: use backoff_strategy.calculate(attempt)
     2. Apply max_wait_time cap (if max_wait_time is set):
        - sleep_time = min(sleep_time, max_wait_time)
     3. Apply jitter (if jitter_factor > 0):
@@ -51,17 +50,14 @@ def calculate_sleep_time(
     Args:
         attempt: The current attempt number (0-indexed). For example,
             attempt=0 is the first retry, attempt=1 is the second retry, etc.
-        backoff_factor: Factor for exponential backoff between retries.
-            The base wait time is calculated as: backoff_factor * (2 ** attempt).
-            Used to create default ExponentialBackoff if backoff_strategy is not provided.
         jitter_factor: Factor for adding random jitter to backoff delays.
             The jitter is calculated as: random.uniform(0, jitter_factor) * base_sleep_time,
             and this jitter is ADDED to the base sleep time. Set to 0 to disable jitter.
             Recommended value is 0.1 to add up to 10% additional random delay.
         response: The HTTP response object (if available). Used to extract
             the Retry-After header if present.
-        backoff_strategy: Optional custom backoff strategy. If not provided,
-            defaults to ExponentialBackoff with base_delay=backoff_factor.
+        backoff_strategy: Backoff strategy to use. Defaults to ExponentialBackoff
+            with base_delay=0.3.
         max_wait_time: Optional maximum backoff delay cap in seconds.
             If provided, individual backoff delays will not exceed this value,
             even with exponential backoff growth or Retry-After headers.
@@ -72,18 +68,19 @@ def calculate_sleep_time(
     Example:
         ```pycon
         >>> from aresilient.backoff import calculate_sleep_time
-        >>> # First retry with backoff_factor=0.3, no jitter
-        >>> calculate_sleep_time(attempt=0, backoff_factor=0.3, jitter_factor=0.0, response=None)
+        >>> from aresilient.backoff import ExponentialBackoff
+        >>> # First retry with ExponentialBackoff(base_delay=0.3), no jitter
+        >>> calculate_sleep_time(attempt=0, jitter_factor=0.0, response=None)
         0.3
         >>> # Second retry
-        >>> calculate_sleep_time(attempt=1, backoff_factor=0.3, jitter_factor=0.0, response=None)
+        >>> calculate_sleep_time(attempt=1, jitter_factor=0.0, response=None)
         0.6
         >>> # Third retry
-        >>> calculate_sleep_time(attempt=2, backoff_factor=0.3, jitter_factor=0.0, response=None)
+        >>> calculate_sleep_time(attempt=2, jitter_factor=0.0, response=None)
         1.2
         >>> # Third retry with max_wait_time cap
         >>> calculate_sleep_time(
-        ...     attempt=2, backoff_factor=0.3, jitter_factor=0.0, response=None, max_wait_time=1.0
+        ...     attempt=2, jitter_factor=0.0, response=None, max_wait_time=1.0
         ... )
         1.0
 
@@ -100,9 +97,6 @@ def calculate_sleep_time(
         sleep_time = retry_after_sleep
         logger.debug(f"Using Retry-After header value: {sleep_time:.2f}s")
     else:
-        # Create default strategy if not provided
-        if backoff_strategy is None:
-            backoff_strategy = ExponentialBackoff(base_delay=backoff_factor)
         sleep_time = backoff_strategy.calculate(attempt)
 
     # Apply max_wait_time cap if configured

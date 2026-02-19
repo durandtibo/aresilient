@@ -680,7 +680,7 @@ async def test_request_async_with_config(
     mock_asleep: Mock,
 ) -> None:
     """Test async request using ClientConfig."""
-    config = ClientConfig(max_retries=2, backoff_factor=0.5)
+    config = ClientConfig(max_retries=2)
     response = await request_async(
         url="https://example.com",
         method="GET",

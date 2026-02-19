@@ -131,7 +131,7 @@ from aresilient import (
 **Note**: All async functions support the same parameters as their synchronous counterparts,
 including:
 
-- `max_retries`, `backoff_factor`, `jitter_factor`
+- `max_retries`, `backoff_strategy`, `jitter_factor`
 - `status_forcelist`, `retry_if`
 - `on_request`, `on_retry`, `on_success`, `on_failure` callbacks
 
@@ -195,13 +195,11 @@ responses = asyncio.run(fetch_all(urls))
 from aresilient import (
     DEFAULT_TIMEOUT,  # 10.0 seconds
     DEFAULT_MAX_RETRIES,  # 3 retries (4 total attempts)
-    DEFAULT_BACKOFF_FACTOR,  # 0.3 seconds
     RETRY_STATUS_CODES,  # (429, 500, 502, 503, 504)
 )
 
 print(f"Timeout: {DEFAULT_TIMEOUT}")
 print(f"Max retries: {DEFAULT_MAX_RETRIES}")
-print(f"Backoff factor: {DEFAULT_BACKOFF_FACTOR}")
 print(f"Retry on status codes: {RETRY_STATUS_CODES}")
 ```
 
@@ -242,26 +240,27 @@ Control how many times and how long between retries:
 
 ```python
 from aresilient import get
+from aresilient.backoff import ExponentialBackoff
 
 # More aggressive retry
 response = get(
     "https://api.example.com/data",
-    max_retries=5,  # Retry up to 5 times
-    backoff_factor=0.5,  # Longer waits between retries
+    max_retries=5,
+    backoff_strategy=ExponentialBackoff(base_delay=0.5),  # Longer waits between retries
 )
 
 # Less aggressive retry
 response = get(
     "https://api.example.com/data",
-    max_retries=1,  # Only retry once
-    backoff_factor=0.1,  # Shorter waits between retries
+    max_retries=1,
+    backoff_strategy=ExponentialBackoff(base_delay=0.1),  # Shorter waits between retries
 )
 
 # With jitter to prevent thundering herd
 response = get(
     "https://api.example.com/data",
     max_retries=3,
-    backoff_factor=0.5,
+    backoff_strategy=ExponentialBackoff(base_delay=0.5),
     jitter_factor=0.1,  # Add 10% random jitter
 )
 
@@ -281,7 +280,7 @@ By default, exponential backoff is used.
 The wait time between retries is calculated using the exponential backoff formula:
 
 ```
-base_wait_time = backoff_factor * (2 ** attempt)
+base_wait_time = base_delay * (2 ** attempt)
 # If jitter_factor is set (e.g., 0.1 for 10% jitter):
 jitter = random(0, jitter_factor) * base_wait_time
 total_wait_time = base_wait_time + jitter
@@ -289,13 +288,13 @@ total_wait_time = base_wait_time + jitter
 
 Where `attempt` is 0-indexed (0, 1, 2, ...).
 
-##### Example with default `backoff_factor=0.3` (no jitter):
+##### Example with default `ExponentialBackoff(base_delay=0.3)` (no jitter):
 
 - 1st retry: 0.3 * (2^0) = 0.3 seconds
 - 2nd retry: 0.3 * (2^1) = 0.6 seconds
 - 3rd retry: 0.3 * (2^2) = 1.2 seconds
 
-##### Example with `backoff_factor=1.0` and `jitter_factor=0.1`:
+##### Example with `ExponentialBackoff(base_delay=1.0)` and `jitter_factor=0.1`:
 
 - 1st retry: 1.0-1.1 seconds (base 1.0s + up to 10% jitter)
 - 2nd retry: 2.0-2.2 seconds (base 2.0s + up to 10% jitter)
@@ -398,6 +397,7 @@ Control the total time budget and maximum wait time for retries:
 
 ```python
 from aresilient import get
+from aresilient.backoff import ExponentialBackoff
 
 # Limit total time for all retry attempts
 response = get(
@@ -410,7 +410,7 @@ response = get(
 response = get(
     "https://api.example.com/data",
     max_retries=10,
-    backoff_factor=2.0,
+    backoff_strategy=ExponentialBackoff(base_delay=2.0),
     max_wait_time=10.0,  # No single wait exceeds 10 seconds
 )
 
@@ -418,7 +418,7 @@ response = get(
 response = get(
     "https://api.example.com/data",
     max_retries=10,
-    backoff_factor=2.0,
+    backoff_strategy=ExponentialBackoff(base_delay=2.0),
     max_total_time=60.0,  # Total budget: 60 seconds
     max_wait_time=15.0,  # Max wait between retries: 15 seconds
 )
@@ -1659,6 +1659,8 @@ content_length = asyncio.run(make_custom_request())
 ```python
 import httpx
 from aresilient import request
+from aresilient.backoff import ExponentialBackoff
+from aresilient.core import ClientConfig
 
 
 def custom_api_call():
@@ -1668,9 +1670,11 @@ def custom_api_call():
             url="https://api.example.com/custom-endpoint",
             method="PATCH",
             request_func=client.patch,
-            max_retries=5,
-            backoff_factor=1.0,
-            status_forcelist=(429, 503),
+            config=ClientConfig(
+                max_retries=5,
+                backoff_strategy=ExponentialBackoff(base_delay=1.0),
+                status_forcelist=(429, 503),
+            ),
             # Additional kwargs passed to client.patch
             json={"operation": "update", "value": 42},
             headers={"X-API-Version": "2.0"},
@@ -1736,10 +1740,12 @@ For background jobs, use more retries:
 
 ```python
 # Background job: be more resilient
+from aresilient.backoff import ExponentialBackoff
+
 response = get(
     "https://api.example.com/batch-process",
     max_retries=5,
-    backoff_factor=1.0,
+    backoff_strategy=ExponentialBackoff(base_delay=1.0),
     timeout=60.0,
 )
 ```
@@ -1750,10 +1756,12 @@ If you're hitting rate limits frequently, consider:
 
 ```python
 # Increase backoff for rate-limited endpoints
+from aresilient.backoff import ExponentialBackoff
+
 response = get(
     "https://api.example.com/rate-limited",
     max_retries=5,
-    backoff_factor=2.0,  # Longer waits
+    backoff_strategy=ExponentialBackoff(base_delay=2.0),  # Longer waits
     status_forcelist=(429,),  # Only retry on rate limit
 )
 ```

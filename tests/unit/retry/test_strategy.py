@@ -15,14 +15,14 @@ from aresilient.retry.strategy import RetryStrategy
 
 def test_retry_strategy_creation() -> None:
     """Test RetryStrategy initialization."""
+    from aresilient.backoff.strategy import ExponentialBackoff
+
     strategy = RetryStrategy(
-        backoff_factor=0.5,
         jitter_factor=0.1,
     )
 
-    assert strategy.backoff_factor == 0.5
     assert strategy.jitter_factor == 0.1
-    assert strategy.backoff_strategy is None
+    assert isinstance(strategy.backoff_strategy, ExponentialBackoff)
     assert strategy.max_wait_time is None
 
 
@@ -30,7 +30,6 @@ def test_retry_strategy_with_custom_backoff() -> None:
     """Test RetryStrategy with custom backoff strategy."""
     custom_backoff = LinearBackoff(base_delay=1.0)
     strategy = RetryStrategy(
-        backoff_factor=0.5,
         jitter_factor=0.0,
         backoff_strategy=custom_backoff,
     )
@@ -41,7 +40,6 @@ def test_retry_strategy_with_custom_backoff() -> None:
 def test_retry_strategy_with_max_wait_time() -> None:
     """Test RetryStrategy with max wait time."""
     strategy = RetryStrategy(
-        backoff_factor=1.0,
         jitter_factor=0.0,
         max_wait_time=10.0,
     )
@@ -52,11 +50,10 @@ def test_retry_strategy_with_max_wait_time() -> None:
 def test_calculate_delay_exponential_default() -> None:
     """Test delay calculation with default exponential backoff."""
     strategy = RetryStrategy(
-        backoff_factor=0.3,
         jitter_factor=0.0,
     )
 
-    # First retry (attempt=0)
+    # First retry (attempt=0): ExponentialBackoff default base_delay=0.3
     delay_0 = strategy.calculate_delay(attempt=0)
     assert delay_0 == 0.3  # 0.3 * (2^0) = 0.3
 
@@ -73,7 +70,6 @@ def test_calculate_delay_with_linear_backoff() -> None:
     """Test delay calculation with linear backoff."""
     linear_backoff = LinearBackoff(base_delay=1.0)
     strategy = RetryStrategy(
-        backoff_factor=0.5,  # Ignored when backoff_strategy is provided
         jitter_factor=0.0,
         backoff_strategy=linear_backoff,
     )
@@ -92,7 +88,6 @@ def test_calculate_delay_with_constant_backoff() -> None:
     """Test delay calculation with constant backoff."""
     constant_backoff = ConstantBackoff(delay=2.0)
     strategy = RetryStrategy(
-        backoff_factor=0.5,
         jitter_factor=0.0,
         backoff_strategy=constant_backoff,
     )
@@ -107,7 +102,6 @@ def test_calculate_delay_with_constant_backoff() -> None:
 def test_calculate_delay_with_max_wait_time() -> None:
     """Test delay calculation with max wait time cap."""
     strategy = RetryStrategy(
-        backoff_factor=0.3,
         jitter_factor=0.0,
         max_wait_time=1.0,
     )
@@ -120,7 +114,6 @@ def test_calculate_delay_with_max_wait_time() -> None:
 def test_calculate_delay_with_retry_after_header() -> None:
     """Test delay calculation respecting Retry-After header."""
     strategy = RetryStrategy(
-        backoff_factor=0.3,
         jitter_factor=0.0,
     )
 
@@ -135,8 +128,8 @@ def test_calculate_delay_with_retry_after_header() -> None:
 def test_calculate_delay_with_jitter() -> None:
     """Test delay calculation with jitter."""
     strategy = RetryStrategy(
-        backoff_factor=1.0,
         jitter_factor=0.5,
+        backoff_strategy=ConstantBackoff(delay=1.0),
     )
 
     # With jitter, delay should be in range [base, base + jitter*base]

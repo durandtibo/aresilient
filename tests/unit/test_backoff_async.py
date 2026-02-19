@@ -11,6 +11,7 @@ from unittest.mock import Mock, call, patch
 import httpx
 import pytest
 
+from aresilient.backoff import ExponentialBackoff
 from aresilient.core import ClientConfig
 from tests.helpers import (
     HTTP_METHODS_ASYNC,
@@ -33,7 +34,9 @@ async def test_exponential_backoff(
     )
 
     await test_case.method_func(
-        TEST_URL, client=mock_client, config=ClientConfig(backoff_factor=2.0)
+        TEST_URL,
+        client=mock_client,
+        config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=2.0)),
     )
 
     # Should have slept twice (after 1st and 2nd failures)
@@ -43,9 +46,12 @@ async def test_exponential_backoff(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
 async def test_negative_backoff_factor(test_case: HttpMethodTestCase) -> None:
-    """Test that negative backoff_factor raises ValueError."""
-    with pytest.raises(ValueError, match=r"backoff_factor must be >= 0"):
-        await test_case.method_func(TEST_URL, config=ClientConfig(backoff_factor=-1.0))
+    """Test that negative base_delay in ExponentialBackoff raises
+    ValueError."""
+    with pytest.raises(ValueError, match=r"base_delay must be non-negative"):
+        await test_case.method_func(
+            TEST_URL, config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=-1.0))
+        )
 
 
 @pytest.mark.asyncio
@@ -61,7 +67,11 @@ async def test_with_jitter_factor(
 
     with patch("aresilient.backoff.sleep.random.uniform", return_value=0.05):
         response = await test_case.method_func(
-            TEST_URL, client=mock_client, config=ClientConfig(backoff_factor=1.0, jitter_factor=0.1)
+            TEST_URL,
+            client=mock_client,
+            config=ClientConfig(
+                backoff_strategy=ExponentialBackoff(base_delay=1.0), jitter_factor=0.1
+            ),
         )
 
     assert response.status_code == test_case.status_code
@@ -83,7 +93,9 @@ async def test_zero_jitter_factor(
     )
 
     response = await test_case.method_func(
-        TEST_URL, client=mock_client, config=ClientConfig(backoff_factor=1.0, jitter_factor=0.0)
+        TEST_URL,
+        client=mock_client,
+        config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=1.0), jitter_factor=0.0),
     )
 
     assert response.status_code == test_case.status_code

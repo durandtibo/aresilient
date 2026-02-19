@@ -82,7 +82,7 @@ async def test_max_total_time_not_exceeded_async(
         response = await test_case.method_func(
             TEST_URL,
             client=mock_client,
-            config=ClientConfig(max_retries=3, max_total_time=10.0, backoff_factor=0.3),
+            config=ClientConfig(max_retries=3, max_total_time=10.0),
         )
 
     assert response.status_code == test_case.status_code
@@ -123,7 +123,7 @@ async def test_max_total_time_none_async(
     response = await test_case.method_func(
         TEST_URL,
         client=mock_client,
-        config=ClientConfig(max_retries=3, max_total_time=None, backoff_factor=0.3),
+        config=ClientConfig(max_retries=3, max_total_time=None),
     )
 
     assert response.status_code == test_case.status_code

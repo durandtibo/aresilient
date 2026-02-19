@@ -9,7 +9,6 @@ import pytest
 
 from aresilient import HttpRequestError
 from aresilient.core import (
-    DEFAULT_BACKOFF_FACTOR,
     DEFAULT_MAX_RETRIES,
     RETRY_STATUS_CODES,
     ClientConfig,
@@ -44,7 +43,7 @@ def test_request_with_kwargs(
 ) -> None:
     """Test that additional kwargs are passed to request function.
 
-    This test uses default values for max_retries, backoff_factor, and
+    This test uses default values for max_retries, backoff_strategy, and
     status_forcelist.
     """
     response = request(
@@ -258,7 +257,9 @@ def test_request_zero_max_retries(mock_sleep: Mock) -> None:
 
 
 def test_request_zero_backoff_factor(mock_response: httpx.Response) -> None:
-    """Test with zero backoff_factor - should not sleep."""
+    """Test with zero base_delay in ExponentialBackoff - should not sleep."""
+    from aresilient.backoff import ExponentialBackoff
+
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
 
@@ -266,7 +267,9 @@ def test_request_zero_backoff_factor(mock_response: httpx.Response) -> None:
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        config=ClientConfig(backoff_factor=0.0, status_forcelist=(503,)),
+        config=ClientConfig(
+            backoff_strategy=ExponentialBackoff(base_delay=0.0), status_forcelist=(503,)
+        ),
     )
 
     assert response == mock_response
@@ -276,7 +279,7 @@ def test_request_zero_backoff_factor(mock_response: httpx.Response) -> None:
 def test_request_success_status_2xx(mock_sleep: Mock, status_code: int) -> None:
     """Test that various 2xx status codes are considered successful.
 
-    This test uses default values for max_retries and backoff_factor,
+    This test uses default values for max_retries and backoff_strategy,
     but specifies a custom status_forcelist.
     """
     mock_response = Mock(spec=httpx.Response, status_code=status_code)
@@ -298,7 +301,7 @@ def test_request_success_status_2xx(mock_sleep: Mock, status_code: int) -> None:
 def test_request_success_status_3xx(mock_sleep: Mock, status_code: int) -> None:
     """Test that 3xx redirect status codes are considered successful.
 
-    This test uses default values for max_retries and backoff_factor,
+    This test uses default values for max_retries and backoff_strategy,
     but specifies a custom status_forcelist.
     """
     mock_response = Mock(spec=httpx.Response, status_code=status_code)
@@ -377,7 +380,9 @@ def test_request_preserves_response_object(mock_sleep: Mock) -> None:
 
 
 def test_request_large_backoff_factor(mock_response: httpx.Response, mock_sleep: Mock) -> None:
-    """Test with large backoff_factor values."""
+    """Test with large base_delay in ExponentialBackoff."""
+    from aresilient.backoff import ExponentialBackoff
+
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
 
@@ -385,7 +390,11 @@ def test_request_large_backoff_factor(mock_response: httpx.Response, mock_sleep:
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        config=ClientConfig(max_retries=2, backoff_factor=10.0, status_forcelist=(503,)),
+        config=ClientConfig(
+            max_retries=2,
+            backoff_strategy=ExponentialBackoff(base_delay=10.0),
+            status_forcelist=(503,),
+        ),
     )
 
     assert response == mock_response
@@ -394,6 +403,8 @@ def test_request_large_backoff_factor(mock_response: httpx.Response, mock_sleep:
 
 def test_request_high_max_retries(mock_response: httpx.Response, mock_sleep: Mock) -> None:
     """Test with high max_retries value."""
+    from aresilient.backoff import ExponentialBackoff
+
     mock_fail_response = Mock(spec=httpx.Response, status_code=500)
     # Fail 9 times, succeed on 10th attempt
     side_effects = [mock_fail_response] * 9 + [mock_response]
@@ -403,7 +414,11 @@ def test_request_high_max_retries(mock_response: httpx.Response, mock_sleep: Moc
         url=TEST_URL,
         method="GET",
         request_func=mock_request_func,
-        config=ClientConfig(max_retries=10, backoff_factor=1.0, status_forcelist=(500,)),
+        config=ClientConfig(
+            max_retries=10,
+            backoff_strategy=ExponentialBackoff(base_delay=1.0),
+            status_forcelist=(500,),
+        ),
     )
 
     assert response == mock_response
@@ -451,15 +466,15 @@ def test_request_uses_default_max_retries(mock_sleep: Mock) -> None:
 
     # With default  should attempt 4 times total (1 initial + 3 retries)
     assert mock_request_func.call_count == DEFAULT_MAX_RETRIES + 1
-    # Should have 3 sleep calls with exponential backoff using default backoff_factor (0.3)
+    # Should have 3 sleep calls with exponential backoff using default ExponentialBackoff (0.3)
     assert len(mock_sleep.call_args_list) == DEFAULT_MAX_RETRIES
 
 
-def test_request_uses_default_backoff_factor(
+def test_request_uses_default_backoff_strategy(
     mock_response: httpx.Response, mock_sleep: Mock
 ) -> None:
-    """Test that default backoff_factor (0.3) is used when not
-    specified."""
+    """Test that default ExponentialBackoff(base_delay=0.3) is used when
+    not specified."""
     mock_fail_response = Mock(spec=httpx.Response, status_code=500)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
 
@@ -470,8 +485,8 @@ def test_request_uses_default_backoff_factor(
     )
 
     assert response == mock_response
-    # Should use default backoff_factor: 0.3 * 2^0 = 0.3
-    mock_sleep.assert_called_once_with(DEFAULT_BACKOFF_FACTOR)
+    # Should use default ExponentialBackoff: 0.3 * 2^0 = 0.3
+    mock_sleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.parametrize("status_code", RETRY_STATUS_CODES)
@@ -996,7 +1011,9 @@ def test_request_with_config(
     mock_response: httpx.Response, mock_request_func: Mock, mock_sleep: Mock
 ) -> None:
     """Test request using ClientConfig."""
-    config = ClientConfig(max_retries=2, backoff_factor=0.5)
+    from aresilient.backoff import ExponentialBackoff
+
+    config = ClientConfig(max_retries=2, backoff_strategy=ExponentialBackoff(base_delay=0.5))
     response = request(
         url=TEST_URL,
         method="GET",

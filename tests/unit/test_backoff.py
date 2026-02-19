@@ -11,6 +11,7 @@ from unittest.mock import Mock, call, patch
 import httpx
 import pytest
 
+from aresilient.backoff import ExponentialBackoff
 from aresilient.core import ClientConfig
 from tests.helpers import (
     HTTP_METHODS,
@@ -32,7 +33,11 @@ def test_exponential_backoff(
         test_case.client_method, [mock_response_fail, mock_response_fail, mock_response]
     )
 
-    test_case.method_func(TEST_URL, client=mock_client, config=ClientConfig(backoff_factor=2.0))
+    test_case.method_func(
+        TEST_URL,
+        client=mock_client,
+        config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=2.0)),
+    )
 
     # Should have slept twice (after 1st and 2nd failures)
     assert mock_sleep.call_args_list == [call(2.0), call(4.0)]
@@ -40,9 +45,12 @@ def test_exponential_backoff(
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
 def test_negative_backoff_factor(test_case: HttpMethodTestCase) -> None:
-    """Test that negative backoff_factor raises ValueError."""
-    with pytest.raises(ValueError, match=r"backoff_factor must be >= 0"):
-        test_case.method_func(TEST_URL, config=ClientConfig(backoff_factor=-1.0))
+    """Test that negative base_delay in ExponentialBackoff raises
+    ValueError."""
+    with pytest.raises(ValueError, match=r"base_delay must be non-negative"):
+        test_case.method_func(
+            TEST_URL, config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=-1.0))
+        )
 
 
 @pytest.mark.parametrize("test_case", HTTP_METHODS)
@@ -57,7 +65,11 @@ def test_with_jitter_factor(
 
     with patch("aresilient.backoff.sleep.random.uniform", return_value=0.05):
         response = test_case.method_func(
-            TEST_URL, client=mock_client, config=ClientConfig(backoff_factor=1.0, jitter_factor=0.1)
+            TEST_URL,
+            client=mock_client,
+            config=ClientConfig(
+                backoff_strategy=ExponentialBackoff(base_delay=1.0), jitter_factor=0.1
+            ),
         )
 
     assert response.status_code == test_case.status_code
@@ -78,7 +90,9 @@ def test_zero_jitter_factor(
     )
 
     response = test_case.method_func(
-        TEST_URL, client=mock_client, config=ClientConfig(backoff_factor=1.0, jitter_factor=0.0)
+        TEST_URL,
+        client=mock_client,
+        config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=1.0), jitter_factor=0.0),
     )
 
     assert response.status_code == test_case.status_code

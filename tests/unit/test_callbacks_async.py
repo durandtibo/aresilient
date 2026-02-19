@@ -8,7 +8,7 @@ import httpx
 import pytest
 
 from aresilient.callbacks import RequestInfo, RetryInfo
-from aresilient.core import DEFAULT_BACKOFF_FACTOR, DEFAULT_MAX_RETRIES, ClientConfig
+from aresilient.core import DEFAULT_MAX_RETRIES, ClientConfig
 from aresilient.exceptions import HttpRequestError
 from aresilient.request_async import request_async
 
@@ -97,7 +97,7 @@ async def test_on_retry_callback_called_before_retry_async(
             method="GET",
             attempt=2,
             max_retries=DEFAULT_MAX_RETRIES,
-            wait_time=DEFAULT_BACKOFF_FACTOR,
+            wait_time=0.3,
             error=None,
             status_code=500,
         )
@@ -151,7 +151,7 @@ async def test_on_retry_callback_with_timeout_exception_async(
     assert call_args.method == "GET"
     assert call_args.attempt == 2  # Next attempt
     assert call_args.max_retries == DEFAULT_MAX_RETRIES
-    assert call_args.wait_time == DEFAULT_BACKOFF_FACTOR
+    assert call_args.wait_time == 0.3
     assert isinstance(call_args.error, httpx.TimeoutException)
     assert call_args.status_code is None
     mock_asleep.assert_called_once_with(0.3)
@@ -467,11 +467,13 @@ async def test_callbacks_with_custom_max_retries_async(
 
 
 @pytest.mark.asyncio
-async def test_callbacks_with_custom_backoff_factor_async(
+async def test_callbacks_with_custom_backoff_strategy_async(
     mock_response: httpx.Response, mock_asleep: Mock, mock_response_fail: httpx.Response
 ) -> None:
     """Test that on_retry callback receives correct wait_time with
-    custom backoff (async)."""
+    custom backoff strategy (async)."""
+    from aresilient.backoff import ExponentialBackoff
+
     on_retry_callback = Mock()
 
     mock_async_request_func = AsyncMock(side_effect=[mock_response_fail, mock_response])
@@ -481,7 +483,9 @@ async def test_callbacks_with_custom_backoff_factor_async(
         method="GET",
         request_func=mock_async_request_func,
         config=ClientConfig(
-            status_forcelist=(500,), backoff_factor=2.0, on_retry=on_retry_callback
+            status_forcelist=(500,),
+            backoff_strategy=ExponentialBackoff(base_delay=2.0),
+            on_retry=on_retry_callback,
         ),
     )
 

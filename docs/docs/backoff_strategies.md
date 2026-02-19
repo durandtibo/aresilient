@@ -43,12 +43,18 @@ response = get(
 ```python
 from aresilient import get
 
-# Uses exponential backoff with backoff_factor
+# Uses ExponentialBackoff with base_delay=0.3 by default
+response = get("https://api.example.com/data")
+# Delays: 0.3s, 0.6s, 1.2s, 2.4s...
+
+# Customize with explicit ExponentialBackoff
+from aresilient.backoff import ExponentialBackoff
+
 response = get(
     "https://api.example.com/data",
-    backoff_factor=0.3,  # Equivalent to ExponentialBackoff(base_delay=0.3)
+    backoff_strategy=ExponentialBackoff(base_delay=0.5),
 )
-# Delays: 0.3s, 0.6s, 1.2s, 2.4s...
+# Delays: 0.5s, 1.0s, 2.0s, 4.0s...
 ```
 
 ### Linear Backoff
