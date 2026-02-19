@@ -185,7 +185,7 @@ def test_client_config_merge_no_overrides() -> None:
 
 def test_client_config_merge_with_overrides() -> None:
     """Test that merge() applies non-None overrides."""
-    from aresilient.backoff.strategy import ExponentialBackoff, LinearBackoff
+    from aresilient.backoff.strategy import ExponentialBackoff
 
     original_strategy = ExponentialBackoff(base_delay=0.5)
     config = ClientConfig(max_retries=3, backoff_strategy=original_strategy)

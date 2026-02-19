@@ -17,10 +17,7 @@ from aresilient.backoff import calculate_sleep_time
 @pytest.mark.parametrize(("attempt", "sleep_time"), [(0, 0.3), (1, 0.6), (2, 1.2)])
 def test_calculate_sleep_time_exponential_backoff(attempt: int, sleep_time: float) -> None:
     """Test exponential backoff calculation without jitter."""
-    assert (
-        calculate_sleep_time(attempt=attempt, jitter_factor=0.0, response=None)
-        == sleep_time
-    )
+    assert calculate_sleep_time(attempt=attempt, jitter_factor=0.0, response=None) == sleep_time
 
 
 def test_calculate_sleep_time_with_jitter() -> None:
@@ -63,12 +60,7 @@ def test_calculate_sleep_time_with_retry_after_header() -> None:
     mock_response = Mock(spec=httpx.Response, headers={"Retry-After": "120"})
 
     # Should use 120 from Retry-After instead of backoff strategy
-    assert (
-        calculate_sleep_time(
-            attempt=0, jitter_factor=0.0, response=mock_response
-        )
-        == 120.0
-    )
+    assert calculate_sleep_time(attempt=0, jitter_factor=0.0, response=mock_response) == 120.0
 
 
 def test_calculate_sleep_time_with_retry_after_and_jitter() -> None:
@@ -79,12 +71,7 @@ def test_calculate_sleep_time_with_retry_after_and_jitter() -> None:
         # Base sleep from Retry-After: 100
         # Jitter: 0.1 * 100 = 10
         # Total: 110
-        assert (
-            calculate_sleep_time(
-                attempt=0, jitter_factor=1.0, response=mock_response
-            )
-            == 110.0
-        )
+        assert calculate_sleep_time(attempt=0, jitter_factor=1.0, response=mock_response) == 110.0
 
 
 def test_calculate_sleep_time_response_without_headers() -> None:
@@ -93,12 +80,7 @@ def test_calculate_sleep_time_response_without_headers() -> None:
     del mock_response.headers  # Remove headers attribute
 
     # Should fall back to exponential backoff
-    assert (
-        calculate_sleep_time(
-            attempt=0, jitter_factor=0.0, response=mock_response
-        )
-        == 0.3
-    )
+    assert calculate_sleep_time(attempt=0, jitter_factor=0.0, response=mock_response) == 0.3
 
 
 def test_calculate_sleep_time_invalid_retry_after() -> None:
@@ -107,12 +89,7 @@ def test_calculate_sleep_time_invalid_retry_after() -> None:
     mock_response = Mock(spec=httpx.Response, headers={"Retry-After": "invalid"})
 
     # Should fall back to exponential backoff
-    assert (
-        calculate_sleep_time(
-            attempt=0, jitter_factor=0.0, response=mock_response
-        )
-        == 0.3
-    )
+    assert calculate_sleep_time(attempt=0, jitter_factor=0.0, response=mock_response) == 0.3
 
 
 def test_calculate_sleep_time_with_backoff_strategy() -> None:

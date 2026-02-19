@@ -253,7 +253,9 @@ response = get(
 response = get(
     "https://api.example.com/data",
     max_retries=1,
-    backoff_strategy=ExponentialBackoff(base_delay=0.1),  # Shorter waits between retries
+    backoff_strategy=ExponentialBackoff(
+        base_delay=0.1
+    ),  # Shorter waits between retries
 )
 
 # With jitter to prevent thundering herd
