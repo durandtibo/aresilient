@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import time
 from typing import NoReturn
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -77,12 +76,10 @@ def test_circuit_breaker_transitions_to_half_open_after_timeout() -> None:
     cb.record_failure(Exception("error"))
     assert cb.state == CircuitState.OPEN
 
-    # Wait for recovery timeout
-    time.sleep(0.15)
-
-    # Check should transition to HALF_OPEN
-    cb.check()
-    assert cb.state == CircuitState.HALF_OPEN
+    # Mock time to simulate recovery timeout has elapsed
+    with patch("aresilient.circuit_breaker.time.time", return_value=cb.last_failure_time + 0.2):
+        cb.check()
+        assert cb.state == CircuitState.HALF_OPEN
 
 
 def test_circuit_breaker_half_open_success_closes_circuit() -> None:
@@ -93,10 +90,10 @@ def test_circuit_breaker_half_open_success_closes_circuit() -> None:
     cb.record_failure(Exception("error"))
     assert cb.state == CircuitState.OPEN
 
-    # Wait for recovery timeout
-    time.sleep(0.15)
-    cb.check()
-    assert cb.state == CircuitState.HALF_OPEN
+    # Mock time to simulate recovery timeout has elapsed
+    with patch("aresilient.circuit_breaker.time.time", return_value=cb.last_failure_time + 0.2):
+        cb.check()
+        assert cb.state == CircuitState.HALF_OPEN
 
     # Success should close the circuit
     cb.record_success()
@@ -112,10 +109,10 @@ def test_circuit_breaker_half_open_failure_reopens_circuit() -> None:
     cb.record_failure(Exception("error 1"))
     assert cb.state == CircuitState.OPEN
 
-    # Wait for recovery timeout
-    time.sleep(0.15)
-    cb.check()
-    assert cb.state == CircuitState.HALF_OPEN
+    # Mock time to simulate recovery timeout has elapsed
+    with patch("aresilient.circuit_breaker.time.time", return_value=cb.last_failure_time + 0.2):
+        cb.check()
+        assert cb.state == CircuitState.HALF_OPEN
 
     # Failure should reopen the circuit
     cb.record_failure(Exception("error 2"))
@@ -316,10 +313,10 @@ def test_circuit_breaker_multiple_recovery_cycles() -> None:
     cb.record_failure(Exception("error 2"))
     assert cb.state == CircuitState.OPEN
 
-    # Recover
-    time.sleep(0.15)
-    cb.check()
-    assert cb.state == CircuitState.HALF_OPEN
+    # Recover (mock time past the timeout)
+    with patch("aresilient.circuit_breaker.time.time", return_value=cb.last_failure_time + 0.2):
+        cb.check()
+        assert cb.state == CircuitState.HALF_OPEN
     cb.record_success()
     assert cb.state == CircuitState.CLOSED
 
@@ -328,10 +325,10 @@ def test_circuit_breaker_multiple_recovery_cycles() -> None:
     cb.record_failure(Exception("error 4"))
     assert cb.state == CircuitState.OPEN
 
-    # Recover again
-    time.sleep(0.15)
-    cb.check()
-    assert cb.state == CircuitState.HALF_OPEN
+    # Recover again (mock time past the timeout)
+    with patch("aresilient.circuit_breaker.time.time", return_value=cb.last_failure_time + 0.2):
+        cb.check()
+        assert cb.state == CircuitState.HALF_OPEN
     cb.record_success()
     assert cb.state == CircuitState.CLOSED
 
@@ -431,13 +428,11 @@ def test_circuit_breaker_call_transitions_to_half_open_after_timeout() -> None:
         cb.call(failing_func)
     assert cb.state == CircuitState.OPEN
 
-    # Wait for recovery timeout to elapse
-    time.sleep(0.15)
-
     # Next call should transition to HALF_OPEN and succeed
-    result = cb.call(success_func)
-    assert result == "success"
-    assert cb.state == CircuitState.CLOSED  # Success in HALF_OPEN closes circuit
+    with patch("aresilient.circuit_breaker.time.time", return_value=cb.last_failure_time + 0.2):
+        result = cb.call(success_func)
+        assert result == "success"
+        assert cb.state == CircuitState.CLOSED  # Success in HALF_OPEN closes circuit
 
 
 def test_circuit_breaker_change_state_no_op_for_same_state() -> None:

@@ -2,7 +2,7 @@ r"""Unit tests for asynchronous retry executor."""
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, call, patch
 
 import httpx
 import pytest
@@ -72,7 +72,7 @@ async def test_async_retry_executor_successful_request() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_retry_executor_retry_on_retryable_status() -> None:
+async def test_async_retry_executor_retry_on_retryable_status(mock_asleep: Mock) -> None:
     """Test async retry on retryable status code."""
     retry_config = RetryConfig(
         max_retries=2,  # Small backoff for test speed
@@ -94,6 +94,7 @@ async def test_async_retry_executor_retry_on_retryable_status() -> None:
 
     assert response is mock_response_success
     assert mock_request_func.call_count == 2
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -122,7 +123,7 @@ async def test_async_retry_executor_fails_on_non_retryable_status() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_retry_executor_exhausts_retries() -> None:
+async def test_async_retry_executor_exhausts_retries(mock_asleep: Mock) -> None:
     """Test all async retries are exhausted."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -144,10 +145,11 @@ async def test_async_retry_executor_exhausts_retries() -> None:
 
     # Should be called max_retries + 1 times (initial + retries)
     assert mock_request_func.call_count == 3
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 @pytest.mark.asyncio
-async def test_async_retry_executor_handles_timeout_exception() -> None:
+async def test_async_retry_executor_handles_timeout_exception(mock_asleep: Mock) -> None:
     """Test async handling of timeout exception."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -168,6 +170,7 @@ async def test_async_retry_executor_handles_timeout_exception() -> None:
 
     assert response is mock_response
     assert mock_request_func.call_count == 2
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -201,7 +204,9 @@ async def test_async_retry_executor_with_callbacks() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_retry_executor_circuit_breaker_records_exception_failure() -> None:
+async def test_async_retry_executor_circuit_breaker_records_exception_failure(
+    mock_asleep: Mock,
+) -> None:
     """Test circuit breaker records failure for retryable exception."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -227,6 +232,7 @@ async def test_async_retry_executor_circuit_breaker_records_exception_failure() 
     assert response is mock_response
     # Circuit breaker should be in CLOSED state after success
     assert circuit_breaker.state.name == "CLOSED"
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
@@ -306,7 +312,7 @@ async def test_async_retry_executor_max_total_time_exceeded_with_exception_only(
 
 
 @pytest.mark.asyncio
-async def test_async_retry_executor_handles_request_error() -> None:
+async def test_async_retry_executor_handles_request_error(mock_asleep: Mock) -> None:
     """Test handling of RequestError exception."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -329,10 +335,11 @@ async def test_async_retry_executor_handles_request_error() -> None:
 
     assert response is mock_response
     assert mock_request_func.call_count == 2
+    mock_asleep.assert_called_once_with(0.3)
 
 
 @pytest.mark.asyncio
-async def test_async_retry_executor_request_error_exhausts_retries() -> None:
+async def test_async_retry_executor_request_error_exhausts_retries(mock_asleep: Mock) -> None:
     """Test RequestError exhausts all retries."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -356,10 +363,11 @@ async def test_async_retry_executor_request_error_exhausts_retries() -> None:
 
     # Should be called max_retries + 1 times
     assert mock_request_func.call_count == 3
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 @pytest.mark.asyncio
-async def test_async_retry_executor_timeout_exhausts_retries() -> None:
+async def test_async_retry_executor_timeout_exhausts_retries(mock_asleep: Mock) -> None:
     """Test TimeoutException exhausts all retries."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -383,10 +391,13 @@ async def test_async_retry_executor_timeout_exhausts_retries() -> None:
 
     # Should be called max_retries + 1 times
     assert mock_request_func.call_count == 3
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
 
 
 @pytest.mark.asyncio
-async def test_async_retry_executor_circuit_breaker_records_status_code_failure() -> None:
+async def test_async_retry_executor_circuit_breaker_records_status_code_failure(
+    mock_asleep: Mock,
+) -> None:
     """Test circuit breaker records failure for retryable status
     code."""
     retry_config = RetryConfig(
@@ -418,3 +429,4 @@ async def test_async_retry_executor_circuit_breaker_records_status_code_failure(
     assert circuit_breaker.state.name == "CLOSED"
     # Should have recorded failures but then success reset the count
     assert circuit_breaker.failure_count == 0
+    assert mock_asleep.call_args_list == [call(0.3), call(0.6)]
