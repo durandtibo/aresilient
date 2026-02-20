@@ -20,6 +20,3 @@ from aresilient.backoff.constant import ConstantBackoff
 from aresilient.backoff.exponential import ExponentialBackoff
 from aresilient.backoff.fibonacci import FibonacciBackoff
 from aresilient.backoff.linear import LinearBackoff
-
-# Backward compatibility alias
-BackoffStrategy = BaseBackoffStrategy
