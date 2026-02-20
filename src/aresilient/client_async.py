@@ -127,12 +127,7 @@ class AsyncResilientClient:
             raise RuntimeError(msg)
         return self._client
 
-    async def request(
-        self,
-        method: str,
-        url: str,
-        **kwargs: Any,
-    ) -> httpx.Response:
+    async def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP request with automatic retry logic.
 
         Args:
