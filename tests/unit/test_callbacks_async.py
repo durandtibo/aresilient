@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, Mock, call
 import httpx
 import pytest
 
+from aresilient.backoff import ExponentialBackoff
 from aresilient.callbacks import RequestInfo, RetryInfo
 from aresilient.core import DEFAULT_MAX_RETRIES, ClientConfig
 from aresilient.exceptions import HttpRequestError
@@ -472,8 +473,6 @@ async def test_callbacks_with_custom_backoff_strategy_async(
 ) -> None:
     """Test that on_retry callback receives correct wait_time with
     custom backoff strategy (async)."""
-    from aresilient.backoff import ExponentialBackoff
-
     on_retry_callback = Mock()
 
     mock_async_request_func = AsyncMock(side_effect=[mock_response_fail, mock_response])

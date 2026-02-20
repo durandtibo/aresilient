@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING
 import pytest
 from coola.equality import objects_are_equal
 
+from aresilient.backoff.exponential import ExponentialBackoff
+from aresilient.backoff.linear import LinearBackoff
 from aresilient.core import (
     DEFAULT_MAX_RETRIES,
     DEFAULT_TIMEOUT,
@@ -30,8 +32,6 @@ if TYPE_CHECKING:
 
 def test_client_config_defaults() -> None:
     """Test that ClientConfig uses correct default values."""
-    from aresilient.backoff.exponential import ExponentialBackoff
-
     config = ClientConfig()
 
     assert config.max_retries == DEFAULT_MAX_RETRIES
@@ -185,8 +185,6 @@ def test_client_config_merge_no_overrides() -> None:
 
 def test_client_config_merge_with_overrides() -> None:
     """Test that merge() applies non-None overrides."""
-    from aresilient.backoff.exponential import ExponentialBackoff
-
     original_strategy = ExponentialBackoff(base_delay=0.5)
     config = ClientConfig(max_retries=3, backoff_strategy=original_strategy)
     merged = config.merge(max_retries=5)
@@ -198,8 +196,6 @@ def test_client_config_merge_with_overrides() -> None:
 
 def test_client_config_merge_with_none_values() -> None:
     """Test that merge() ignores None values."""
-    from aresilient.backoff.linear import LinearBackoff
-
     new_strategy = LinearBackoff(base_delay=1.0)
     config = ClientConfig(max_retries=3)
     merged = config.merge(max_retries=None, backoff_strategy=new_strategy)
@@ -219,8 +215,6 @@ def test_client_config_merge_preserves_original() -> None:
 
 def test_client_config_to_dict() -> None:
     """Test that to_dict() returns all configuration parameters."""
-    from aresilient.backoff.exponential import ExponentialBackoff
-
     strategy = ExponentialBackoff(base_delay=0.5)
     config = ClientConfig(
         max_retries=5,

@@ -7,6 +7,7 @@ from unittest.mock import Mock, call, patch
 import httpx
 import pytest
 
+from aresilient.backoff import ExponentialBackoff
 from aresilient.callbacks import (
     RequestInfo,
     RetryInfo,
@@ -526,8 +527,6 @@ def test_callbacks_with_custom_backoff_strategy(
 ) -> None:
     """Test that on_retry callback receives correct wait_time with
     custom backoff strategy."""
-    from aresilient.backoff import ExponentialBackoff
-
     on_retry_callback = Mock()
     mock_request_func = Mock(side_effect=[mock_response_fail, mock_response])
 
