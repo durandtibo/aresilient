@@ -70,7 +70,7 @@ def test_retry_executor_successful_request() -> None:
     mock_request_func.assert_called_once()
 
 
-def test_retry_executor_retry_on_retryable_status() -> None:
+def test_retry_executor_retry_on_retryable_status(mock_sleep: Mock) -> None:
     """Test retry on retryable status code."""
     retry_config = RetryConfig(
         max_retries=2,  # Small backoff for test speed
@@ -118,7 +118,7 @@ def test_retry_executor_fails_on_non_retryable_status() -> None:
     mock_request_func.assert_called_once()
 
 
-def test_retry_executor_exhausts_retries() -> None:
+def test_retry_executor_exhausts_retries(mock_sleep: Mock) -> None:
     """Test all retries are exhausted."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -142,7 +142,7 @@ def test_retry_executor_exhausts_retries() -> None:
     assert mock_request_func.call_count == 3
 
 
-def test_retry_executor_handles_timeout_exception() -> None:
+def test_retry_executor_handles_timeout_exception(mock_sleep: Mock) -> None:
     """Test handling of timeout exception."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -194,7 +194,7 @@ def test_retry_executor_with_callbacks() -> None:
     on_success_mock.assert_called_once()
 
 
-def test_retry_executor_circuit_breaker_records_exception_failure() -> None:
+def test_retry_executor_circuit_breaker_records_exception_failure(mock_sleep: Mock) -> None:
     """Test circuit breaker records failure for retryable exception."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -296,7 +296,7 @@ def test_retry_executor_max_total_time_exceeded_with_exception_only() -> None:
     assert mock_request_func.call_count == 1
 
 
-def test_retry_executor_handles_request_error() -> None:
+def test_retry_executor_handles_request_error(mock_sleep: Mock) -> None:
     """Test handling of RequestError exception."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -319,7 +319,7 @@ def test_retry_executor_handles_request_error() -> None:
     assert mock_request_func.call_count == 2
 
 
-def test_retry_executor_request_error_exhausts_retries() -> None:
+def test_retry_executor_request_error_exhausts_retries(mock_sleep: Mock) -> None:
     """Test RequestError exhausts all retries."""
     retry_config = RetryConfig(
         max_retries=2,
@@ -345,7 +345,7 @@ def test_retry_executor_request_error_exhausts_retries() -> None:
     assert mock_request_func.call_count == 3
 
 
-def test_retry_executor_timeout_exhausts_retries() -> None:
+def test_retry_executor_timeout_exhausts_retries(mock_sleep: Mock) -> None:
     """Test TimeoutException exhausts all retries."""
     retry_config = RetryConfig(
         max_retries=2,
