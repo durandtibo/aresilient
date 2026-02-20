@@ -234,13 +234,11 @@ async def test_request_async_kwargs_passed_to_request_func(
         request_func=mock_async_request_func,
         json={"key": "value"},
         headers={"Authorization": "Bearer token"},
-        timeout=30,
     )
     mock_async_request_func.assert_called_once_with(
         url="https://example.com",
         json={"key": "value"},
         headers={"Authorization": "Bearer token"},
-        timeout=30,
     )
     mock_asleep.assert_not_called()
 
@@ -732,3 +730,110 @@ async def test_request_async_config_none_uses_defaults(
     assert response == mock_response
     mock_async_request_func.assert_called_once_with(url="https://example.com")
     mock_asleep.assert_not_called()
+
+
+##################################################
+#     Tests for request_async with client param  #
+##################################################
+
+
+@pytest.mark.asyncio
+async def test_request_async_with_client(
+    mock_async_client: httpx.AsyncClient,
+    mock_response: httpx.Response,
+    mock_asleep: Mock,
+) -> None:
+    """Test successful async request using an httpx.AsyncClient object."""
+    mock_async_client.get = AsyncMock(return_value=mock_response)
+
+    response = await request_async(url="https://example.com", method="GET", client=mock_async_client)
+
+    assert response == mock_response
+    mock_async_client.get.assert_called_once_with(url="https://example.com")
+    mock_asleep.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_request_async_with_client_not_closed(
+    mock_async_client: httpx.AsyncClient,
+    mock_response: httpx.Response,
+    mock_asleep: Mock,
+) -> None:
+    """Test that a provided async client is not closed after the request."""
+    mock_async_client.get = AsyncMock(return_value=mock_response)
+
+    await request_async(url="https://example.com", method="GET", client=mock_async_client)
+
+    mock_async_client.aclose.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_request_async_without_client_or_request_func_creates_client(
+    mock_response: httpx.Response,
+    mock_asleep: Mock,
+) -> None:
+    """Test that a new async client is created and closed when neither
+    client nor request_func is provided."""
+    from unittest.mock import patch
+
+    mock_client = Mock(spec=httpx.AsyncClient)
+    mock_client.get = AsyncMock(return_value=mock_response)
+    mock_client.aclose = AsyncMock()
+
+    with patch("httpx.AsyncClient", return_value=mock_client) as mock_client_cls:
+        response = await request_async(url="https://example.com", method="GET")
+
+    assert response == mock_response
+    mock_client_cls.assert_called_once_with(timeout=10.0)
+    mock_client.get.assert_called_once_with(url="https://example.com")
+    mock_client.aclose.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_request_async_without_client_uses_custom_timeout(
+    mock_response: httpx.Response,
+    mock_asleep: Mock,
+) -> None:
+    """Test that a new async client is created with the specified timeout."""
+    from unittest.mock import patch
+
+    mock_client = Mock(spec=httpx.AsyncClient)
+    mock_client.get = AsyncMock(return_value=mock_response)
+    mock_client.aclose = AsyncMock()
+
+    with patch("httpx.AsyncClient", return_value=mock_client) as mock_client_cls:
+        await request_async(url="https://example.com", method="GET", timeout=30.0)
+
+    mock_client_cls.assert_called_once_with(timeout=30.0)
+
+
+@pytest.mark.asyncio
+async def test_request_async_invalid_timeout_raises(mock_asleep: Mock) -> None:
+    """Test that a non-positive timeout raises ValueError."""
+    with pytest.raises(ValueError, match="timeout must be > 0"):
+        await request_async(url="https://example.com", method="GET", timeout=0.0)
+
+
+@pytest.mark.asyncio
+async def test_request_async_with_client_retry_on_retryable_status(
+    mock_async_client: httpx.AsyncClient,
+    mock_response: httpx.Response,
+    mock_asleep: Mock,
+) -> None:
+    """Test that retry logic works when using async client parameter."""
+    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
+    mock_async_client.get = AsyncMock(side_effect=[mock_fail_response, mock_response])
+
+    response = await request_async(
+        url="https://example.com",
+        method="GET",
+        client=mock_async_client,
+        config=ClientConfig(status_forcelist=(503,)),
+    )
+
+    assert response == mock_response
+    assert mock_async_client.get.call_args_list == [
+        call(url="https://example.com"),
+        call(url="https://example.com"),
+    ]
+    mock_asleep.assert_called_once_with(0.3)
