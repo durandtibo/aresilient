@@ -10,13 +10,13 @@ __all__ = ["RetryStrategy"]
 
 from typing import TYPE_CHECKING
 
-from aresilient.backoff.strategy import ExponentialBackoff
+from aresilient.backoff.exponential import ExponentialBackoff
 from aresilient.utils.sleep import calculate_sleep_time
 
 if TYPE_CHECKING:
     import httpx
 
-    from aresilient.backoff.strategy import BackoffStrategy
+    from aresilient.backoff.base import BaseBackoffStrategy
 
 
 class RetryStrategy:
@@ -39,11 +39,11 @@ class RetryStrategy:
     def __init__(
         self,
         jitter_factor: float,
-        backoff_strategy: BackoffStrategy | None = None,
+        backoff_strategy: BaseBackoffStrategy | None = None,
         max_wait_time: float | None = None,
     ) -> None:
         self.jitter_factor = jitter_factor
-        self.backoff_strategy: BackoffStrategy = (
+        self.backoff_strategy: BaseBackoffStrategy = (
             backoff_strategy if backoff_strategy is not None else ExponentialBackoff()
         )
         self.max_wait_time = max_wait_time

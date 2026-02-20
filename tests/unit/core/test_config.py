@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 def test_client_config_defaults() -> None:
     """Test that ClientConfig uses correct default values."""
-    from aresilient.backoff.strategy import ExponentialBackoff
+    from aresilient.backoff.exponential import ExponentialBackoff
 
     config = ClientConfig()
 
@@ -185,7 +185,7 @@ def test_client_config_merge_no_overrides() -> None:
 
 def test_client_config_merge_with_overrides() -> None:
     """Test that merge() applies non-None overrides."""
-    from aresilient.backoff.strategy import ExponentialBackoff
+    from aresilient.backoff.exponential import ExponentialBackoff
 
     original_strategy = ExponentialBackoff(base_delay=0.5)
     config = ClientConfig(max_retries=3, backoff_strategy=original_strategy)
@@ -198,7 +198,7 @@ def test_client_config_merge_with_overrides() -> None:
 
 def test_client_config_merge_with_none_values() -> None:
     """Test that merge() ignores None values."""
-    from aresilient.backoff.strategy import LinearBackoff
+    from aresilient.backoff.linear import LinearBackoff
 
     new_strategy = LinearBackoff(base_delay=1.0)
     config = ClientConfig(max_retries=3)
@@ -219,7 +219,7 @@ def test_client_config_merge_preserves_original() -> None:
 
 def test_client_config_to_dict() -> None:
     """Test that to_dict() returns all configuration parameters."""
-    from aresilient.backoff.strategy import ExponentialBackoff
+    from aresilient.backoff.exponential import ExponentialBackoff
 
     strategy = ExponentialBackoff(base_delay=0.5)
     config = ClientConfig(

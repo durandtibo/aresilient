@@ -12,13 +12,13 @@ import logging
 import random
 from typing import TYPE_CHECKING
 
-from aresilient.backoff.strategy import ExponentialBackoff
+from aresilient.backoff.exponential import ExponentialBackoff
 from aresilient.utils.retry_after import parse_retry_after
 
 if TYPE_CHECKING:
     import httpx
 
-    from aresilient.backoff.strategy import BackoffStrategy
+    from aresilient.backoff.base import BaseBackoffStrategy
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def calculate_sleep_time(
     attempt: int,
     jitter_factor: float,
     response: httpx.Response | None,
-    backoff_strategy: BackoffStrategy | None = None,
+    backoff_strategy: BaseBackoffStrategy | None = None,
     max_wait_time: float | None = None,
 ) -> float:
     """Calculate sleep time for retry with backoff strategy and jitter.
@@ -35,7 +35,7 @@ def calculate_sleep_time(
     This function implements backoff strategies with optional jitter for retrying
     failed HTTP requests. It also supports the Retry-After header when present in
     the server response, which takes precedence over the backoff calculation.
-    Advanced backoff strategies can be used by providing a BackoffStrategy instance.
+    Advanced backoff strategies can be used by providing a BaseBackoffStrategy instance.
 
     The sleep time is calculated as follows:
     1. Determine base sleep time:
@@ -56,8 +56,8 @@ def calculate_sleep_time(
             Recommended value is 0.1 to add up to 10% additional random delay.
         response: The HTTP response object (if available). Used to extract
             the Retry-After header if present.
-        backoff_strategy: Backoff strategy to use. Defaults to ExponentialBackoff
-            with base_delay=0.3.
+        backoff_strategy: BaseBackoffStrategy instance or None.
+            Defaults to ExponentialBackoff with base_delay=0.3.
         max_wait_time: Optional maximum backoff delay cap in seconds.
             If provided, individual backoff delays will not exceed this value,
             even with exponential backoff growth or Retry-After headers.
