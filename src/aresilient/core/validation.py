@@ -45,7 +45,6 @@ def validate_timeout(timeout: float | httpx.Timeout) -> None:
 def validate_retry_params(
     max_retries: int,
     jitter_factor: float = 0.0,
-    timeout: float | httpx.Timeout | None = None,
     max_total_time: float | None = None,
     max_wait_time: float | None = None,
 ) -> None:
@@ -56,8 +55,6 @@ def validate_retry_params(
             Must be >= 0. A value of 0 means no retries (only the initial attempt).
         jitter_factor: Factor for adding random jitter to backoff delays.
             Must be >= 0. Recommended value is 0.1 for 10% jitter.
-        timeout: Maximum seconds to wait for the server response.
-            Must be > 0 if provided as a numeric value.
         max_total_time: Maximum total time budget for all retry attempts.
             Must be > 0 if provided. The retry loop will stop if the total
             elapsed time exceeds this value.
@@ -74,7 +71,6 @@ def validate_retry_params(
         >>> from aresilient.core import validate_retry_params
         >>> validate_retry_params(max_retries=3)
         >>> validate_retry_params(max_retries=3, jitter_factor=0.1)
-        >>> validate_retry_params(max_retries=3, timeout=10.0)
         >>> validate_retry_params(max_retries=3, max_total_time=30.0)
         >>> validate_retry_params(max_retries=3, max_wait_time=5.0)
         >>> validate_retry_params(max_retries=-1)  # doctest: +SKIP
@@ -86,9 +82,6 @@ def validate_retry_params(
         raise ValueError(msg)
     if jitter_factor < 0:
         msg = f"jitter_factor must be >= 0, got {jitter_factor}"
-        raise ValueError(msg)
-    if timeout is not None and isinstance(timeout, (int, float)) and timeout <= 0:
-        msg = f"timeout must be > 0, got {timeout}"
         raise ValueError(msg)
     if max_total_time is not None and max_total_time <= 0:
         msg = f"max_total_time must be > 0, got {max_total_time}"

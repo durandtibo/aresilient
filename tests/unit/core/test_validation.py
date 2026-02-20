@@ -65,21 +65,3 @@ def test_validate_retry_params_rejects_negative_jitter_factor() -> None:
     jitter_factor."""
     with pytest.raises(ValueError, match=r"jitter_factor must be >= 0, got -0.1"):
         validate_retry_params(max_retries=3, jitter_factor=-0.1)
-
-
-def test_validate_retry_params_accepts_valid_timeout() -> None:
-    """Test that validate_retry_params accepts valid timeout."""
-    validate_retry_params(max_retries=3, timeout=10.0)
-    validate_retry_params(max_retries=3, timeout=0.1)
-
-
-def test_validate_retry_params_rejects_negative_timeout() -> None:
-    """Test that validate_retry_params rejects negative timeout."""
-    with pytest.raises(ValueError, match=r"timeout must be > 0, got -1.0"):
-        validate_retry_params(max_retries=3, timeout=-1.0)
-
-
-def test_validate_retry_params_rejects_zero_timeout() -> None:
-    """Test that validate_retry_params rejects zero timeout."""
-    with pytest.raises(ValueError, match=r"timeout must be > 0, got 0"):
-        validate_retry_params(max_retries=3, timeout=0)
