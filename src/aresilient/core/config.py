@@ -14,7 +14,7 @@ __all__ = [
     "ClientConfig",
 ]
 
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from aresilient.backoff.exponential import ExponentialBackoff
@@ -119,36 +119,6 @@ class ClientConfig:
             max_total_time=self.max_total_time,
             max_wait_time=self.max_wait_time,
         )
-
-    def merge(self, **overrides: Any) -> ClientConfig:
-        """Create a new config with specified parameters overridden.
-
-        This method creates a new ClientConfig instance with the same values
-        as the current instance, except for the parameters specified in
-        overrides. Only non-None override values are applied.
-
-        Args:
-            **overrides: Keyword arguments for parameters to override.
-                Only non-None values will override the current config.
-
-        Returns:
-            A new ClientConfig instance with overrides applied.
-
-        Example:
-            ```pycon
-            >>> from aresilient.core.config import ClientConfig
-            >>> config = ClientConfig(max_retries=3)
-            >>> new_config = config.merge(max_retries=5)
-            >>> new_config.max_retries
-            5
-            >>> config.max_retries  # Original unchanged
-            3
-
-            ```
-        """
-        # Filter out None values to preserve original config values
-        filtered_overrides = {k: v for k, v in overrides.items() if v is not None}
-        return replace(self, **filtered_overrides)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary format.

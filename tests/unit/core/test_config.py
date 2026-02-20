@@ -12,7 +12,6 @@ import pytest
 from coola.equality import objects_are_equal
 
 from aresilient.backoff.exponential import ExponentialBackoff
-from aresilient.backoff.linear import LinearBackoff
 from aresilient.core import (
     DEFAULT_MAX_RETRIES,
     DEFAULT_TIMEOUT,
@@ -174,45 +173,6 @@ def test_client_config_validation_max_wait_time_negative() -> None:
         ClientConfig(max_wait_time=-5.0)
 
 
-def test_client_config_merge_no_overrides() -> None:
-    """Test that merge() with no overrides returns equivalent config."""
-    config = ClientConfig(max_retries=3)
-    merged = config.merge()
-
-    assert merged.max_retries == 3
-    assert merged is not config  # Should be a new instance
-
-
-def test_client_config_merge_with_overrides() -> None:
-    """Test that merge() applies non-None overrides."""
-    original_strategy = ExponentialBackoff(base_delay=0.5)
-    config = ClientConfig(max_retries=3, backoff_strategy=original_strategy)
-    merged = config.merge(max_retries=5)
-
-    assert merged.max_retries == 5
-    assert merged.backoff_strategy is original_strategy  # Unchanged
-    assert config.max_retries == 3  # Original unchanged
-
-
-def test_client_config_merge_with_none_values() -> None:
-    """Test that merge() ignores None values."""
-    new_strategy = LinearBackoff(base_delay=1.0)
-    config = ClientConfig(max_retries=3)
-    merged = config.merge(max_retries=None, backoff_strategy=new_strategy)
-
-    assert merged.max_retries == 3  # Not overridden (was None)
-    assert merged.backoff_strategy is new_strategy  # Overridden
-
-
-def test_client_config_merge_preserves_original() -> None:
-    """Test that merge() does not modify original config."""
-    config = ClientConfig(max_retries=3)
-    merged = config.merge(max_retries=5)
-
-    assert config.max_retries == 3  # Original unchanged
-    assert merged.max_retries == 5  # New config has override
-
-
 def test_client_config_to_dict() -> None:
     """Test that to_dict() returns all configuration parameters."""
     strategy = ExponentialBackoff(base_delay=0.5)
@@ -265,26 +225,6 @@ def test_client_config_status_forcelist_default() -> None:
     """Test that status_forcelist has correct default value."""
     config = ClientConfig()
     assert config.status_forcelist == RETRY_STATUS_CODES
-
-
-def test_client_config_merge_validation() -> None:
-    """Test that merge() validates the merged config."""
-    config = ClientConfig(max_retries=3)
-
-    # This should raise ValueError because max_retries=-1 is invalid
-    with pytest.raises(ValueError, match=r"max_retries must be >= 0"):
-        config.merge(max_retries=-1)
-
-
-def test_client_config_immutability_after_merge() -> None:
-    """Test that merging creates independent configs."""
-    config1 = ClientConfig(max_retries=3)
-    config2 = config1.merge(max_retries=5)
-    config3 = config1.merge(max_retries=7)
-
-    assert config1.max_retries == 3
-    assert config2.max_retries == 5
-    assert config3.max_retries == 7
 
 
 ###################################
