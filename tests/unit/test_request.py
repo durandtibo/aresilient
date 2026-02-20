@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from aresilient import HttpRequestError
+from aresilient.backoff import ExponentialBackoff
 from aresilient.core import (
     DEFAULT_MAX_RETRIES,
     RETRY_STATUS_CODES,
@@ -258,8 +259,6 @@ def test_request_zero_max_retries(mock_sleep: Mock) -> None:
 
 def test_request_zero_backoff_factor(mock_response: httpx.Response) -> None:
     """Test with zero base_delay in ExponentialBackoff - should not sleep."""
-    from aresilient.backoff import ExponentialBackoff
-
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
 
@@ -381,8 +380,6 @@ def test_request_preserves_response_object(mock_sleep: Mock) -> None:
 
 def test_request_large_backoff_factor(mock_response: httpx.Response, mock_sleep: Mock) -> None:
     """Test with large base_delay in ExponentialBackoff."""
-    from aresilient.backoff import ExponentialBackoff
-
     mock_fail_response = Mock(spec=httpx.Response, status_code=503)
     mock_request_func = Mock(side_effect=[mock_fail_response, mock_response])
 
@@ -403,8 +400,6 @@ def test_request_large_backoff_factor(mock_response: httpx.Response, mock_sleep:
 
 def test_request_high_max_retries(mock_response: httpx.Response, mock_sleep: Mock) -> None:
     """Test with high max_retries value."""
-    from aresilient.backoff import ExponentialBackoff
-
     mock_fail_response = Mock(spec=httpx.Response, status_code=500)
     # Fail 9 times, succeed on 10th attempt
     side_effects = [mock_fail_response] * 9 + [mock_response]
@@ -1011,8 +1006,6 @@ def test_request_with_config(
     mock_response: httpx.Response, mock_request_func: Mock, mock_sleep: Mock
 ) -> None:
     """Test request using ClientConfig."""
-    from aresilient.backoff import ExponentialBackoff
-
     config = ClientConfig(max_retries=2, backoff_strategy=ExponentialBackoff(base_delay=0.5))
     response = request(
         url=TEST_URL,
