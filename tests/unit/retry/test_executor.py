@@ -2,7 +2,7 @@ r"""Unit tests for synchronous retry executor."""
 
 from __future__ import annotations
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 import httpx
 import pytest
@@ -92,6 +92,7 @@ def test_retry_executor_retry_on_retryable_status(mock_sleep: Mock) -> None:
 
     assert response is mock_response_success
     assert mock_request_func.call_count == 2
+    mock_sleep.assert_called_once_with(0.3)
 
 
 def test_retry_executor_fails_on_non_retryable_status() -> None:
@@ -140,6 +141,7 @@ def test_retry_executor_exhausts_retries(mock_sleep: Mock) -> None:
 
     # Should be called max_retries + 1 times (initial + retries)
     assert mock_request_func.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
 def test_retry_executor_handles_timeout_exception(mock_sleep: Mock) -> None:
@@ -163,6 +165,7 @@ def test_retry_executor_handles_timeout_exception(mock_sleep: Mock) -> None:
 
     assert response is mock_response
     assert mock_request_func.call_count == 2
+    mock_sleep.assert_called_once_with(0.3)
 
 
 def test_retry_executor_with_callbacks() -> None:
@@ -220,6 +223,7 @@ def test_retry_executor_circuit_breaker_records_exception_failure(mock_sleep: Mo
     assert response is mock_response
     # Circuit breaker should be in CLOSED state after success
     assert circuit_breaker.state.name == "CLOSED"
+    mock_sleep.assert_called_once_with(0.3)
 
 
 def test_retry_executor_max_total_time_exceeded_with_response() -> None:
@@ -317,6 +321,7 @@ def test_retry_executor_handles_request_error(mock_sleep: Mock) -> None:
 
     assert response is mock_response
     assert mock_request_func.call_count == 2
+    mock_sleep.assert_called_once_with(0.3)
 
 
 def test_retry_executor_request_error_exhausts_retries(mock_sleep: Mock) -> None:
@@ -343,6 +348,7 @@ def test_retry_executor_request_error_exhausts_retries(mock_sleep: Mock) -> None
 
     # Should be called max_retries + 1 times
     assert mock_request_func.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
 
 
 def test_retry_executor_timeout_exhausts_retries(mock_sleep: Mock) -> None:
@@ -369,3 +375,4 @@ def test_retry_executor_timeout_exhausts_retries(mock_sleep: Mock) -> None:
 
     # Should be called max_retries + 1 times
     assert mock_request_func.call_count == 3
+    assert mock_sleep.call_args_list == [call(0.3), call(0.6)]
