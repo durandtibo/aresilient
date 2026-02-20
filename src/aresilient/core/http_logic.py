@@ -53,8 +53,6 @@ def execute_http_method(
     # Validate timeout (not part of ClientConfig)
     validate_timeout(timeout)
 
-    config = config or ClientConfig()
-
     # Client management
     owns_client = client is None
     client = client or httpx.Client(timeout=timeout)
@@ -107,8 +105,6 @@ async def execute_http_method_async(
     """
     # Validate timeout (not part of ClientConfig)
     validate_timeout(timeout)
-
-    config = config or ClientConfig()
 
     # Client management
     owns_client = client is None
