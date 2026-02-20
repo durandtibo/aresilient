@@ -16,9 +16,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 from aresilient.core.config import (
-    DEFAULT_MAX_RETRIES,
     DEFAULT_TIMEOUT,
-    RETRY_STATUS_CODES,
     ClientConfig,
 )
 from aresilient.core.validation import validate_timeout
@@ -43,28 +41,17 @@ class AsyncResilientClient:
     logic across all requests.
 
     Args:
+        config: Optional ClientConfig instance for retry configuration.
+            If ``None``, a default ClientConfig is used.
         timeout: Maximum seconds to wait for server responses. Must be > 0.
-        max_retries: Maximum number of retry attempts for failed requests. Must be >= 0.
-        status_forcelist: Tuple of HTTP status codes that should trigger a retry.
-        jitter_factor: Factor for adding random jitter to backoff delays. Must be >= 0.
-        retry_if: Optional custom predicate function to determine whether to retry.
-        backoff_strategy: Optional custom backoff strategy instance.
-            Defaults to ExponentialBackoff().
-        max_total_time: Optional maximum total time budget in seconds for all retry
-            attempts. Must be > 0 if provided.
-        max_wait_time: Optional maximum backoff delay cap in seconds. Must be > 0 if provided.
-        circuit_breaker: Optional circuit breaker instance for advanced failure handling.
-        on_request: Optional callback called before each request attempt.
-        on_retry: Optional callback called before each retry (after backoff).
-        on_success: Optional callback called when request succeeds.
-        on_failure: Optional callback called when all retries are exhausted.
 
     Example:
         ```pycon
         >>> import asyncio
         >>> from aresilient import AsyncResilientClient
+        >>> from aresilient.core.config import ClientConfig
         >>> async def main():  # doctest: +SKIP
-        ...     async with AsyncResilientClient(max_retries=5, timeout=30) as client:
+        ...     async with AsyncResilientClient(config=ClientConfig(max_retries=5), timeout=30) as client:
         ...         response1 = await client.get("https://api.example.com/data1")
         ...         response2 = await client.post(
         ...             "https://api.example.com/data2", json={"key": "value"}
@@ -84,19 +71,8 @@ class AsyncResilientClient:
     def __init__(
         self,
         *,
+        config: ClientConfig | None = None,
         timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
-        max_retries: int = DEFAULT_MAX_RETRIES,
-        status_forcelist: tuple[int, ...] = RETRY_STATUS_CODES,
-        jitter_factor: float = 0.0,
-        retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
-        backoff_strategy: BaseBackoffStrategy | None = None,
-        max_total_time: float | None = None,
-        max_wait_time: float | None = None,
-        circuit_breaker: CircuitBreaker | None = None,
-        on_request: Callable[[RequestInfo], None] | None = None,
-        on_retry: Callable[[RetryInfo], None] | None = None,
-        on_success: Callable[[ResponseInfo], None] | None = None,
-        on_failure: Callable[[FailureInfo], None] | None = None,
     ) -> None:
         # Validate timeout separately (used for httpx.AsyncClient creation, not retry logic)
         validate_timeout(timeout)
@@ -105,22 +81,7 @@ class AsyncResilientClient:
         self._timeout = timeout
 
         # Store retry configuration in ClientConfig dataclass
-        config_kwargs: dict[str, Any] = {
-            "max_retries": max_retries,
-            "status_forcelist": status_forcelist,
-            "jitter_factor": jitter_factor,
-            "retry_if": retry_if,
-            "max_total_time": max_total_time,
-            "max_wait_time": max_wait_time,
-            "circuit_breaker": circuit_breaker,
-            "on_request": on_request,
-            "on_retry": on_retry,
-            "on_success": on_success,
-            "on_failure": on_failure,
-        }
-        if backoff_strategy is not None:
-            config_kwargs["backoff_strategy"] = backoff_strategy
-        self._config = ClientConfig(**config_kwargs)
+        self._config = config or ClientConfig()
 
         # Client will be created when entering context
         self._client: httpx.AsyncClient | None = None

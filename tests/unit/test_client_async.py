@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, Mock, call, patch
 import pytest
 
 from aresilient import AsyncResilientClient
+from aresilient.core.config import ClientConfig
 from tests.helpers import create_mock_response
 
 if TYPE_CHECKING:
@@ -84,7 +85,7 @@ async def test_async_client_multiple_requests(mock_asleep: Mock) -> None:
         )
         mock_client_class.return_value = mock_client
 
-        async with AsyncResilientClient(max_retries=5) as client:
+        async with AsyncResilientClient(config=ClientConfig(max_retries=5)) as client:
             response1 = await client.get("https://api.example.com/data1")
             response2 = await client.post("https://api.example.com/data2", json={"key": "value"})
 
@@ -264,7 +265,7 @@ async def test_async_client_override_max_retries(
         mock_client_class.return_value = mock_client
 
         # Client configured with max_retries=0, but we override it for this request
-        async with AsyncResilientClient(max_retries=0) as client:
+        async with AsyncResilientClient(config=ClientConfig(max_retries=0)) as client:
             response = await client.get(TEST_URL, max_retries=2)
 
         # Should have retried because we overrode max_retries
@@ -287,7 +288,7 @@ async def test_async_client_default_max_retries(
         mock_client_class.return_value = mock_client
 
         # Client configured with max_retries=2
-        async with AsyncResilientClient(max_retries=2) as client:
+        async with AsyncResilientClient(config=ClientConfig(max_retries=2)) as client:
             response = await client.get(TEST_URL)
 
         # Should have retried using client's default
@@ -301,7 +302,7 @@ async def test_async_client_default_max_retries(
 async def test_async_client_validation_max_retries_negative(mock_asleep: Mock) -> None:
     """Test that client validates max_retries parameter must be >= 0."""
     with pytest.raises(ValueError, match=r"max_retries must be >= 0, got -1"):
-        AsyncResilientClient(max_retries=-1)
+        AsyncResilientClient(config=ClientConfig(max_retries=-1))
     mock_asleep.assert_not_called()
 
 
@@ -327,7 +328,7 @@ async def test_async_client_shares_configuration_across_requests(
         mock_client_class.return_value = mock_client
 
         # Create client with specific configuration
-        async with AsyncResilientClient(max_retries=5, jitter_factor=0.5) as client:
+        async with AsyncResilientClient(config=ClientConfig(max_retries=5, jitter_factor=0.5)) as client:
             await client.get(TEST_URL)
             await client.post(TEST_URL)
 

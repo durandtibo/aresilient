@@ -149,9 +149,10 @@ response = get(
 
 ```python
 from aresilient import ResilientClient
+from aresilient.core.config import ClientConfig
 
 # Manage multiple requests with shared configuration
-with ResilientClient(max_retries=5, timeout=30.0) as client:
+with ResilientClient(config=ClientConfig(max_retries=5), timeout=30.0) as client:
     response1 = client.get("https://api.example.com/users")
     response2 = client.post("https://api.example.com/data", json={"key": "value"})
     response3 = client.put(
