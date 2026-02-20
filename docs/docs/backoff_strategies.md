@@ -288,11 +288,14 @@ Backoff strategies work seamlessly with `ResilientClient` and `AsyncResilientCli
 ```python
 from aresilient import ResilientClient
 from aresilient.backoff import ConstantBackoff, LinearBackoff
+from aresilient.core.config import ClientConfig
 
 # All requests in the context use the same backoff strategy
 with ResilientClient(
-    backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=8.0),
-    max_retries=5,
+    config=ClientConfig(
+        backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=8.0),
+        max_retries=5,
+    ),
 ) as client:
     response1 = client.get("https://api.example.com/data1")
     response2 = client.post("https://api.example.com/data2", json={"key": "value"})
@@ -311,12 +314,15 @@ import asyncio
 
 from aresilient import AsyncResilientClient
 from aresilient.backoff import ExponentialBackoff
+from aresilient.core.config import ClientConfig
 
 
 async def fetch_all():
     async with AsyncResilientClient(
-        backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=15.0),
-        max_retries=3,
+        config=ClientConfig(
+            backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=15.0),
+            max_retries=3,
+        ),
     ) as client:
         results = await asyncio.gather(
             client.get("https://api.example.com/data1"),

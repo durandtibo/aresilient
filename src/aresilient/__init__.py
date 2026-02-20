@@ -29,7 +29,8 @@ Example:
     ... )  # doctest: +SKIP
     >>> # Use context manager for multiple requests
     >>> from aresilient import ResilientClient
-    >>> with ResilientClient(max_retries=5, timeout=30) as client:  # doctest: +SKIP
+    >>> from aresilient.core.config import ClientConfig
+    >>> with ResilientClient(config=ClientConfig(max_retries=5), timeout=30) as client:  # doctest: +SKIP
     ...     response1 = client.get("https://api.example.com/data1")
     ...     response2 = client.post("https://api.example.com/data2", json={"key": "value"})
     ...

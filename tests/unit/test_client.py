@@ -11,6 +11,7 @@ from unittest.mock import Mock, call, patch
 import pytest
 
 from aresilient import ResilientClient
+from aresilient.core.config import ClientConfig
 from tests.helpers import create_mock_response
 
 if TYPE_CHECKING:
@@ -75,7 +76,7 @@ def test_client_multiple_requests(mock_sleep: Mock) -> None:
         )
         mock_client_class.return_value = mock_client
 
-        with ResilientClient(max_retries=5) as client:
+        with ResilientClient(config=ClientConfig(max_retries=5)) as client:
             response1 = client.get("https://api.example.com/data1")
             response2 = client.post("https://api.example.com/data2", json={"key": "value"})
 
@@ -230,7 +231,7 @@ def test_client_override_max_retries(
         mock_client_class.return_value = mock_client
 
         # Client configured with max_retries=0, but we override it for this request
-        with ResilientClient(max_retries=0) as client:
+        with ResilientClient(config=ClientConfig(max_retries=0)) as client:
             response = client.get(TEST_URL, max_retries=2)
 
         # Should have retried because we overrode max_retries
@@ -251,7 +252,7 @@ def test_client_default_max_retries(
         mock_client_class.return_value = mock_client
 
         # Client configured with max_retries=2
-        with ResilientClient(max_retries=2) as client:
+        with ResilientClient(config=ClientConfig(max_retries=2)) as client:
             response = client.get(TEST_URL)
 
         # Should have retried using client's default
@@ -264,7 +265,7 @@ def test_client_default_max_retries(
 def test_client_validation_max_retries_negative(mock_sleep: Mock) -> None:
     """Test that client validates max_retries parameter must be >= 0."""
     with pytest.raises(ValueError, match=r"max_retries must be >= 0, got -1"):
-        ResilientClient(max_retries=-1)
+        ResilientClient(config=ClientConfig(max_retries=-1))
 
     mock_sleep.assert_not_called()
 
@@ -288,7 +289,7 @@ def test_client_shares_configuration_across_requests(
         mock_client_class.return_value = mock_client
 
         # Create client with specific configuration
-        with ResilientClient(max_retries=5, jitter_factor=0.5) as client:
+        with ResilientClient(config=ClientConfig(max_retries=5, jitter_factor=0.5)) as client:
             client.get(TEST_URL)
             client.post(TEST_URL)
 

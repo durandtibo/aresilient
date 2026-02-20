@@ -445,13 +445,16 @@ than passing the same parameters to every function call.
 ```python
 from aresilient import ResilientClient
 from aresilient.backoff import LinearBackoff
+from aresilient.core.config import ClientConfig
 
 # Create a client with shared configuration
 with ResilientClient(
-    max_retries=5,
+    config=ClientConfig(
+        max_retries=5,
+        backoff_strategy=LinearBackoff(base_delay=1.0),
+        jitter_factor=0.1,
+    ),
     timeout=30.0,
-    backoff_strategy=LinearBackoff(base_delay=1.0),
-    jitter_factor=0.1,
 ) as client:
     # All requests use the shared configuration
     users = client.get("https://api.example.com/users")
@@ -485,13 +488,16 @@ import asyncio
 
 from aresilient import AsyncResilientClient
 from aresilient.backoff import ExponentialBackoff
+from aresilient.core.config import ClientConfig
 
 
 async def fetch_all_data():
     async with AsyncResilientClient(
-        max_retries=3,
+        config=ClientConfig(
+            max_retries=3,
+            backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=10.0),
+        ),
         timeout=20.0,
-        backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=10.0),
     ) as client:
         # Concurrent async requests with shared configuration
         users_task = client.get("https://api.example.com/users")
@@ -536,6 +542,7 @@ Both `ResilientClient` and `AsyncResilientClient` support all HTTP methods:
 
 ```python
 from aresilient import ResilientClient
+from aresilient.core.config import ClientConfig
 
 
 def log_retry(info):
@@ -547,9 +554,11 @@ def log_failure(info):
 
 
 with ResilientClient(
-    max_retries=3,
-    on_retry=log_retry,
-    on_failure=log_failure,
+    config=ClientConfig(
+        max_retries=3,
+        on_retry=log_retry,
+        on_failure=log_failure,
+    ),
 ) as client:
     # All requests will use these callbacks
     response1 = client.get("https://api.example.com/data1")
@@ -693,14 +702,17 @@ response2 = get(
 ```python
 from aresilient import ResilientClient
 from aresilient.circuit_breaker import CircuitBreaker
+from aresilient.core.config import ClientConfig
 
 # Create circuit breaker
 circuit = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
 
 # Use with ResilientClient
 with ResilientClient(
-    max_retries=3,
-    circuit_breaker=circuit,
+    config=ClientConfig(
+        max_retries=3,
+        circuit_breaker=circuit,
+    ),
 ) as client:
     # All requests share the circuit breaker
     response1 = client.get("https://api.example.com/data1")
@@ -1705,9 +1717,10 @@ organization and connection pooling:
 
 ```python
 from aresilient import ResilientClient
+from aresilient.core.config import ClientConfig
 
 # Good: Use ResilientClient for multiple requests
-with ResilientClient(max_retries=3, timeout=30.0) as client:
+with ResilientClient(config=ClientConfig(max_retries=3), timeout=30.0) as client:
     for url in urls:
         response = client.get(url)
         process_response(response)
@@ -1866,18 +1879,19 @@ Protect your application from cascading failures when calling external services:
 ```python
 from aresilient import ResilientClient
 from aresilient.circuit_breaker import CircuitBreaker
+from aresilient.core.config import ClientConfig
 
 # Create circuit breakers for different services
 payment_circuit = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
 user_service_circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
 
 # Use with different endpoints
-with ResilientClient(circuit_breaker=payment_circuit) as client:
+with ResilientClient(config=ClientConfig(circuit_breaker=payment_circuit)) as client:
     response = client.post(
         "https://payment-api.example.com/charge", json={"amount": 100}
     )
 
-with ResilientClient(circuit_breaker=user_service_circuit) as client:
+with ResilientClient(config=ClientConfig(circuit_breaker=user_service_circuit)) as client:
     response = client.get("https://user-api.example.com/profile")
 ```
 
