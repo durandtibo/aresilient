@@ -8,17 +8,18 @@ patterns.
 from __future__ import annotations
 
 __all__ = [
-    "BackoffStrategy",
+    "BaseBackoffStrategy",
     "ConstantBackoff",
     "ExponentialBackoff",
     "FibonacciBackoff",
     "LinearBackoff",
 ]
 
-from aresilient.backoff.strategy import (
-    BackoffStrategy,
-    ConstantBackoff,
-    ExponentialBackoff,
-    FibonacciBackoff,
-    LinearBackoff,
-)
+from aresilient.backoff.base import BaseBackoffStrategy
+from aresilient.backoff.constant import ConstantBackoff
+from aresilient.backoff.exponential import ExponentialBackoff
+from aresilient.backoff.fibonacci import FibonacciBackoff
+from aresilient.backoff.linear import LinearBackoff
+
+# Backward compatibility alias
+BackoffStrategy = BaseBackoffStrategy
