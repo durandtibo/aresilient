@@ -382,3 +382,89 @@ def test_config_none_uses_defaults(
 
     assert response.status_code == test_case.status_code
     mock_sleep.assert_not_called()
+
+
+##############################################################
+#     Tests for individual retry parameter support           #
+##############################################################
+
+
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
+def test_individual_max_retries_param(
+    test_case: HttpMethodTestCase,
+    mock_sleep: Mock,
+) -> None:
+    """Test that max_retries can be passed directly without ClientConfig."""
+    mock_response_fail = Mock(spec=httpx.Response, status_code=503)
+    mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code)
+    mock_client = Mock(spec=httpx.Client)
+    setattr(
+        mock_client,
+        test_case.client_method,
+        Mock(side_effect=[mock_response_fail, mock_response_ok]),
+    )
+
+    response = test_case.method_func(TEST_URL, client=mock_client, max_retries=1)
+
+    assert response.status_code == test_case.status_code
+    assert getattr(mock_client, test_case.client_method).call_count == 2
+
+
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
+def test_individual_max_retries_overrides_config(
+    test_case: HttpMethodTestCase,
+    mock_sleep: Mock,
+) -> None:
+    """Test that direct max_retries parameter overrides config value."""
+    mock_response_fail = Mock(spec=httpx.Response, status_code=503)
+    mock_client = Mock(spec=httpx.Client)
+    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_fail))
+
+    # config says max_retries=3 but we override with max_retries=0
+    with pytest.raises(HttpRequestError):
+        test_case.method_func(
+            TEST_URL, client=mock_client, config=ClientConfig(max_retries=3), max_retries=0
+        )
+
+    # Only 1 attempt (no retries)
+    assert getattr(mock_client, test_case.client_method).call_count == 1
+    mock_sleep.assert_not_called()
+
+
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
+def test_individual_jitter_factor_param(
+    test_case: HttpMethodTestCase,
+    mock_sleep: Mock,
+) -> None:
+    """Test that jitter_factor can be passed directly without ClientConfig."""
+    mock_client, _ = setup_mock_client_for_method(test_case.client_method, test_case.status_code)
+
+    response = test_case.method_func(TEST_URL, client=mock_client, jitter_factor=0.0)
+
+    assert response.status_code == test_case.status_code
+    mock_sleep.assert_not_called()
+
+
+@pytest.mark.parametrize("test_case", HTTP_METHODS)
+def test_individual_status_forcelist_param(
+    test_case: HttpMethodTestCase,
+    mock_sleep: Mock,
+) -> None:
+    """Test that status_forcelist can be passed directly without ClientConfig."""
+    # 503 is in the default forcelist but we override with only (500,)
+    mock_response_503 = Mock(spec=httpx.Response, status_code=503)
+    mock_client = Mock(spec=httpx.Client)
+    setattr(mock_client, test_case.client_method, Mock(return_value=mock_response_503))
+
+    # With status_forcelist=(500,), 503 is NOT retryable → immediate failure
+    with pytest.raises(HttpRequestError):
+        test_case.method_func(
+            TEST_URL,
+            client=mock_client,
+            max_retries=3,
+            status_forcelist=(500,),
+        )
+
+    # Should only have made one attempt (503 not retryable with our custom list)
+    assert getattr(mock_client, test_case.client_method).call_count == 1
+    mock_sleep.assert_not_called()

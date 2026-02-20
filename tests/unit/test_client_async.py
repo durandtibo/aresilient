@@ -357,3 +357,75 @@ async def test_async_client_exit_with_none_client() -> None:
     # Should complete without errors
     assert client._client is None
     assert client._entered is False
+
+
+##########################################################
+#     Tests for wrapping an existing httpx.AsyncClient   #
+##########################################################
+
+
+@pytest.mark.asyncio
+async def test_async_client_wrap_existing_client(
+    mock_asleep: Mock, mock_response: httpx.Response
+) -> None:
+    """Test that AsyncResilientClient can wrap an existing httpx.AsyncClient."""
+    existing_client = Mock(get=AsyncMock(return_value=mock_response))
+
+    async with AsyncResilientClient(client=existing_client) as resilient:
+        response = await resilient.get(TEST_URL)
+
+    assert response.status_code == 200
+    existing_client.get.assert_called_once_with(url=TEST_URL)
+    # Wrapped client must NOT be closed by AsyncResilientClient
+    existing_client.aclose.assert_not_called()
+
+    mock_asleep.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_client_wrap_existing_client_not_closed_on_exception(
+    mock_asleep: Mock,
+) -> None:
+    """Test that wrapped async client is not closed even when an exception occurs."""
+    existing_client = Mock(aclose=AsyncMock())
+    msg = "test error"
+
+    with pytest.raises(ValueError, match=r"test error"):
+        async with AsyncResilientClient(client=existing_client):
+            raise ValueError(msg)
+
+    existing_client.aclose.assert_not_called()
+    mock_asleep.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_client_wrap_existing_client_with_config(
+    mock_asleep: Mock, mock_response: httpx.Response, mock_response_fail: httpx.Response
+) -> None:
+    """Test wrapping an existing async client respects ClientConfig."""
+    existing_client = Mock(
+        get=AsyncMock(side_effect=[mock_response_fail, mock_response]),
+        aclose=AsyncMock(),
+    )
+
+    async with AsyncResilientClient(
+        client=existing_client, config=ClientConfig(max_retries=1)
+    ) as resilient:
+        response = await resilient.get(TEST_URL)
+
+    assert response.status_code == 200
+    assert existing_client.get.call_count == 2
+    existing_client.aclose.assert_not_called()
+
+
+def test_async_client_owns_client_flag_auto_created(mock_asleep: Mock) -> None:
+    """Test that _owns_client is True when AsyncResilientClient creates the client."""
+    resilient = AsyncResilientClient()
+    assert resilient._owns_client is True
+
+
+def test_async_client_owns_client_flag_provided(mock_asleep: Mock) -> None:
+    """Test that _owns_client is False when an existing client is provided."""
+    existing_client = Mock()
+    resilient = AsyncResilientClient(client=existing_client)
+    assert resilient._owns_client is False

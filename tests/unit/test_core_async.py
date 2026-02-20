@@ -414,3 +414,52 @@ async def test_config_none_uses_defaults(
 
     assert response.status_code == test_case.status_code
     mock_asleep.assert_not_called()
+
+
+##################################################################
+#     Tests for individual retry parameter support (async)       #
+##################################################################
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
+async def test_individual_max_retries_param(
+    test_case: HttpMethodTestCase,
+    mock_asleep: Mock,
+) -> None:
+    """Test that max_retries can be passed directly to async functions."""
+    mock_response_fail = Mock(spec=httpx.Response, status_code=503)
+    mock_response_ok = Mock(spec=httpx.Response, status_code=test_case.status_code)
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+    setattr(
+        mock_client,
+        test_case.client_method,
+        AsyncMock(side_effect=[mock_response_fail, mock_response_ok]),
+    )
+
+    response = await test_case.method_func(TEST_URL, client=mock_client, max_retries=1)
+
+    assert response.status_code == test_case.status_code
+    assert getattr(mock_client, test_case.client_method).call_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("test_case", HTTP_METHODS_ASYNC)
+async def test_individual_max_retries_overrides_config(
+    test_case: HttpMethodTestCase,
+    mock_asleep: Mock,
+) -> None:
+    """Test that direct max_retries parameter overrides config value for async functions."""
+    mock_response_fail = Mock(spec=httpx.Response, status_code=503)
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+    setattr(mock_client, test_case.client_method, AsyncMock(return_value=mock_response_fail))
+
+    # config says max_retries=3 but we override with max_retries=0
+    with pytest.raises(HttpRequestError):
+        await test_case.method_func(
+            TEST_URL, client=mock_client, config=ClientConfig(max_retries=3), max_retries=0
+        )
+
+    # Only 1 attempt (no retries)
+    assert getattr(mock_client, test_case.client_method).call_count == 1
+    mock_asleep.assert_not_called()

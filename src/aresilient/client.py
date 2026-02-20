@@ -39,10 +39,21 @@ class ResilientClient:
     the lifecycle of the underlying httpx.Client and applies consistent retry
     logic across all requests.
 
+    It can either create its own internal ``httpx.Client`` (default behavior),
+    or wrap an existing ``httpx.Client`` that you have already configured.
+    When wrapping an existing client, ``ResilientClient`` does **not** close it
+    on exit — the caller is responsible for the wrapped client's lifecycle.
+
     Args:
+        client: An optional ``httpx.Client`` instance to wrap. When provided,
+            this client is used for all requests and is *not* closed when the
+            context manager exits. When ``None`` (default), a new
+            ``httpx.Client`` is created using the ``timeout`` parameter and
+            closed automatically on exit.
         config: Optional ClientConfig instance for retry configuration.
             If ``None``, a default ClientConfig is used.
         timeout: Maximum seconds to wait for server responses. Must be > 0.
+            Only used when ``client`` is ``None``.
 
     Example:
         ```pycon
@@ -58,6 +69,22 @@ class ResilientClient:
 
         ```
 
+    Example (wrapping an existing httpx.Client):
+        ```pycon
+        >>> import httpx
+        >>> from aresilient import ResilientClient
+        >>> http_client = httpx.Client(
+        ...     headers={"User-Agent": "MyApp/1.0"},
+        ... )
+        >>> with ResilientClient(
+        ...     client=http_client, config=ClientConfig(max_retries=5)
+        ... ) as resilient:  # doctest: +SKIP
+        ...     response = resilient.get("https://api.example.com/data")
+        ...
+        >>> http_client.close()  # User is responsible for closing the wrapped client  # doctest: +SKIP
+
+        ```
+
     Note:
         All HTTP method calls (get, post, put, delete, patch, head, options, request)
         support the same parameters as their standalone function counterparts, allowing
@@ -67,30 +94,42 @@ class ResilientClient:
     def __init__(
         self,
         *,
+        client: httpx.Client | None = None,
         config: ClientConfig | None = None,
         timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
     ) -> None:
         # Validate timeout separately (used for httpx.Client creation, not retry logic)
         validate_timeout(timeout)
 
-        # Store timeout separately (used for httpx.Client creation)
+        # Store timeout separately (used for httpx.Client creation when no client provided)
         self._timeout = timeout
 
         # Store retry configuration in ClientConfig dataclass
         self._config = config or ClientConfig()
 
-        # Client will be created when entering context
-        self._client: httpx.Client | None = None
+        if client is not None:
+            # Use the provided client; the caller manages its lifecycle
+            self._client: httpx.Client | None = client
+            self._owns_client = False
+        else:
+            # Client will be created when entering the context manager
+            self._client = None
+            self._owns_client = True
+
         self._entered = False
 
     def __enter__(self) -> Self:
-        """Enter the context manager and create the underlying httpx
-        client.
+        """Enter the context manager.
+
+        If no client was provided at construction time, a new
+        ``httpx.Client`` is created here. Otherwise the provided client
+        is used as-is.
 
         Returns:
             The ResilientClient instance for making requests.
         """
-        self._client = httpx.Client(timeout=self._timeout)
+        if self._owns_client:
+            self._client = httpx.Client(timeout=self._timeout)
         self._entered = True
         return self
 
@@ -100,15 +139,18 @@ class ResilientClient:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Exit the context manager and close the underlying httpx
-        client.
+        """Exit the context manager.
+
+        Closes the underlying ``httpx.Client`` only when it was created
+        internally (i.e. no ``client`` was passed to the constructor).
+        Wrapped clients are left open for the caller to close.
 
         Args:
             exc_type: Exception type if an exception occurred.
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        if self._client is not None:
+        if self._owns_client and self._client is not None:
             self._client.close()
             self._client = None
         self._entered = False

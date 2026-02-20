@@ -315,3 +315,80 @@ def test_client_exit_with_none_client() -> None:
     # Should complete without errors
     assert client._client is None
     assert client._entered is False
+
+
+#####################################################
+#     Tests for wrapping an existing httpx.Client   #
+#####################################################
+
+
+def test_client_wrap_existing_client(mock_sleep: Mock, mock_response: httpx.Response) -> None:
+    """Test that ResilientClient can wrap an existing httpx.Client."""
+    existing_client = Mock(get=Mock(return_value=mock_response))
+
+    with ResilientClient(client=existing_client) as resilient:
+        response = resilient.get(TEST_URL)
+
+    assert response.status_code == 200
+    existing_client.get.assert_called_once_with(url=TEST_URL)
+    # Wrapped client must NOT be closed by ResilientClient
+    existing_client.close.assert_not_called()
+
+    mock_sleep.assert_not_called()
+
+
+def test_client_wrap_existing_client_not_closed_on_exception(mock_sleep: Mock) -> None:
+    """Test that wrapped client is not closed even when an exception occurs."""
+    existing_client = Mock()
+    msg = "test error"
+
+    with pytest.raises(ValueError, match=r"test error"):
+        with ResilientClient(client=existing_client):
+            raise ValueError(msg)
+
+    existing_client.close.assert_not_called()
+    mock_sleep.assert_not_called()
+
+
+def test_client_wrap_existing_client_with_config(
+    mock_sleep: Mock, mock_response: httpx.Response, mock_response_fail: httpx.Response
+) -> None:
+    """Test wrapping an existing client respects ClientConfig."""
+    existing_client = Mock(get=Mock(side_effect=[mock_response_fail, mock_response]))
+
+    with ResilientClient(client=existing_client, config=ClientConfig(max_retries=1)) as resilient:
+        response = resilient.get(TEST_URL)
+
+    assert response.status_code == 200
+    assert existing_client.get.call_count == 2
+    existing_client.close.assert_not_called()
+
+
+def test_client_wrap_existing_client_does_not_use_timeout(mock_sleep: Mock) -> None:
+    """Test that timeout is ignored when wrapping an existing client."""
+    existing_client = Mock()
+
+    # timeout should not affect anything when client is provided
+    with ResilientClient(client=existing_client, timeout=99.0):
+        pass
+
+    # The existing client is used directly; timeout is only for auto-created clients
+    existing_client.close.assert_not_called()
+    mock_sleep.assert_not_called()
+
+
+def test_client_owns_client_flag_auto_created(mock_sleep: Mock) -> None:
+    """Test that _owns_client is True when ResilientClient creates the client."""
+    with patch("httpx.Client") as mock_client_class:
+        mock_client = Mock()
+        mock_client_class.return_value = mock_client
+
+        resilient = ResilientClient()
+        assert resilient._owns_client is True
+
+
+def test_client_owns_client_flag_provided(mock_sleep: Mock) -> None:
+    """Test that _owns_client is False when an existing client is provided."""
+    existing_client = Mock()
+    resilient = ResilientClient(client=existing_client)
+    assert resilient._owns_client is False

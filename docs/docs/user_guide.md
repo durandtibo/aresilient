@@ -311,13 +311,8 @@ herd problem). Set `jitter_factor=0.1` for 10% jitter, which is recommended for 
 You can use alternative backoff strategies by providing a `backoff_strategy` parameter:
 
 ```python
-from aresilient import (
-    get,
-    LinearBackoff,
-    FibonacciBackoff,
-    ConstantBackoff,
-    ExponentialBackoff,
-)
+from aresilient import get
+from aresilient.backoff import ConstantBackoff, ExponentialBackoff, FibonacciBackoff, LinearBackoff
 
 # Linear backoff: 1s, 2s, 3s, 4s...
 response = get(
@@ -537,6 +532,55 @@ Both `ResilientClient` and `AsyncResilientClient` support all HTTP methods:
 3. **Cleaner Code**: Less repetition of configuration parameters
 4. **Easy Override**: Per-request overrides of the default configuration
 5. **Resource Management**: Automatic cleanup when exiting the context
+
+### Wrapping an Existing httpx Client
+
+Both `ResilientClient` and `AsyncResilientClient` can wrap an existing, pre-configured
+``httpx.Client`` or ``httpx.AsyncClient`` instance. This is useful when you need custom httpx
+configuration (authentication, proxies, custom headers, HTTP/2, etc.) together with resilience
+features.
+
+```python
+import httpx
+from aresilient import ResilientClient
+from aresilient.core.config import ClientConfig
+
+# Create a fully-configured httpx client
+http_client = httpx.Client(
+    auth=httpx.BasicAuth("user", "password"),
+    headers={"User-Agent": "MyApp/1.0"},
+    proxy="http://proxy.example.com:8080",
+)
+
+# Wrap it with ResilientClient to add resilience (client is NOT closed on exit)
+with ResilientClient(client=http_client, config=ClientConfig(max_retries=5)) as resilient:
+    response = resilient.get("https://api.example.com/data")
+
+# User is responsible for closing the wrapped client
+http_client.close()
+```
+
+For async code, use ``httpx.AsyncClient``:
+
+```python
+import asyncio, httpx
+from aresilient import AsyncResilientClient
+from aresilient.core.config import ClientConfig
+
+async def main():
+    async with httpx.AsyncClient(headers={"User-Agent": "MyApp/1.0"}) as http_client:
+        # Nested context managers — httpx.AsyncClient manages its own lifecycle
+        async with AsyncResilientClient(
+            client=http_client, config=ClientConfig(max_retries=5)
+        ) as resilient:
+            response = await resilient.get("https://api.example.com/data")
+
+asyncio.run(main())
+```
+
+**Note**: When an existing client is provided, `ResilientClient` / `AsyncResilientClient`
+will **not** close it on exit. You are responsible for the wrapped client's lifecycle.
+The `timeout` constructor parameter is ignored when an existing client is provided.
 
 ### Context Manager with Callbacks
 

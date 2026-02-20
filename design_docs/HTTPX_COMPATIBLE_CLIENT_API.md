@@ -1,7 +1,7 @@
 # httpx Client Wrapper Design for aresilient
 
 **Date:** February 2026
-**Status:** 📋 Proposal (Updated)
+**Status:** ✅ Implemented
 **Authors:** Design Team
 
 ---
@@ -12,28 +12,20 @@ This document proposes a design for extending the `aresilient` library to wrap e
 `httpx.Client` and `httpx.AsyncClient` instances, making them resilient with automatic retry,
 backoff, circuit breaker, and other resilience features.
 
-**Current State:**
+**Current State (Implemented):**
 
 - ✅ `ResilientClient` and `AsyncResilientClient` context managers exist
 - ✅ Full HTTP method support (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
 - ✅ Comprehensive retry and resilience features
-- ⚠️ `ResilientClient` creates its own internal httpx.Client
-- ⚠️ Cannot wrap existing httpx.Client instances configured by users
+- ✅ `ResilientClient` accepts an optional `client` parameter to wrap existing `httpx.Client` instances
+- ✅ `AsyncResilientClient` accepts an optional `client` parameter to wrap existing `httpx.AsyncClient` instances
 
-**Proposed State:**
+**Key Design Decisions (Implemented):**
 
-- ✅ Modify `ResilientClient` and `AsyncResilientClient` to accept existing httpx clients
-- ✅ Enable wrapping of user-configured httpx.Client instances
-- ✅ Maintain backward compatibility with existing API (auto-create if no client provided)
-- ✅ Preserve all httpx.Client configuration (auth, headers, proxies, etc.)
-- ✅ Add resilience features to any httpx client
-
-**Key Design Decisions:**
-
-1. **Client wrapping approach:** Accept httpx.Client as optional constructor parameter
-2. **Backward compatibility:** Auto-create httpx.Client if not provided (current behavior)
-3. **Lifecycle management:** User controls wrapped client lifecycle
-4. **API simplicity:** Minimal changes to existing ResilientClient API
+1. **Client wrapping approach:** Accept `httpx.Client`/`httpx.AsyncClient` as optional constructor parameter
+2. **Backward compatibility:** Auto-create `httpx.Client` if not provided (existing behavior preserved)
+3. **Lifecycle management:** User controls wrapped client's lifecycle; wrapped clients are not closed on exit
+4. **API simplicity:** Added single optional `client` parameter to existing API
 
 ---
 

@@ -40,10 +40,21 @@ class AsyncResilientClient:
     the lifecycle of the underlying httpx.AsyncClient and applies consistent retry
     logic across all requests.
 
+    It can either create its own internal ``httpx.AsyncClient`` (default behavior),
+    or wrap an existing ``httpx.AsyncClient`` that you have already configured.
+    When wrapping an existing client, ``AsyncResilientClient`` does **not** close it
+    on exit — the caller is responsible for the wrapped client's lifecycle.
+
     Args:
+        client: An optional ``httpx.AsyncClient`` instance to wrap. When provided,
+            this client is used for all requests and is *not* closed when the
+            context manager exits. When ``None`` (default), a new
+            ``httpx.AsyncClient`` is created using the ``timeout`` parameter and
+            closed automatically on exit.
         config: Optional ClientConfig instance for retry configuration.
             If ``None``, a default ClientConfig is used.
         timeout: Maximum seconds to wait for server responses. Must be > 0.
+            Only used when ``client`` is ``None``.
 
     Example:
         ```pycon
@@ -64,6 +75,23 @@ class AsyncResilientClient:
 
         ```
 
+    Example (wrapping an existing httpx.AsyncClient):
+        ```pycon
+        >>> import asyncio, httpx
+        >>> from aresilient import AsyncResilientClient
+        >>> from aresilient.core.config import ClientConfig
+        >>> http_client = httpx.AsyncClient(headers={"User-Agent": "MyApp/1.0"})
+        >>> async def main():  # doctest: +SKIP
+        ...     async with AsyncResilientClient(
+        ...         client=http_client, config=ClientConfig(max_retries=5)
+        ...     ) as resilient:
+        ...         response = await resilient.get("https://api.example.com/data")
+        ...
+        >>> asyncio.run(main())  # doctest: +SKIP
+        >>> asyncio.run(http_client.aclose())  # User is responsible for closing  # doctest: +SKIP
+
+        ```
+
     Note:
         All HTTP method calls (get, post, put, delete, patch, head, options, request)
         support the same parameters as their standalone function counterparts, allowing
@@ -73,30 +101,42 @@ class AsyncResilientClient:
     def __init__(
         self,
         *,
+        client: httpx.AsyncClient | None = None,
         config: ClientConfig | None = None,
         timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
     ) -> None:
         # Validate timeout separately (used for httpx.AsyncClient creation, not retry logic)
         validate_timeout(timeout)
 
-        # Store timeout separately (used for httpx.AsyncClient creation)
+        # Store timeout separately (used for httpx.AsyncClient creation when no client provided)
         self._timeout = timeout
 
         # Store retry configuration in ClientConfig dataclass
         self._config = config or ClientConfig()
 
-        # Client will be created when entering context
-        self._client: httpx.AsyncClient | None = None
+        if client is not None:
+            # Use the provided client; the caller manages its lifecycle
+            self._client: httpx.AsyncClient | None = client
+            self._owns_client = False
+        else:
+            # Client will be created when entering the context manager
+            self._client = None
+            self._owns_client = True
+
         self._entered = False
 
     async def __aenter__(self) -> Self:
-        """Enter the async context manager and create the underlying
-        httpx client.
+        """Enter the async context manager.
+
+        If no client was provided at construction time, a new
+        ``httpx.AsyncClient`` is created here. Otherwise the provided
+        client is used as-is.
 
         Returns:
             The AsyncResilientClient instance for making requests.
         """
-        self._client = httpx.AsyncClient(timeout=self._timeout)
+        if self._owns_client:
+            self._client = httpx.AsyncClient(timeout=self._timeout)
         self._entered = True
         return self
 
@@ -106,15 +146,18 @@ class AsyncResilientClient:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Exit the async context manager and close the underlying httpx
-        client.
+        """Exit the async context manager.
+
+        Closes the underlying ``httpx.AsyncClient`` only when it was created
+        internally (i.e. no ``client`` was passed to the constructor).
+        Wrapped clients are left open for the caller to close.
 
         Args:
             exc_type: Exception type if an exception occurred.
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        if self._client is not None:
+        if self._owns_client and self._client is not None:
             await self._client.aclose()
             self._client = None
         self._entered = False
