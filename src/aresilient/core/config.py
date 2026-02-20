@@ -83,11 +83,6 @@ class ClientConfig:
         >>> config = ClientConfig(max_retries=5)
         >>> config.max_retries
         5
-        >>> merged = config.merge(max_retries=10)  # Override specific parameters
-        >>> merged.max_retries
-        10
-        >>> config.max_retries  # Original unchanged
-        5
 
         ```
     """
