@@ -23,13 +23,8 @@ from aresilient.core.validation import validate_timeout
 from aresilient.request_async import request_async
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from types import TracebackType
     from typing import Self
-
-    from aresilient.backoff import BaseBackoffStrategy
-    from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
-    from aresilient.circuit_breaker import CircuitBreaker
 
 
 class AsyncResilientClient:
@@ -66,8 +61,7 @@ class AsyncResilientClient:
 
     Note:
         All HTTP method calls (get, post, put, delete, patch, head, options, request)
-        support the same parameters as their standalone function counterparts, allowing
-        per-request override of the client's default configuration.
+        use the resilience parameters defined in the ``config`` passed to the constructor.
     """
 
     def __init__(
@@ -137,19 +131,6 @@ class AsyncResilientClient:
         self,
         method: str,
         url: str,
-        *,
-        max_retries: int | None = None,
-        status_forcelist: tuple[int, ...] | None = None,
-        jitter_factor: float | None = None,
-        retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
-        backoff_strategy: BaseBackoffStrategy | None = None,
-        max_total_time: float | None = None,
-        max_wait_time: float | None = None,
-        circuit_breaker: CircuitBreaker | None = None,
-        on_request: Callable[[RequestInfo], None] | None = None,
-        on_retry: Callable[[RetryInfo], None] | None = None,
-        on_success: Callable[[ResponseInfo], None] | None = None,
-        on_failure: Callable[[FailureInfo], None] | None = None,
         **kwargs: Any,
     ) -> httpx.Response:
         r"""Send an HTTP request with automatic retry logic.
@@ -157,18 +138,6 @@ class AsyncResilientClient:
         Args:
             method: HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, etc.).
             url: The URL to send the request to.
-            max_retries: Override client's max_retries for this request.
-            status_forcelist: Override client's status_forcelist for this request.
-            jitter_factor: Override client's jitter_factor for this request.
-            retry_if: Override client's retry_if for this request.
-            backoff_strategy: Override client's backoff_strategy for this request.
-            max_total_time: Override client's max_total_time for this request.
-            max_wait_time: Override client's max_wait_time for this request.
-            circuit_breaker: Override client's circuit_breaker for this request.
-            on_request: Override client's on_request callback for this request.
-            on_retry: Override client's on_retry callback for this request.
-            on_success: Override client's on_success callback for this request.
-            on_failure: Override client's on_failure callback for this request.
             **kwargs: Additional keyword arguments passed to httpx.AsyncClient.request().
 
         Returns:
@@ -192,27 +161,11 @@ class AsyncResilientClient:
         """
         client = self._ensure_client()
 
-        # Merge config with request-specific overrides
-        request_config = self._config.merge(
-            max_retries=max_retries,
-            status_forcelist=status_forcelist,
-            jitter_factor=jitter_factor,
-            retry_if=retry_if,
-            backoff_strategy=backoff_strategy,
-            max_total_time=max_total_time,
-            max_wait_time=max_wait_time,
-            circuit_breaker=circuit_breaker,
-            on_request=on_request,
-            on_retry=on_retry,
-            on_success=on_success,
-            on_failure=on_failure,
-        )
-
         return await request_async(
             url=url,
             method=method,
             request_func=getattr(client, method.lower()),
-            config=request_config,
+            config=self._config,
             **kwargs,
         )
 

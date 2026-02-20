@@ -221,26 +221,6 @@ def test_client_request_method(mock_sleep: Mock, mock_response: httpx.Response) 
     mock_sleep.assert_not_called()
 
 
-def test_client_override_max_retries(
-    mock_sleep: Mock, mock_response: httpx.Response, mock_response_fail: httpx.Response
-) -> None:
-    """Test that per-request max_retries override works."""
-    with patch("httpx.Client") as mock_client_class:
-        # Simulate retryable error then success
-        mock_client = Mock(get=Mock(side_effect=[mock_response_fail, mock_response]))
-        mock_client_class.return_value = mock_client
-
-        # Client configured with max_retries=0, but we override it for this request
-        with ResilientClient(config=ClientConfig(max_retries=0)) as client:
-            response = client.get(TEST_URL, max_retries=2)
-
-        # Should have retried because we overrode max_retries
-        assert response.status_code == 200
-        assert mock_client.get.call_args_list == [call(url=TEST_URL), call(url=TEST_URL)]
-
-    mock_sleep.assert_called_once_with(0.3)
-
-
 def test_client_default_max_retries(
     mock_sleep: Mock, mock_response: httpx.Response, mock_response_fail: httpx.Response
 ) -> None:

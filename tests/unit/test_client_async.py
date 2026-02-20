@@ -254,28 +254,6 @@ async def test_async_client_request_method(
 
 
 @pytest.mark.asyncio
-async def test_async_client_override_max_retries(
-    mock_asleep: Mock, mock_response: httpx.Response, mock_response_fail: httpx.Response
-) -> None:
-    """Test that per-request max_retries override works."""
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(
-            get=AsyncMock(side_effect=[mock_response_fail, mock_response]), aclose=AsyncMock()
-        )
-        mock_client_class.return_value = mock_client
-
-        # Client configured with max_retries=0, but we override it for this request
-        async with AsyncResilientClient(config=ClientConfig(max_retries=0)) as client:
-            response = await client.get(TEST_URL, max_retries=2)
-
-        # Should have retried because we overrode max_retries
-        assert response.status_code == 200
-        assert mock_client.get.call_args_list == [call(url=TEST_URL), call(url=TEST_URL)]
-
-    mock_asleep.assert_called_once_with(0.3)
-
-
-@pytest.mark.asyncio
 async def test_async_client_default_max_retries(
     mock_asleep: Mock, mock_response: httpx.Response, mock_response_fail: httpx.Response
 ) -> None:
