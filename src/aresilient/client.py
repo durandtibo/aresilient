@@ -75,7 +75,7 @@ class ResilientClient:
         self._timeout = timeout
 
         # Store retry configuration in ClientConfig dataclass
-        self._config = config if config is not None else ClientConfig()
+        self._config = config or ClientConfig()
 
         # Client will be created when entering context
         self._client: httpx.Client | None = None
