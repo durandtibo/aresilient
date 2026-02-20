@@ -6,16 +6,14 @@ from unittest.mock import Mock
 
 import httpx
 
-from aresilient.backoff.strategy import (
-    ConstantBackoff,
-    LinearBackoff,
-)
+from aresilient.backoff.constant import ConstantBackoff
+from aresilient.backoff.linear import LinearBackoff
 from aresilient.retry.strategy import RetryStrategy
 
 
 def test_retry_strategy_creation() -> None:
     """Test RetryStrategy initialization."""
-    from aresilient.backoff.strategy import ExponentialBackoff
+    from aresilient.backoff.exponential import ExponentialBackoff
 
     strategy = RetryStrategy(
         jitter_factor=0.1,

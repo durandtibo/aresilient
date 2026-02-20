@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
     import httpx
 
-    from aresilient.backoff.strategy import BackoffStrategy
+    from aresilient.backoff.base import BaseBackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
 
 
@@ -38,7 +38,7 @@ class RetryConfig:
     status_forcelist: tuple[int, ...]
     jitter_factor: float
     retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None
-    backoff_strategy: BackoffStrategy | None = None
+    backoff_strategy: BaseBackoffStrategy | None = None
     max_total_time: float | None = None
     max_wait_time: float | None = None
 

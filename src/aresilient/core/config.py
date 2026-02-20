@@ -17,7 +17,7 @@ __all__ = [
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
-from aresilient.backoff.strategy import ExponentialBackoff
+from aresilient.backoff.exponential import ExponentialBackoff
 from aresilient.core.validation import validate_retry_params
 
 if TYPE_CHECKING:
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
     import httpx
 
-    from aresilient.backoff import BackoffStrategy
+    from aresilient.backoff import BaseBackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
     from aresilient.circuit_breaker import CircuitBreaker
 
@@ -96,7 +96,7 @@ class ClientConfig:
     status_forcelist: tuple[int, ...] = field(default_factory=lambda: RETRY_STATUS_CODES)
     jitter_factor: float = 0.0
     retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None
-    backoff_strategy: BackoffStrategy = field(default_factory=ExponentialBackoff)
+    backoff_strategy: BaseBackoffStrategy = field(default_factory=ExponentialBackoff)
     max_total_time: float | None = None
     max_wait_time: float | None = None
     circuit_breaker: CircuitBreaker | None = None

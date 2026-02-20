@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from types import TracebackType
     from typing import Self
 
-    from aresilient.backoff import BackoffStrategy
+    from aresilient.backoff import BaseBackoffStrategy
     from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
     from aresilient.circuit_breaker import CircuitBreaker
 
@@ -140,7 +140,7 @@ class AsyncResilientClient:
         status_forcelist: tuple[int, ...] | None = None,
         jitter_factor: float | None = None,
         retry_if: Callable[[httpx.Response | None, Exception | None], bool] | None = None,
-        backoff_strategy: BackoffStrategy | None = None,
+        backoff_strategy: BaseBackoffStrategy | None = None,
         max_total_time: float | None = None,
         max_wait_time: float | None = None,
         circuit_breaker: CircuitBreaker | None = None,
