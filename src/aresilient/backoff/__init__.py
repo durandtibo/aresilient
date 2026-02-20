@@ -13,10 +13,8 @@ __all__ = [
     "ExponentialBackoff",
     "FibonacciBackoff",
     "LinearBackoff",
-    "calculate_sleep_time",
 ]
 
-from aresilient.backoff.sleep import calculate_sleep_time
 from aresilient.backoff.strategy import (
     BackoffStrategy,
     ConstantBackoff,

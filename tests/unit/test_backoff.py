@@ -63,7 +63,7 @@ def test_with_jitter_factor(
         test_case.client_method, [mock_response_fail, mock_response]
     )
 
-    with patch("aresilient.backoff.sleep.random.uniform", return_value=0.05):
+    with patch("aresilient.utils.sleep.random.uniform", return_value=0.05):
         response = test_case.method_func(
             TEST_URL,
             client=mock_client,

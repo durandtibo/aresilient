@@ -67,7 +67,7 @@ def calculate_sleep_time(
 
     Example:
         ```pycon
-        >>> from aresilient.backoff import calculate_sleep_time
+        >>> from aresilient.utils.sleep import calculate_sleep_time
         >>> from aresilient.backoff import ExponentialBackoff
         >>> # First retry with ExponentialBackoff(base_delay=0.3), no jitter
         >>> calculate_sleep_time(attempt=0, jitter_factor=0.0, response=None)

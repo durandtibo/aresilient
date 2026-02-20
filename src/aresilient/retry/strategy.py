@@ -10,8 +10,8 @@ __all__ = ["RetryStrategy"]
 
 from typing import TYPE_CHECKING
 
-from aresilient.backoff.sleep import calculate_sleep_time
 from aresilient.backoff.strategy import ExponentialBackoff
+from aresilient.utils.sleep import calculate_sleep_time
 
 if TYPE_CHECKING:
     import httpx
