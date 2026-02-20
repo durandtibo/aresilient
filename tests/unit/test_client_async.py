@@ -328,7 +328,9 @@ async def test_async_client_shares_configuration_across_requests(
         mock_client_class.return_value = mock_client
 
         # Create client with specific configuration
-        async with AsyncResilientClient(config=ClientConfig(max_retries=5, jitter_factor=0.5)) as client:
+        async with AsyncResilientClient(
+            config=ClientConfig(max_retries=5, jitter_factor=0.5)
+        ) as client:
             await client.get(TEST_URL)
             await client.post(TEST_URL)
 

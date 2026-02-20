@@ -1891,7 +1891,9 @@ with ResilientClient(config=ClientConfig(circuit_breaker=payment_circuit)) as cl
         "https://payment-api.example.com/charge", json={"amount": 100}
     )
 
-with ResilientClient(config=ClientConfig(circuit_breaker=user_service_circuit)) as client:
+with ResilientClient(
+    config=ClientConfig(circuit_breaker=user_service_circuit)
+) as client:
     response = client.get("https://user-api.example.com/profile")
 ```
 
