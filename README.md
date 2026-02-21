@@ -124,9 +124,7 @@ print(response.status_code)
 ### Customizing Retry Behavior
 
 ```python
-from aresilient import get
-from aresilient.core import ClientConfig
-from aresilient.backoff import ExponentialBackoff
+from aresilient import get, ClientConfig, ExponentialBackoff
 
 # Custom retry configuration
 response = get(
@@ -150,9 +148,7 @@ and constant backoff. You can also implement custom strategies. See the
 for detailed examples and guidance.
 
 ```python
-from aresilient import get
-from aresilient.core import ClientConfig
-from aresilient.backoff import LinearBackoff
+from aresilient import get, ClientConfig, LinearBackoff
 
 # Use linear backoff instead of exponential
 response = get(
@@ -268,8 +264,7 @@ exception using the `retry_if` parameter. This is useful when you need to retry 
 content, headers, or business logic beyond just status codes.
 
 ```python
-from aresilient import get
-from aresilient.core import ClientConfig
+from aresilient import get, ClientConfig
 
 
 def should_retry(response, exception):
@@ -353,8 +348,7 @@ lifecycle for logging, metrics, alerting, and custom behavior.
 #### Example: Logging Retries
 
 ```python
-from aresilient import get
-from aresilient.core import ClientConfig
+from aresilient import get, ClientConfig
 
 
 def log_request(info):
@@ -400,8 +394,7 @@ response = get(
 #### Example: Metrics Collection
 
 ```python
-from aresilient import get
-from aresilient.core import ClientConfig
+from aresilient import get, ClientConfig
 
 
 class MetricsCollector:
@@ -503,9 +496,7 @@ states:
 #### Basic Usage
 
 ```python
-from aresilient import get
-from aresilient.core import ClientConfig
-from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
+from aresilient import get, ClientConfig, CircuitBreaker, CircuitBreakerError
 
 # Create a circuit breaker instance
 circuit_breaker = CircuitBreaker(
@@ -530,9 +521,7 @@ A single circuit breaker instance can be shared across multiple requests to prot
 service:
 
 ```python
-from aresilient import get
-from aresilient.core import ClientConfig
-from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
+from aresilient import get, ClientConfig, CircuitBreaker, CircuitBreakerError
 
 # Create a shared circuit breaker for a specific API
 api_circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60.0)
@@ -552,8 +541,7 @@ for endpoint in ["/users", "/posts", "/comments"]:
 #### Advanced Configuration
 
 ```python
-from aresilient import HttpRequestError
-from aresilient.circuit_breaker import CircuitBreaker
+from aresilient import HttpRequestError, CircuitBreaker
 
 
 def on_state_change(old_state, new_state):
@@ -573,7 +561,7 @@ circuit_breaker = CircuitBreaker(
 #### Monitoring Circuit State
 
 ```python
-from aresilient.circuit_breaker import CircuitBreaker, CircuitState
+from aresilient import CircuitBreaker, CircuitState
 
 circuit_breaker = CircuitBreaker(failure_threshold=5)
 

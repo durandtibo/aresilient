@@ -19,9 +19,7 @@ Key Features:
 
 Example:
     ```pycon
-    >>> from aresilient import get
-    >>> from aresilient.backoff import LinearBackoff
-    >>> from aresilient.core.config import ClientConfig
+    >>> from aresilient import get, ClientConfig, LinearBackoff
     >>> # Use default exponential backoff
     >>> response = get("https://api.example.com/data")  # doctest: +SKIP
     >>> # Use linear backoff strategy
@@ -42,9 +40,25 @@ Example:
 from __future__ import annotations
 
 __all__ = [
+    "DEFAULT_MAX_RETRIES",
+    "DEFAULT_TIMEOUT",
+    "RETRY_STATUS_CODES",
     "AsyncResilientClient",
+    "BaseBackoffStrategy",
+    "CircuitBreaker",
+    "CircuitBreakerError",
+    "CircuitState",
+    "ClientConfig",
+    "ConstantBackoff",
+    "ExponentialBackoff",
+    "FailureInfo",
+    "FibonacciBackoff",
     "HttpRequestError",
+    "LinearBackoff",
+    "RequestInfo",
     "ResilientClient",
+    "ResponseInfo",
+    "RetryInfo",
     "__version__",
     "delete",
     "delete_async",
@@ -66,8 +80,23 @@ __all__ = [
 
 from importlib.metadata import PackageNotFoundError, version
 
+from aresilient.backoff import (
+    BaseBackoffStrategy,
+    ConstantBackoff,
+    ExponentialBackoff,
+    FibonacciBackoff,
+    LinearBackoff,
+)
+from aresilient.callbacks import FailureInfo, RequestInfo, ResponseInfo, RetryInfo
+from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError, CircuitState
 from aresilient.client import ResilientClient
 from aresilient.client_async import AsyncResilientClient
+from aresilient.core.config import (
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_TIMEOUT,
+    RETRY_STATUS_CODES,
+    ClientConfig,
+)
 from aresilient.delete import delete
 from aresilient.delete_async import delete_async
 from aresilient.exceptions import HttpRequestError
