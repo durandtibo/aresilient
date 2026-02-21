@@ -13,13 +13,14 @@ Example:
     ```pycon
     >>> from aresilient import get
     >>> from aresilient.circuit_breaker import CircuitBreaker
+    >>> from aresilient.core import ClientConfig
     >>> circuit_breaker = CircuitBreaker(
     ...     failure_threshold=5,
     ...     recovery_timeout=60.0,
     ... )
     >>> response = get(
     ...     "https://api.example.com/data",
-    ...     circuit_breaker=circuit_breaker,
+    ...     config=ClientConfig(circuit_breaker=circuit_breaker),
     ... )  # doctest: +SKIP
 
     ```
@@ -151,13 +152,14 @@ class CircuitBreaker:
         ```pycon
         >>> from aresilient import get
         >>> from aresilient.circuit_breaker import CircuitBreaker
+        >>> from aresilient.core import ClientConfig
         >>> circuit_breaker = CircuitBreaker(
         ...     failure_threshold=5,
         ...     recovery_timeout=60.0,
         ... )
         >>> response = get(
         ...     "https://api.example.com/data",
-        ...     circuit_breaker=circuit_breaker,
+        ...     config=ClientConfig(circuit_breaker=circuit_breaker),
         ... )  # doctest: +SKIP
 
         ```

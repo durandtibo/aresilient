@@ -192,7 +192,7 @@ responses = asyncio.run(fetch_all(urls))
 `aresilient` comes with sensible defaults:
 
 ```python
-from aresilient import (
+from aresilient.core import (
     DEFAULT_TIMEOUT,  # 10.0 seconds
     DEFAULT_MAX_RETRIES,  # 3 retries (4 total attempts)
     RETRY_STATUS_CODES,  # (429, 500, 502, 503, 504)
@@ -241,34 +241,42 @@ Control how many times and how long between retries:
 ```python
 from aresilient import get
 from aresilient.backoff import ExponentialBackoff
+from aresilient.core import ClientConfig
 
 # More aggressive retry
 response = get(
     "https://api.example.com/data",
-    max_retries=5,
-    backoff_strategy=ExponentialBackoff(base_delay=0.5),  # Longer waits between retries
+    config=ClientConfig(
+        max_retries=5,
+        backoff_strategy=ExponentialBackoff(base_delay=0.5),  # Longer waits between retries
+    ),
 )
 
 # Less aggressive retry
 response = get(
     "https://api.example.com/data",
-    max_retries=1,
-    backoff_strategy=ExponentialBackoff(
-        base_delay=0.1
-    ),  # Shorter waits between retries
+    config=ClientConfig(
+        max_retries=1,
+        backoff_strategy=ExponentialBackoff(
+            base_delay=0.1
+        ),  # Shorter waits between retries
+    ),
 )
 
 # With jitter to prevent thundering herd
 response = get(
     "https://api.example.com/data",
-    max_retries=3,
-    backoff_strategy=ExponentialBackoff(base_delay=0.5),
-    jitter_factor=0.1,  # Add 10% random jitter
+    config=ClientConfig(
+        max_retries=3,
+        backoff_strategy=ExponentialBackoff(base_delay=0.5),
+        jitter_factor=0.1,  # Add 10% random jitter
+    ),
 )
 
 # No retry
 response = get(
-    "https://api.example.com/data", max_retries=0  # No retries, fail immediately
+    "https://api.example.com/data",
+    config=ClientConfig(max_retries=0),  # No retries, fail immediately
 )
 ```
 
@@ -311,36 +319,37 @@ herd problem). Set `jitter_factor=0.1` for 10% jitter, which is recommended for 
 You can use alternative backoff strategies by providing a `backoff_strategy` parameter:
 
 ```python
-from aresilient import (
-    get,
+from aresilient import get
+from aresilient.backoff import (
     LinearBackoff,
     FibonacciBackoff,
     ConstantBackoff,
     ExponentialBackoff,
 )
+from aresilient.core import ClientConfig
 
 # Linear backoff: 1s, 2s, 3s, 4s...
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=10.0),
+    config=ClientConfig(backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=10.0)),
 )
 
 # Fibonacci backoff: 1s, 1s, 2s, 3s, 5s, 8s...
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0),
+    config=ClientConfig(backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0)),
 )
 
 # Constant backoff: 2s, 2s, 2s, 2s...
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=ConstantBackoff(delay=2.0),
+    config=ClientConfig(backoff_strategy=ConstantBackoff(delay=2.0)),
 )
 
 # Explicit exponential backoff with custom settings
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0),
+    config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0)),
 )
 ```
 
@@ -354,19 +363,20 @@ this:
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 # Only retry on rate limiting
-response = get("https://api.example.com/data", status_forcelist=(429,))
+response = get("https://api.example.com/data", config=ClientConfig(status_forcelist=(429,)))
 
 # Retry on server errors and rate limiting
 response = get(
-    "https://api.example.com/data", status_forcelist=(429, 500, 502, 503, 504)
+    "https://api.example.com/data", config=ClientConfig(status_forcelist=(429, 500, 502, 503, 504))
 )
 
 # Add custom status codes
 response = get(
     "https://api.example.com/data",
-    status_forcelist=(408, 429, 500, 502, 503, 504),  # Include 408 Request Timeout
+    config=ClientConfig(status_forcelist=(408, 429, 500, 502, 503, 504)),  # Include 408 Request Timeout
 )
 ```
 
@@ -400,29 +410,36 @@ Control the total time budget and maximum wait time for retries:
 ```python
 from aresilient import get
 from aresilient.backoff import ExponentialBackoff
+from aresilient.core import ClientConfig
 
 # Limit total time for all retry attempts
 response = get(
     "https://api.example.com/data",
-    max_retries=10,
-    max_total_time=30.0,  # Stop retrying after 30 seconds total
+    config=ClientConfig(
+        max_retries=10,
+        max_total_time=30.0,  # Stop retrying after 30 seconds total
+    ),
 )
 
 # Cap individual backoff delays
 response = get(
     "https://api.example.com/data",
-    max_retries=10,
-    backoff_strategy=ExponentialBackoff(base_delay=2.0),
-    max_wait_time=10.0,  # No single wait exceeds 10 seconds
+    config=ClientConfig(
+        max_retries=10,
+        backoff_strategy=ExponentialBackoff(base_delay=2.0),
+        max_wait_time=10.0,  # No single wait exceeds 10 seconds
+    ),
 )
 
 # Combine both for strict SLA guarantees
 response = get(
     "https://api.example.com/data",
-    max_retries=10,
-    backoff_strategy=ExponentialBackoff(base_delay=2.0),
-    max_total_time=60.0,  # Total budget: 60 seconds
-    max_wait_time=15.0,  # Max wait between retries: 15 seconds
+    config=ClientConfig(
+        max_retries=10,
+        backoff_strategy=ExponentialBackoff(base_delay=2.0),
+        max_total_time=60.0,  # Total budget: 60 seconds
+        max_wait_time=15.0,  # Max wait between retries: 15 seconds
+    ),
 )
 ```
 
@@ -443,6 +460,7 @@ than passing the same parameters to every function call.
 ### Using ResilientClient (Sync)
 
 ```python
+import httpx
 from aresilient import ResilientClient
 from aresilient.backoff import LinearBackoff
 from aresilient.core.config import ClientConfig
@@ -454,16 +472,13 @@ with ResilientClient(
         backoff_strategy=LinearBackoff(base_delay=1.0),
         jitter_factor=0.1,
     ),
-    timeout=30.0,
+    client=httpx.Client(timeout=30.0),
 ) as client:
     # All requests use the shared configuration
     users = client.get("https://api.example.com/users")
 
-    # Override configuration for specific requests
-    posts = client.get(
-        "https://api.example.com/posts",
-        max_retries=3,  # Override max_retries for this request
-    )
+    # GET request
+    posts = client.get("https://api.example.com/posts")
 
     # POST request
     result = client.post(
@@ -485,6 +500,7 @@ with ResilientClient(
 
 ```python
 import asyncio
+import httpx
 
 from aresilient import AsyncResilientClient
 from aresilient.backoff import ExponentialBackoff
@@ -497,7 +513,7 @@ async def fetch_all_data():
             max_retries=3,
             backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=10.0),
         ),
-        timeout=20.0,
+        client=httpx.AsyncClient(timeout=20.0),
     ) as client:
         # Concurrent async requests with shared configuration
         users_task = client.get("https://api.example.com/users")
@@ -535,7 +551,7 @@ Both `ResilientClient` and `AsyncResilientClient` support all HTTP methods:
 1. **Code Reusability**: Define retry configuration once, use for multiple requests
 2. **Connection Pooling**: The underlying httpx client is reused, improving performance
 3. **Cleaner Code**: Less repetition of configuration parameters
-4. **Easy Override**: Per-request overrides of the default configuration
+4. **Shared Configuration**: All requests share the same retry, backoff, and callback settings
 5. **Resource Management**: Automatic cleanup when exiting the context
 
 ### Context Manager with Callbacks
@@ -646,6 +662,7 @@ A circuit breaker has three states:
 ```python
 from aresilient import get
 from aresilient.circuit_breaker import CircuitBreaker
+from aresilient.core import ClientConfig
 
 # Create a circuit breaker
 circuit_breaker = CircuitBreaker(
@@ -657,7 +674,7 @@ circuit_breaker = CircuitBreaker(
 try:
     response = get(
         "https://api.example.com/data",
-        circuit_breaker=circuit_breaker,
+        config=ClientConfig(circuit_breaker=circuit_breaker),
     )
 except Exception as e:
     print(f"Request failed: {e}")
@@ -681,6 +698,7 @@ Share a circuit breaker across multiple endpoints:
 ```python
 from aresilient import get
 from aresilient.circuit_breaker import CircuitBreaker
+from aresilient.core import ClientConfig
 
 # Shared circuit breaker for API service
 api_circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
@@ -688,12 +706,12 @@ api_circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
 # All requests to this API share the circuit breaker
 response1 = get(
     "https://api.example.com/users",
-    circuit_breaker=api_circuit,
+    config=ClientConfig(circuit_breaker=api_circuit),
 )
 
 response2 = get(
     "https://api.example.com/posts",
-    circuit_breaker=api_circuit,
+    config=ClientConfig(circuit_breaker=api_circuit),
 )
 ```
 
@@ -724,13 +742,14 @@ with ResilientClient(
 ```python
 from aresilient import get
 from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
+from aresilient.core import ClientConfig
 
 circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=30.0)
 
 try:
     response = get(
         "https://api.example.com/data",
-        circuit_breaker=circuit,
+        config=ClientConfig(circuit_breaker=circuit),
     )
 except CircuitBreakerError as e:
     print(f"Circuit breaker is open: {e}")
@@ -787,6 +806,7 @@ than `status_forcelist` alone.
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 def should_retry(response, exception):
@@ -813,7 +833,7 @@ def should_retry(response, exception):
 
 response = get(
     "https://api.example.com/data",
-    retry_if=should_retry,
+    config=ClientConfig(retry_if=should_retry),
 )
 ```
 
@@ -821,6 +841,7 @@ response = get(
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 def retry_on_error_field(response, exception):
@@ -851,8 +872,7 @@ def retry_on_error_field(response, exception):
 
 response = get(
     "https://api.example.com/data",
-    retry_if=retry_on_error_field,
-    max_retries=5,
+    config=ClientConfig(retry_if=retry_on_error_field, max_retries=5),
 )
 ```
 
@@ -860,6 +880,7 @@ response = get(
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 def retry_on_header(response, exception):
@@ -884,8 +905,7 @@ def retry_on_header(response, exception):
 
 response = get(
     "https://api.example.com/long-running-task",
-    retry_if=retry_on_header,
-    max_retries=10,
+    config=ClientConfig(retry_if=retry_on_header, max_retries=10),
 )
 ```
 
@@ -894,6 +914,7 @@ response = get(
 ```python
 from aresilient import post
 import httpx
+from aresilient.core import ClientConfig
 
 
 def complex_retry_logic(response, exception):
@@ -939,8 +960,7 @@ def complex_retry_logic(response, exception):
 response = post(
     "https://api.example.com/process",
     json={"task": "data_processing"},
-    retry_if=complex_retry_logic,
-    max_retries=3,
+    config=ClientConfig(retry_if=complex_retry_logic, max_retries=3),
 )
 ```
 
@@ -951,6 +971,7 @@ behavior. However, you can reference `status_forcelist` logic within your predic
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 def custom_with_defaults(response, exception):
@@ -972,7 +993,7 @@ def custom_with_defaults(response, exception):
 
 response = get(
     "https://api.example.com/data",
-    retry_if=custom_with_defaults,
+    config=ClientConfig(retry_if=custom_with_defaults),
 )
 ```
 
@@ -983,6 +1004,7 @@ The `retry_if` predicate works identically with async functions:
 ```python
 import asyncio
 from aresilient import get_async
+from aresilient.core import ClientConfig
 
 
 def should_retry_async(response, exception):
@@ -995,7 +1017,7 @@ def should_retry_async(response, exception):
 async def fetch_data():
     response = await get_async(
         "https://api.example.com/data",
-        retry_if=should_retry_async,
+        config=ClientConfig(retry_if=should_retry_async),
     )
     return response.json()
 
@@ -1102,6 +1124,7 @@ Track each phase of the request lifecycle:
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 def log_request(info):
@@ -1148,11 +1171,13 @@ def log_failure(info):
 try:
     response = get(
         "https://api.example.com/data",
-        max_retries=3,
-        on_request=log_request,
-        on_retry=log_retry,
-        on_success=log_success,
-        on_failure=log_failure,
+        config=ClientConfig(
+            max_retries=3,
+            on_request=log_request,
+            on_retry=log_retry,
+            on_success=log_success,
+            on_failure=log_failure,
+        ),
     )
 except Exception as e:
     pass  # Error already logged in on_failure
@@ -1175,6 +1200,7 @@ Track statistics across multiple requests:
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 class RequestMetrics:
@@ -1236,10 +1262,12 @@ for url in urls:
     try:
         response = get(
             url,
-            on_request=metrics.on_request,
-            on_retry=metrics.on_retry,
-            on_success=metrics.on_success,
-            on_failure=metrics.on_failure,
+            config=ClientConfig(
+                on_request=metrics.on_request,
+                on_retry=metrics.on_retry,
+                on_success=metrics.on_success,
+                on_failure=metrics.on_failure,
+            ),
         )
     except Exception:
         pass  # Metrics already tracked
@@ -1254,6 +1282,7 @@ Integrate with Python's standard logging module:
 ```python
 import logging
 from aresilient import get
+from aresilient.core import ClientConfig
 
 # Configure logging
 logging.basicConfig(
@@ -1297,8 +1326,7 @@ def log_failure_event(info):
 
 response = get(
     "https://api.example.com/data",
-    on_retry=log_retry_event,
-    on_failure=log_failure_event,
+    config=ClientConfig(on_retry=log_retry_event, on_failure=log_failure_event),
 )
 ```
 
@@ -1308,6 +1336,7 @@ Send metrics to a monitoring system:
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 class MonitoringClient:
@@ -1367,9 +1396,11 @@ def track_failure(info):
 
 response = get(
     "https://api.example.com/data",
-    on_retry=track_retry,
-    on_success=track_success,
-    on_failure=track_failure,
+    config=ClientConfig(
+        on_retry=track_retry,
+        on_success=track_success,
+        on_failure=track_failure,
+    ),
 )
 ```
 
@@ -1380,6 +1411,7 @@ Callbacks work identically with async functions:
 ```python
 import asyncio
 from aresilient import get_async
+from aresilient.core import ClientConfig
 
 
 async def async_log_retry(info):
@@ -1388,7 +1420,10 @@ async def async_log_retry(info):
 
 
 async def fetch_data():
-    response = await get_async("https://api.example.com/data", on_retry=async_log_retry)
+    response = await get_async(
+        "https://api.example.com/data",
+        config=ClientConfig(on_retry=async_log_retry),
+    )
     return response.json()
 
 
@@ -1405,6 +1440,7 @@ Send alerts when requests fail after all retries:
 
 ```python
 from aresilient import post
+from aresilient.core import ClientConfig
 
 
 def send_alert_on_failure(info):
@@ -1429,7 +1465,7 @@ try:
     response = post(
         "https://critical-api.example.com/important",
         json={"data": "value"},
-        on_failure=send_alert_on_failure,
+        config=ClientConfig(on_failure=send_alert_on_failure),
     )
 except Exception:
     pass  # Alert already sent
@@ -1441,6 +1477,7 @@ You can use multiple callbacks together for comprehensive observability:
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 class RequestObserver:
@@ -1475,10 +1512,12 @@ observer = RequestObserver(logger, metrics, alerting)
 # Use all callbacks
 response = get(
     "https://api.example.com/data",
-    on_request=observer.on_request,
-    on_retry=observer.on_retry,
-    on_success=observer.on_success,
-    on_failure=observer.on_failure,
+    config=ClientConfig(
+        on_request=observer.on_request,
+        on_retry=observer.on_retry,
+        on_success=observer.on_success,
+        on_failure=observer.on_failure,
+    ),
 )
 ```
 
@@ -1527,9 +1566,10 @@ When a request times out after all retries:
 
 ```python
 from aresilient import get, HttpRequestError
+from aresilient.core import ClientConfig
 
 try:
-    response = get("https://slow-api.example.com/data", timeout=1.0, max_retries=2)
+    response = get("https://slow-api.example.com/data", config=ClientConfig(max_retries=2), timeout=1.0)
 except HttpRequestError as e:
     # status_code will be None for timeout errors
     if e.status_code is None:
@@ -1624,6 +1664,7 @@ For HTTP methods not directly supported or for custom needs, use the
 ```python
 import httpx
 from aresilient import request
+from aresilient.core import ClientConfig
 
 # Example: Using HEAD method
 with httpx.Client() as client:
@@ -1631,7 +1672,7 @@ with httpx.Client() as client:
         url="https://api.example.com/resource",
         method="HEAD",
         request_func=client.head,
-        max_retries=3,
+        config=ClientConfig(max_retries=3),
     )
     print(f"Content-Length: {response.headers.get('content-length')}")
 
@@ -1651,6 +1692,7 @@ with httpx.Client() as client:
 import asyncio
 import httpx
 from aresilient import request_async
+from aresilient.core import ClientConfig
 
 
 async def make_custom_request():
@@ -1660,7 +1702,7 @@ async def make_custom_request():
             url="https://api.example.com/resource",
             method="HEAD",
             request_func=client.head,
-            max_retries=3,
+            config=ClientConfig(max_retries=3),
         )
         return response.headers.get("content-length")
 
@@ -1716,29 +1758,27 @@ When making multiple requests, use `ResilientClient` or `AsyncResilientClient` f
 organization and connection pooling:
 
 ```python
+import httpx
 from aresilient import ResilientClient
 from aresilient.core.config import ClientConfig
 
 # Good: Use ResilientClient for multiple requests
-with ResilientClient(config=ClientConfig(max_retries=3), timeout=30.0) as client:
+with ResilientClient(config=ClientConfig(max_retries=3), client=httpx.Client(timeout=30.0)) as client:
     for url in urls:
         response = client.get(url)
         process_response(response)
 
 # Alternative: Reuse httpx client (more verbose)
-import httpx
 from aresilient import get
 
 with httpx.Client() as client:
     for url in urls:
-        response = get(url, client=client, max_retries=3)
+        response = get(url, client=client, config=ClientConfig(max_retries=3))
         process_response(response)
 
 # Bad: Creates new client for each request
-from aresilient import get
-
 for url in urls:
-    response = get(url, max_retries=3)
+    response = get(url, config=ClientConfig(max_retries=3))
     process_response(response)
 ```
 
@@ -1747,8 +1787,11 @@ for url in urls:
 For user-facing operations, use fewer retries for faster failure:
 
 ```python
+from aresilient import get
+from aresilient.core import ClientConfig
+
 # User-facing: fail fast
-response = get("https://api.example.com/user-data", max_retries=1, timeout=10.0)
+response = get("https://api.example.com/user-data", config=ClientConfig(max_retries=1), timeout=10.0)
 ```
 
 For background jobs, use more retries:
@@ -1756,11 +1799,14 @@ For background jobs, use more retries:
 ```python
 # Background job: be more resilient
 from aresilient.backoff import ExponentialBackoff
+from aresilient.core import ClientConfig
 
 response = get(
     "https://api.example.com/batch-process",
-    max_retries=5,
-    backoff_strategy=ExponentialBackoff(base_delay=1.0),
+    config=ClientConfig(
+        max_retries=5,
+        backoff_strategy=ExponentialBackoff(base_delay=1.0),
+    ),
     timeout=60.0,
 )
 ```
@@ -1772,12 +1818,15 @@ If you're hitting rate limits frequently, consider:
 ```python
 # Increase backoff for rate-limited endpoints
 from aresilient.backoff import ExponentialBackoff
+from aresilient.core import ClientConfig
 
 response = get(
     "https://api.example.com/rate-limited",
-    max_retries=5,
-    backoff_strategy=ExponentialBackoff(base_delay=2.0),  # Longer waits
-    status_forcelist=(429,),  # Only retry on rate limit
+    config=ClientConfig(
+        max_retries=5,
+        backoff_strategy=ExponentialBackoff(base_delay=2.0),  # Longer waits
+        status_forcelist=(429,),  # Only retry on rate limit
+    ),
 )
 ```
 
@@ -1903,13 +1952,16 @@ Use `max_total_time` when you have strict time constraints:
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 # Critical user-facing operation with 5-second SLA
 response = get(
     "https://api.example.com/critical-data",
-    max_retries=10,  # Try many times...
-    max_total_time=5.0,  # ...but stop after 5 seconds total
-    max_wait_time=2.0,  # ...and don't wait more than 2s between attempts
+    config=ClientConfig(
+        max_retries=10,  # Try many times...
+        max_total_time=5.0,  # ...but stop after 5 seconds total
+        max_wait_time=2.0,  # ...and don't wait more than 2s between attempts
+    ),
 )
 ```
 
@@ -1918,29 +1970,26 @@ response = get(
 Select backoff strategies based on your use case:
 
 ```python
-from aresilient import (
-    get,
-    ExponentialBackoff,
-    LinearBackoff,
-    ConstantBackoff,
-)
+from aresilient import get
+from aresilient.backoff import ExponentialBackoff, LinearBackoff, ConstantBackoff
+from aresilient.core import ClientConfig
 
 # Exponential: Most services (default)
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0),
+    config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0)),
 )
 
 # Linear: Predictable recovery times
 response = get(
     "https://api.example.com/stable-service",
-    backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=10.0),
+    config=ClientConfig(backoff_strategy=LinearBackoff(base_delay=1.0, max_delay=10.0)),
 )
 
 # Constant: Testing or specific API requirements
 response = get(
     "https://api.example.com/polling-endpoint",
-    backoff_strategy=ConstantBackoff(delay=2.0),
+    config=ClientConfig(backoff_strategy=ConstantBackoff(delay=2.0)),
 )
 ```
 
@@ -1950,6 +1999,7 @@ When status codes aren't enough, use `retry_if` for custom logic:
 
 ```python
 from aresilient import post
+from aresilient.core import ClientConfig
 
 
 def should_retry_payment(response, exception):
@@ -1975,7 +2025,7 @@ def should_retry_payment(response, exception):
 response = post(
     "https://payment-api.example.com/charge",
     json={"amount": 100},
-    retry_if=should_retry_payment,
+    config=ClientConfig(retry_if=should_retry_payment),
 )
 ```
 

@@ -125,15 +125,19 @@ print(response.status_code)
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
+from aresilient.backoff import ExponentialBackoff
 
 # Custom retry configuration
 response = get(
     "https://api.example.com/data",
-    max_retries=5,  # Retry up to 5 times
-    backoff_factor=1.0,  # Exponential backoff factor
-    jitter_factor=0.1,  # Add 10% jitter to prevent thundering herd
+    config=ClientConfig(
+        max_retries=5,  # Retry up to 5 times
+        backoff_strategy=ExponentialBackoff(base_delay=1.0),  # Exponential backoff
+        jitter_factor=0.1,  # Add 10% jitter to prevent thundering herd
+        status_forcelist=(429, 503),  # Only retry on these status codes
+    ),
     timeout=30.0,  # 30 second timeout
-    status_forcelist=(429, 503),  # Only retry on these status codes
 )
 ```
 
@@ -147,12 +151,13 @@ for detailed examples and guidance.
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 from aresilient.backoff import LinearBackoff
 
 # Use linear backoff instead of exponential
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=LinearBackoff(base_delay=1.0),  # 1s, 2s, 3s, 4s...
+    config=ClientConfig(backoff_strategy=LinearBackoff(base_delay=1.0)),  # 1s, 2s, 3s, 4s...
 )
 ```
 
@@ -262,6 +267,7 @@ content, headers, or business logic beyond just status codes.
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 def should_retry(response, exception):
@@ -290,7 +296,10 @@ def should_retry(response, exception):
 
 
 # Use the custom retry predicate
-response = get("https://api.example.com/data", retry_if=should_retry, max_retries=5)
+response = get(
+    "https://api.example.com/data",
+    config=ClientConfig(retry_if=should_retry, max_retries=5),
+)
 ```
 
 **Note**: When `retry_if` is provided, it takes precedence over `status_forcelist` for determining
@@ -343,6 +352,7 @@ lifecycle for logging, metrics, alerting, and custom behavior.
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 def log_request(info):
@@ -376,10 +386,12 @@ def log_failure(info):
 # Use callbacks to monitor request behavior
 response = get(
     "https://api.example.com/data",
-    on_request=log_request,
-    on_retry=log_retry,
-    on_success=log_success,
-    on_failure=log_failure,
+    config=ClientConfig(
+        on_request=log_request,
+        on_retry=log_retry,
+        on_success=log_success,
+        on_failure=log_failure,
+    ),
 )
 ```
 
@@ -387,6 +399,7 @@ response = get(
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 
 
 class MetricsCollector:
@@ -415,9 +428,11 @@ for url in urls:
     try:
         response = get(
             url,
-            on_retry=metrics.on_retry,
-            on_success=metrics.on_success,
-            on_failure=metrics.on_failure,
+            config=ClientConfig(
+                on_retry=metrics.on_retry,
+                on_success=metrics.on_success,
+                on_failure=metrics.on_failure,
+            ),
         )
     except Exception:
         pass  # Metrics already recorded in on_failure
@@ -487,6 +502,7 @@ states:
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 # Create a circuit breaker instance
@@ -499,7 +515,7 @@ circuit_breaker = CircuitBreaker(
 try:
     response = get(
         "https://api.example.com/data",
-        circuit_breaker=circuit_breaker,
+        config=ClientConfig(circuit_breaker=circuit_breaker),
     )
 except CircuitBreakerError:
     # Circuit is open, service is unavailable
@@ -513,6 +529,7 @@ service:
 
 ```python
 from aresilient import get
+from aresilient.core import ClientConfig
 from aresilient.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 # Create a shared circuit breaker for a specific API
@@ -523,7 +540,7 @@ for endpoint in ["/users", "/posts", "/comments"]:
     try:
         response = get(
             f"https://api.example.com{endpoint}",
-            circuit_breaker=api_circuit_breaker,
+            config=ClientConfig(circuit_breaker=api_circuit_breaker),
         )
         process_response(response)
     except CircuitBreakerError:
@@ -582,7 +599,7 @@ if circuit_breaker.state == CircuitState.OPEN:
 
 - **Timeout**: 10.0 seconds
 - **Max Retries**: 3 (4 total attempts including the initial request)
-- **Backoff Factor**: 0.3
+- **Backoff Strategy**: `ExponentialBackoff()` (doubles delay each retry)
 - **Retryable Status Codes**: 429 (Too Many Requests), 500 (Internal Server Error), 502 (Bad
   Gateway), 503 (Service Unavailable), 504 (Gateway Timeout)
 
@@ -600,16 +617,16 @@ All strategies support an optional `max_delay` parameter to cap the maximum wait
 
 #### Default Exponential Backoff Formula
 
-When not using a custom backoff strategy, the wait time is calculated as:
+With the default `ExponentialBackoff(base_delay=0.3)`, the wait time is calculated as:
 
 ```
-base_wait_time = backoff_factor * (2 ** retry_number)
+base_wait_time = base_delay * (2 ** retry_number)
 # If jitter_factor is set (e.g., 0.1 for 10% jitter):
 jitter = random(0, jitter_factor) * base_wait_time
 total_wait_time = base_wait_time + jitter
 ```
 
-For example, with `backoff_factor=0.3` and `jitter_factor=0.1`:
+For example, with `ExponentialBackoff(base_delay=0.3)` and `jitter_factor=0.1`:
 
 - 1st retry: 0.3-0.33 seconds (base 0.3s + up to 10% jitter)
 - 2nd retry: 0.6-0.66 seconds (base 0.6s + up to 10% jitter)
@@ -644,19 +661,8 @@ Performs an HTTP GET request with automatic retry logic.
 
 - `url` (str): The URL to send the request to
 - `client` (httpx.Client | None): Optional httpx client to use
-- `timeout` (float | httpx.Timeout): Request timeout in seconds
-- `max_retries` (int): Maximum number of retry attempts
-- `backoff_factor` (float): Exponential backoff factor
-- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
-- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
-- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate
-  function to determine whether to retry. If provided, takes precedence over `status_forcelist`.
-  Called with `(response, exception)` and should return `True` to retry, `False` otherwise.
-- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
-- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
-- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
-- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are
-  exhausted
+- `config` (ClientConfig | None): Optional retry configuration. If None, defaults are used.
+- `timeout` (float | httpx.Timeout): Request timeout in seconds (default: 10.0)
 - `**kwargs`: Additional arguments passed to `httpx.Client.get()`
 
 **Returns:** `httpx.Response`
@@ -674,18 +680,8 @@ Performs an HTTP POST request with automatic retry logic.
 
 - `url` (str): The URL to send the request to
 - `client` (httpx.Client | None): Optional httpx client to use
-- `timeout` (float | httpx.Timeout): Request timeout in seconds
-- `max_retries` (int): Maximum number of retry attempts
-- `backoff_factor` (float): Exponential backoff factor
-- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
-- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
-- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate
-  function to determine whether to retry
-- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
-- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
-- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
-- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are
-  exhausted
+- `config` (ClientConfig | None): Optional retry configuration. If None, defaults are used.
+- `timeout` (float | httpx.Timeout): Request timeout in seconds (default: 10.0)
 - `**kwargs`: Additional arguments passed to `httpx.Client.post()`
 
 **Returns:** `httpx.Response`
@@ -703,18 +699,8 @@ Performs an HTTP PUT request with automatic retry logic.
 
 - `url` (str): The URL to send the request to
 - `client` (httpx.Client | None): Optional httpx client to use
-- `timeout` (float | httpx.Timeout): Request timeout in seconds
-- `max_retries` (int): Maximum number of retry attempts
-- `backoff_factor` (float): Exponential backoff factor
-- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
-- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
-- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate
-  function to determine whether to retry
-- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
-- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
-- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
-- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are
-  exhausted
+- `config` (ClientConfig | None): Optional retry configuration. If None, defaults are used.
+- `timeout` (float | httpx.Timeout): Request timeout in seconds (default: 10.0)
 - `**kwargs`: Additional arguments passed to `httpx.Client.put()`
 
 **Returns:** `httpx.Response`
@@ -732,18 +718,8 @@ Performs an HTTP DELETE request with automatic retry logic.
 
 - `url` (str): The URL to send the request to
 - `client` (httpx.Client | None): Optional httpx client to use
-- `timeout` (float | httpx.Timeout): Request timeout in seconds
-- `max_retries` (int): Maximum number of retry attempts
-- `backoff_factor` (float): Exponential backoff factor
-- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
-- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
-- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate
-  function to determine whether to retry
-- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
-- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
-- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
-- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are
-  exhausted
+- `config` (ClientConfig | None): Optional retry configuration. If None, defaults are used.
+- `timeout` (float | httpx.Timeout): Request timeout in seconds (default: 10.0)
 - `**kwargs`: Additional arguments passed to `httpx.Client.delete()`
 
 **Returns:** `httpx.Response`
@@ -761,18 +737,8 @@ Performs an HTTP PATCH request with automatic retry logic.
 
 - `url` (str): The URL to send the request to
 - `client` (httpx.Client | None): Optional httpx client to use
-- `timeout` (float | httpx.Timeout): Request timeout in seconds
-- `max_retries` (int): Maximum number of retry attempts
-- `backoff_factor` (float): Exponential backoff factor
-- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
-- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
-- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate
-  function to determine whether to retry
-- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
-- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
-- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
-- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are
-  exhausted
+- `config` (ClientConfig | None): Optional retry configuration. If None, defaults are used.
+- `timeout` (float | httpx.Timeout): Request timeout in seconds (default: 10.0)
 - `**kwargs`: Additional arguments passed to `httpx.Client.patch()`
 
 **Returns:** `httpx.Response`
@@ -790,18 +756,8 @@ Performs an HTTP HEAD request with automatic retry logic.
 
 - `url` (str): The URL to send the request to
 - `client` (httpx.Client | None): Optional httpx client to use
-- `timeout` (float | httpx.Timeout): Request timeout in seconds
-- `max_retries` (int): Maximum number of retry attempts
-- `backoff_factor` (float): Exponential backoff factor
-- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
-- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
-- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate
-  function to determine whether to retry
-- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
-- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
-- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
-- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are
-  exhausted
+- `config` (ClientConfig | None): Optional retry configuration. If None, defaults are used.
+- `timeout` (float | httpx.Timeout): Request timeout in seconds (default: 10.0)
 - `**kwargs`: Additional arguments passed to `httpx.Client.head()`
 
 **Returns:** `httpx.Response`
@@ -823,18 +779,8 @@ Performs an HTTP OPTIONS request with automatic retry logic.
 
 - `url` (str): The URL to send the request to
 - `client` (httpx.Client | None): Optional httpx client to use
-- `timeout` (float | httpx.Timeout): Request timeout in seconds
-- `max_retries` (int): Maximum number of retry attempts
-- `backoff_factor` (float): Exponential backoff factor
-- `status_forcelist` (tuple[int, ...]): HTTP status codes that trigger a retry
-- `jitter_factor` (float): Factor for adding random jitter to backoff delays (0.0-1.0, default: 0.0)
-- `retry_if` (Callable[[httpx.Response | None, Exception | None], bool] | None): Custom predicate
-  function to determine whether to retry
-- `on_request` (Callable[[RequestInfo], None] | None): Callback called before each request attempt
-- `on_retry` (Callable[[RetryInfo], None] | None): Callback called before each retry
-- `on_success` (Callable[[ResponseInfo], None] | None): Callback called when request succeeds
-- `on_failure` (Callable[[FailureInfo], None] | None): Callback called when all retries are
-  exhausted
+- `config` (ClientConfig | None): Optional retry configuration. If None, defaults are used.
+- `timeout` (float | httpx.Timeout): Request timeout in seconds (default: 10.0)
 - `**kwargs`: Additional arguments passed to `httpx.Client.options()`
 
 **Returns:** `httpx.Response`
