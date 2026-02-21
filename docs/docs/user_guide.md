@@ -477,11 +477,8 @@ with ResilientClient(
     # All requests use the shared configuration
     users = client.get("https://api.example.com/users")
 
-    # Override configuration for specific requests
-    posts = client.get(
-        "https://api.example.com/posts",
-        config=ClientConfig(max_retries=3),  # Override max_retries for this request
-    )
+    # GET request
+    posts = client.get("https://api.example.com/posts")
 
     # POST request
     result = client.post(
@@ -554,7 +551,7 @@ Both `ResilientClient` and `AsyncResilientClient` support all HTTP methods:
 1. **Code Reusability**: Define retry configuration once, use for multiple requests
 2. **Connection Pooling**: The underlying httpx client is reused, improving performance
 3. **Cleaner Code**: Less repetition of configuration parameters
-4. **Easy Override**: Per-request overrides of the default configuration
+4. **Shared Configuration**: All requests share the same retry, backoff, and callback settings
 5. **Resource Management**: Automatic cleanup when exiting the context
 
 ### Context Manager with Callbacks
