@@ -112,6 +112,7 @@ async def test_async_client_uses_custom_client(
 
     assert response.status_code == 200
     mock_client.get.assert_called_once_with(url=TEST_URL)
+    mock_client.aclose.assert_not_called()
     mock_asleep.assert_not_called()
 
 

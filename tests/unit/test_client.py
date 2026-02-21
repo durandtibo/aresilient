@@ -100,6 +100,7 @@ def test_client_uses_custom_client(mock_sleep: Mock, mock_response: httpx.Respon
 
     assert response.status_code == 200
     mock_client.get.assert_called_once_with(url=TEST_URL)
+    mock_client.close.assert_not_called()
     mock_sleep.assert_not_called()
 
 

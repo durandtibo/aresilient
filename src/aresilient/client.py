@@ -65,9 +65,8 @@ class ResilientClient:
         client: httpx.Client | None = None,
     ) -> None:
         self._config = config or ClientConfig()
-        self._client: httpx.Client | None = (
-            client if client is not None else httpx.Client(timeout=DEFAULT_TIMEOUT)
-        )
+        self._owns_client = client is None
+        self._client: httpx.Client | None = client or httpx.Client(timeout=DEFAULT_TIMEOUT)
         self._entered = False
 
     def __enter__(self) -> Self:
@@ -93,7 +92,7 @@ class ResilientClient:
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        if self._client is not None:
+        if self._client is not None and self._owns_client:
             self._client.close()
             self._client = None
         self._entered = False

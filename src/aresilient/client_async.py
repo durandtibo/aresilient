@@ -71,8 +71,9 @@ class AsyncResilientClient:
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self._config = config or ClientConfig()
+        self._owns_client = client is None
         self._client: httpx.AsyncClient | None = (
-            client if client is not None else httpx.AsyncClient(timeout=DEFAULT_TIMEOUT)
+            client or httpx.AsyncClient(timeout=DEFAULT_TIMEOUT)
         )
         self._entered = False
 
@@ -99,7 +100,7 @@ class AsyncResilientClient:
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        if self._client is not None:
+        if self._client is not None and self._owns_client:
             await self._client.aclose()
             self._client = None
         self._entered = False
