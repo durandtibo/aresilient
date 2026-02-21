@@ -29,16 +29,17 @@ works well for most scenarios where you want progressively longer delays between
 ```python
 from aresilient import get
 from aresilient.backoff import ExponentialBackoff
+from aresilient.core.config import ClientConfig
 
 # Explicit exponential backoff with max delay cap
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=10.0),
+    config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=10.0)),
 )
 # Delays: 0.5s, 1s, 2s, 4s, 8s, 10s (capped), 10s (capped)...
 ```
 
-**Default behavior** (when no `backoff_strategy` is specified):
+**Default behavior** (when no `config` is specified):
 
 ```python
 from aresilient import get
@@ -49,10 +50,11 @@ response = get("https://api.example.com/data")
 
 # Customize with explicit ExponentialBackoff
 from aresilient.backoff import ExponentialBackoff
+from aresilient.core.config import ClientConfig
 
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=ExponentialBackoff(base_delay=0.5),
+    config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=0.5)),
 )
 # Delays: 0.5s, 1.0s, 2.0s, 4.0s...
 ```
@@ -75,17 +77,18 @@ useful for services with predictable recovery times.
 ```python
 from aresilient import get
 from aresilient.backoff import LinearBackoff
+from aresilient.core.config import ClientConfig
 
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=LinearBackoff(base_delay=1.0),
+    config=ClientConfig(backoff_strategy=LinearBackoff(base_delay=1.0)),
 )
 # Delays: 1s, 2s, 3s, 4s, 5s...
 
 # With max_delay cap
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=LinearBackoff(base_delay=2.0, max_delay=8.0),
+    config=ClientConfig(backoff_strategy=LinearBackoff(base_delay=2.0, max_delay=8.0)),
 )
 # Delays: 2s, 4s, 6s, 8s (capped), 8s (capped)...
 ```
@@ -108,17 +111,18 @@ following the Fibonacci sequence. This provides a more gradual increase than exp
 ```python
 from aresilient import get
 from aresilient.backoff import FibonacciBackoff
+from aresilient.core.config import ClientConfig
 
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=FibonacciBackoff(base_delay=1.0),
+    config=ClientConfig(backoff_strategy=FibonacciBackoff(base_delay=1.0)),
 )
 # Delays: 1s, 1s, 2s, 3s, 5s, 8s, 13s...
 
 # With max_delay cap
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0),
+    config=ClientConfig(backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0)),
 )
 # Delays: 1s, 1s, 2s, 3s, 5s, 8s, 10s (capped)...
 ```
@@ -141,25 +145,27 @@ is useful for testing or when you know the exact delay that works best.
 ```python
 from aresilient import get
 from aresilient.backoff import ConstantBackoff
+from aresilient.core.config import ClientConfig
 
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=ConstantBackoff(delay=2.5),
+    config=ClientConfig(backoff_strategy=ConstantBackoff(delay=2.5)),
 )
 # Delays: 2.5s, 2.5s, 2.5s, 2.5s...
 ```
 
 ## Custom Backoff Strategy
 
-You can implement your own backoff strategy by subclassing `BackoffStrategy` and implementing the
-`calculate()` method:
+You can implement your own backoff strategy by subclassing `BaseBackoffStrategy` and implementing
+the `calculate()` method:
 
 ```python
 from aresilient import get
-from aresilient.backoff import BackoffStrategy
+from aresilient.backoff import BaseBackoffStrategy
+from aresilient.core.config import ClientConfig
 
 
-class SquareBackoff(BackoffStrategy):
+class SquareBackoff(BaseBackoffStrategy):
     """Custom backoff using square of attempt number."""
 
     def __init__(self, base_delay: float = 1.0):
@@ -172,7 +178,7 @@ class SquareBackoff(BackoffStrategy):
 
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=SquareBackoff(base_delay=0.5),
+    config=ClientConfig(backoff_strategy=SquareBackoff(base_delay=0.5)),
 )
 # Delays: 0.5s, 2s, 4.5s, 8s, 12.5s...
 ```
@@ -185,11 +191,14 @@ clients retry simultaneously. Jitter works with all backoff strategies:
 ```python
 from aresilient import get
 from aresilient.backoff import LinearBackoff
+from aresilient.core.config import ClientConfig
 
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=LinearBackoff(base_delay=1.0),
-    jitter_factor=0.1,  # Add up to 10% random jitter
+    config=ClientConfig(
+        backoff_strategy=LinearBackoff(base_delay=1.0),
+        jitter_factor=0.1,  # Add up to 10% random jitter
+    ),
 )
 # Delays: 1.0-1.1s, 2.0-2.2s, 3.0-3.3s...
 ```
@@ -203,10 +212,11 @@ This ensures compliance with server requirements:
 ```python
 from aresilient import get
 from aresilient.backoff import ExponentialBackoff
+from aresilient.core.config import ClientConfig
 
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=ExponentialBackoff(base_delay=1.0),
+    config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=1.0)),
 )
 # If server returns "Retry-After: 60", waits 60 seconds
 # Otherwise uses the configured strategy
@@ -219,11 +229,14 @@ Most strategies support an optional `max_delay` parameter to prevent extremely l
 ```python
 from aresilient import get
 from aresilient.backoff import ExponentialBackoff
+from aresilient.core.config import ClientConfig
 
 response = get(
     "https://api.example.com/data",
-    backoff_strategy=ExponentialBackoff(base_delay=1.0, max_delay=30.0),
-    max_retries=10,
+    config=ClientConfig(
+        backoff_strategy=ExponentialBackoff(base_delay=1.0, max_delay=30.0),
+        max_retries=10,
+    ),
 )
 # Delays won't exceed 30 seconds, even with many retries
 ```
@@ -271,12 +284,13 @@ All backoff strategies work identically with async functions:
 ```python
 from aresilient import get_async
 from aresilient.backoff import FibonacciBackoff
+from aresilient.core.config import ClientConfig
 
 
 async def fetch_data():
     response = await get_async(
         "https://api.example.com/data",
-        backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0),
+        config=ClientConfig(backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0)),
     )
     return response.json()
 ```
@@ -287,7 +301,7 @@ Backoff strategies work seamlessly with `ResilientClient` and `AsyncResilientCli
 
 ```python
 from aresilient import ResilientClient
-from aresilient.backoff import ConstantBackoff, LinearBackoff
+from aresilient.backoff import LinearBackoff
 from aresilient.core.config import ClientConfig
 
 # All requests in the context use the same backoff strategy
@@ -299,12 +313,7 @@ with ResilientClient(
 ) as client:
     response1 = client.get("https://api.example.com/data1")
     response2 = client.post("https://api.example.com/data2", json={"key": "value"})
-
-    # Override strategy for a specific request
-    response3 = client.get(
-        "https://api.example.com/data3",
-        backoff_strategy=ConstantBackoff(delay=2.0),
-    )
+    response3 = client.get("https://api.example.com/data3")
 ```
 
 Async context manager example:
