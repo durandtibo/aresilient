@@ -6,12 +6,12 @@ This file contains tests for the asynchronous context manager client.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
+from unittest.mock import AsyncMock, Mock, call, patch
 
 import pytest
 
 from aresilient import AsyncResilientClient
-from aresilient.core.config import ClientConfig, DEFAULT_TIMEOUT
+from aresilient.core.config import DEFAULT_TIMEOUT, ClientConfig
 from tests.helpers import create_mock_response
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ async def test_async_client_context_manager_basic(
     """Test that AsyncResilientClient works as an async context
     manager."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(get=AsyncMock(return_value=mock_response))
+        mock_client = Mock(get=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -49,7 +49,7 @@ async def test_async_client_closes_on_exception(mock_asleep: Mock) -> None:
     """Test that AsyncResilientClient closes properly even when
     exception occurs."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock()
+        mock_client = Mock()
         mock_client_class.return_value = mock_client
         msg = "test error"
 
@@ -78,7 +78,7 @@ async def test_async_client_outside_context_manager_raises(mock_asleep: Mock) ->
 async def test_async_client_multiple_requests(mock_asleep: Mock) -> None:
     """Test that AsyncResilientClient can handle multiple requests."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(
+        mock_client = Mock(
             get=AsyncMock(return_value=create_mock_response(status_code=200)),
             post=AsyncMock(return_value=create_mock_response(status_code=201)),
         )
@@ -103,8 +103,9 @@ async def test_async_client_multiple_requests(mock_asleep: Mock) -> None:
 async def test_async_client_uses_custom_client(
     mock_asleep: Mock, mock_response: httpx.Response
 ) -> None:
-    """Test that AsyncResilientClient uses a provided httpx.AsyncClient."""
-    mock_client = MagicMock(get=AsyncMock(return_value=mock_response))
+    """Test that AsyncResilientClient uses a provided
+    httpx.AsyncClient."""
+    mock_client = Mock(get=AsyncMock(return_value=mock_response))
 
     async with AsyncResilientClient(client=mock_client) as client:
         response = await client.get(TEST_URL)
@@ -119,7 +120,7 @@ async def test_async_client_uses_custom_client(
 async def test_async_client_get_method(mock_asleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.get() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(get=AsyncMock(return_value=mock_response))
+        mock_client = Mock(get=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -135,9 +136,7 @@ async def test_async_client_get_method(mock_asleep: Mock, mock_response: httpx.R
 async def test_async_client_post_method(mock_asleep: Mock) -> None:
     """Test client.post() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(
-            post=AsyncMock(return_value=create_mock_response(status_code=201))
-        )
+        mock_client = Mock(post=AsyncMock(return_value=create_mock_response(status_code=201)))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -153,7 +152,7 @@ async def test_async_client_post_method(mock_asleep: Mock) -> None:
 async def test_async_client_put_method(mock_asleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.put() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(put=AsyncMock(return_value=mock_response))
+        mock_client = Mock(put=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -169,9 +168,7 @@ async def test_async_client_put_method(mock_asleep: Mock, mock_response: httpx.R
 async def test_async_client_delete_method(mock_asleep: Mock) -> None:
     """Test client.delete() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(
-            delete=AsyncMock(return_value=create_mock_response(status_code=204))
-        )
+        mock_client = Mock(delete=AsyncMock(return_value=create_mock_response(status_code=204)))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -187,7 +184,7 @@ async def test_async_client_delete_method(mock_asleep: Mock) -> None:
 async def test_async_client_patch_method(mock_asleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.patch() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(patch=AsyncMock(return_value=mock_response))
+        mock_client = Mock(patch=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -203,7 +200,7 @@ async def test_async_client_patch_method(mock_asleep: Mock, mock_response: httpx
 async def test_async_client_head_method(mock_asleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.head() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(head=AsyncMock(return_value=mock_response))
+        mock_client = Mock(head=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -221,7 +218,7 @@ async def test_async_client_options_method(
 ) -> None:
     """Test client.options() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(options=AsyncMock(return_value=mock_response))
+        mock_client = Mock(options=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -239,7 +236,7 @@ async def test_async_client_request_method(
 ) -> None:
     """Test client.request() method with custom HTTP method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock()
+        mock_client = Mock()
         mock_client.trace = AsyncMock(return_value=mock_response)
         mock_client_class.return_value = mock_client
 
@@ -258,9 +255,7 @@ async def test_async_client_default_max_retries(
     """Test that client's default max_retries is used when not
     overridden."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(
-            get=AsyncMock(side_effect=[mock_response_fail, mock_response])
-        )
+        mock_client = Mock(get=AsyncMock(side_effect=[mock_response_fail, mock_response]))
         mock_client_class.return_value = mock_client
 
         # Client configured with max_retries=2
@@ -284,7 +279,8 @@ async def test_async_client_validation_max_retries_negative(mock_asleep: Mock) -
 
 @pytest.mark.asyncio
 async def test_async_client_default_timeout(mock_asleep: Mock) -> None:
-    """Test that AsyncResilientClient creates a default client with DEFAULT_TIMEOUT."""
+    """Test that AsyncResilientClient creates a default client with
+    DEFAULT_TIMEOUT."""
     with patch("httpx.AsyncClient") as mock_client_class:
         AsyncResilientClient()
 
@@ -299,7 +295,7 @@ async def test_async_client_shares_configuration_across_requests(
 ) -> None:
     """Test that all requests share the same configuration."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = MagicMock(
+        mock_client = Mock(
             get=AsyncMock(return_value=mock_response),
             post=AsyncMock(return_value=mock_response),
         )
@@ -323,8 +319,9 @@ async def test_async_client_shares_configuration_across_requests(
 async def test_async_client_exit_without_enter() -> None:
     """Test that __aexit__ can be called without __aenter__.
 
-    This tests that calling __aexit__ before entering the context manager
-    does not raise an error and properly delegates to the owned client.
+    This tests that calling __aexit__ before entering the context
+    manager does not raise an error and properly delegates to the owned
+    client.
     """
     with patch("httpx.AsyncClient") as mock_client_class:
         client = AsyncResilientClient()
