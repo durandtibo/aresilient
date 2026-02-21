@@ -28,7 +28,7 @@ TEST_URL = "https://api.example.com/data"
 def test_client_context_manager_basic(mock_sleep: Mock, mock_response: httpx.Response) -> None:
     """Test that ResilientClient works as a context manager."""
     with patch("httpx.Client") as mock_client_class:
-        mock_client = Mock(get=Mock(return_value=mock_response))
+        mock_client = Mock(get=Mock(return_value=mock_response), __enter__=Mock(), __exit__=Mock())
         mock_client_class.return_value = mock_client
 
         with ResilientClient() as client:
@@ -44,7 +44,7 @@ def test_client_closes_on_exception(mock_sleep: Mock) -> None:
     """Test that ResilientClient closes properly even when exception
     occurs."""
     with patch("httpx.Client") as mock_client_class:
-        mock_client = Mock()
+        mock_client = Mock(__enter__=Mock(), __exit__=Mock())
         mock_client_class.return_value = mock_client
         msg = "test error"
 
@@ -73,6 +73,8 @@ def test_client_multiple_requests(mock_sleep: Mock) -> None:
         mock_client = Mock(
             get=Mock(return_value=create_mock_response(status_code=200)),
             post=Mock(return_value=create_mock_response(status_code=201)),
+            __enter__=Mock(),
+            __exit__=Mock(),
         )
         mock_client_class.return_value = mock_client
 
@@ -93,7 +95,7 @@ def test_client_multiple_requests(mock_sleep: Mock) -> None:
 
 def test_client_uses_custom_client(mock_sleep: Mock, mock_response: httpx.Response) -> None:
     """Test that ResilientClient uses a provided httpx.Client."""
-    mock_client = Mock(get=Mock(return_value=mock_response))
+    mock_client = Mock(get=Mock(return_value=mock_response), __enter__=Mock(), __exit__=Mock())
 
     with ResilientClient(client=mock_client) as client:
         response = client.get(TEST_URL)
@@ -107,7 +109,7 @@ def test_client_uses_custom_client(mock_sleep: Mock, mock_response: httpx.Respon
 def test_client_get_method(mock_sleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.get() method."""
     with patch("httpx.Client") as mock_client_class:
-        mock_client = Mock(get=Mock(return_value=mock_response))
+        mock_client = Mock(get=Mock(return_value=mock_response), __enter__=Mock(), __exit__=Mock())
         mock_client_class.return_value = mock_client
 
         with ResilientClient() as client:
@@ -122,7 +124,11 @@ def test_client_get_method(mock_sleep: Mock, mock_response: httpx.Response) -> N
 def test_client_post_method(mock_sleep: Mock) -> None:
     """Test client.post() method."""
     with patch("httpx.Client") as mock_client_class:
-        mock_client = Mock(post=Mock(return_value=create_mock_response(status_code=201)))
+        mock_client = Mock(
+            post=Mock(return_value=create_mock_response(status_code=201)),
+            __enter__=Mock(),
+            __exit__=Mock(),
+        )
         mock_client_class.return_value = mock_client
 
         with ResilientClient() as client:
@@ -137,7 +143,7 @@ def test_client_post_method(mock_sleep: Mock) -> None:
 def test_client_put_method(mock_sleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.put() method."""
     with patch("httpx.Client") as mock_client_class:
-        mock_client = Mock(put=Mock(return_value=mock_response))
+        mock_client = Mock(put=Mock(return_value=mock_response), __enter__=Mock(), __exit__=Mock())
         mock_client_class.return_value = mock_client
 
         with ResilientClient() as client:
@@ -152,7 +158,11 @@ def test_client_put_method(mock_sleep: Mock, mock_response: httpx.Response) -> N
 def test_client_delete_method(mock_sleep: Mock) -> None:
     """Test client.delete() method."""
     with patch("httpx.Client") as mock_client_class:
-        mock_client = Mock(delete=Mock(return_value=create_mock_response(status_code=204)))
+        mock_client = Mock(
+            delete=Mock(return_value=create_mock_response(status_code=204)),
+            __enter__=Mock(),
+            __exit__=Mock(),
+        )
         mock_client_class.return_value = mock_client
 
         with ResilientClient() as client:
@@ -167,7 +177,9 @@ def test_client_delete_method(mock_sleep: Mock) -> None:
 def test_client_patch_method(mock_sleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.patch() method."""
     with patch("httpx.Client") as mock_client_class:
-        mock_client = Mock(patch=Mock(return_value=mock_response))
+        mock_client = Mock(
+            patch=Mock(return_value=mock_response), __enter__=Mock(), __exit__=Mock()
+        )
         mock_client_class.return_value = mock_client
 
         with ResilientClient() as client:
@@ -182,7 +194,7 @@ def test_client_patch_method(mock_sleep: Mock, mock_response: httpx.Response) ->
 def test_client_head_method(mock_sleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.head() method."""
     with patch("httpx.Client") as mock_client_class:
-        mock_client = Mock(head=Mock(return_value=mock_response))
+        mock_client = Mock(head=Mock(return_value=mock_response), __enter__=Mock(), __exit__=Mock())
         mock_client_class.return_value = mock_client
 
         with ResilientClient() as client:
@@ -197,7 +209,9 @@ def test_client_head_method(mock_sleep: Mock, mock_response: httpx.Response) -> 
 def test_client_options_method(mock_sleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.options() method."""
     with patch("httpx.Client") as mock_client_class:
-        mock_client = Mock(options=Mock(return_value=mock_response))
+        mock_client = Mock(
+            options=Mock(return_value=mock_response), __enter__=Mock(), __exit__=Mock()
+        )
         mock_client_class.return_value = mock_client
 
         with ResilientClient() as client:
@@ -212,7 +226,9 @@ def test_client_options_method(mock_sleep: Mock, mock_response: httpx.Response) 
 def test_client_request_method(mock_sleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.request() method with custom HTTP method."""
     with patch("httpx.Client") as mock_client_class:
-        mock_client = Mock(trace=Mock(return_value=mock_response))
+        mock_client = Mock(
+            trace=Mock(return_value=mock_response), __enter__=Mock(), __exit__=Mock()
+        )
         mock_client_class.return_value = mock_client
 
         with ResilientClient() as client:
@@ -230,7 +246,11 @@ def test_client_default_max_retries(
     overridden."""
     with patch("httpx.Client") as mock_client_class:
         # Simulate retryable error then success
-        mock_client = Mock(get=Mock(side_effect=[mock_response_fail, mock_response]))
+        mock_client = Mock(
+            get=Mock(side_effect=[mock_response_fail, mock_response]),
+            __enter__=Mock(),
+            __exit__=Mock(),
+        )
         mock_client_class.return_value = mock_client
 
         # Client configured with max_retries=2
@@ -269,7 +289,10 @@ def test_client_shares_configuration_across_requests(
     """Test that all requests share the same configuration."""
     with patch("httpx.Client") as mock_client_class:
         mock_client = Mock(
-            get=Mock(return_value=mock_response), post=Mock(return_value=mock_response)
+            get=Mock(return_value=mock_response),
+            post=Mock(return_value=mock_response),
+            __enter__=Mock(),
+            __exit__=Mock(),
         )
         mock_client_class.return_value = mock_client
 
