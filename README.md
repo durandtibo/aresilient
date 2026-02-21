@@ -157,7 +157,9 @@ from aresilient.backoff import LinearBackoff
 # Use linear backoff instead of exponential
 response = get(
     "https://api.example.com/data",
-    config=ClientConfig(backoff_strategy=LinearBackoff(base_delay=1.0)),  # 1s, 2s, 3s, 4s...
+    config=ClientConfig(
+        backoff_strategy=LinearBackoff(base_delay=1.0)
+    ),  # 1s, 2s, 3s, 4s...
 )
 ```
 

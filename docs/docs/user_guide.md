@@ -248,7 +248,9 @@ response = get(
     "https://api.example.com/data",
     config=ClientConfig(
         max_retries=5,
-        backoff_strategy=ExponentialBackoff(base_delay=0.5),  # Longer waits between retries
+        backoff_strategy=ExponentialBackoff(
+            base_delay=0.5
+        ),  # Longer waits between retries
     ),
 )
 
@@ -337,7 +339,9 @@ response = get(
 # Fibonacci backoff: 1s, 1s, 2s, 3s, 5s, 8s...
 response = get(
     "https://api.example.com/data",
-    config=ClientConfig(backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0)),
+    config=ClientConfig(
+        backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0)
+    ),
 )
 
 # Constant backoff: 2s, 2s, 2s, 2s...
@@ -349,7 +353,9 @@ response = get(
 # Explicit exponential backoff with custom settings
 response = get(
     "https://api.example.com/data",
-    config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0)),
+    config=ClientConfig(
+        backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0)
+    ),
 )
 ```
 
@@ -366,17 +372,22 @@ from aresilient import get
 from aresilient.core import ClientConfig
 
 # Only retry on rate limiting
-response = get("https://api.example.com/data", config=ClientConfig(status_forcelist=(429,)))
+response = get(
+    "https://api.example.com/data", config=ClientConfig(status_forcelist=(429,))
+)
 
 # Retry on server errors and rate limiting
 response = get(
-    "https://api.example.com/data", config=ClientConfig(status_forcelist=(429, 500, 502, 503, 504))
+    "https://api.example.com/data",
+    config=ClientConfig(status_forcelist=(429, 500, 502, 503, 504)),
 )
 
 # Add custom status codes
 response = get(
     "https://api.example.com/data",
-    config=ClientConfig(status_forcelist=(408, 429, 500, 502, 503, 504)),  # Include 408 Request Timeout
+    config=ClientConfig(
+        status_forcelist=(408, 429, 500, 502, 503, 504)
+    ),  # Include 408 Request Timeout
 )
 ```
 
@@ -1569,7 +1580,11 @@ from aresilient import get, HttpRequestError
 from aresilient.core import ClientConfig
 
 try:
-    response = get("https://slow-api.example.com/data", config=ClientConfig(max_retries=2), timeout=1.0)
+    response = get(
+        "https://slow-api.example.com/data",
+        config=ClientConfig(max_retries=2),
+        timeout=1.0,
+    )
 except HttpRequestError as e:
     # status_code will be None for timeout errors
     if e.status_code is None:
@@ -1763,7 +1778,9 @@ from aresilient import ResilientClient
 from aresilient.core.config import ClientConfig
 
 # Good: Use ResilientClient for multiple requests
-with ResilientClient(config=ClientConfig(max_retries=3), client=httpx.Client(timeout=30.0)) as client:
+with ResilientClient(
+    config=ClientConfig(max_retries=3), client=httpx.Client(timeout=30.0)
+) as client:
     for url in urls:
         response = client.get(url)
         process_response(response)
@@ -1791,7 +1808,11 @@ from aresilient import get
 from aresilient.core import ClientConfig
 
 # User-facing: fail fast
-response = get("https://api.example.com/user-data", config=ClientConfig(max_retries=1), timeout=10.0)
+response = get(
+    "https://api.example.com/user-data",
+    config=ClientConfig(max_retries=1),
+    timeout=10.0,
+)
 ```
 
 For background jobs, use more retries:
@@ -1977,7 +1998,9 @@ from aresilient.core import ClientConfig
 # Exponential: Most services (default)
 response = get(
     "https://api.example.com/data",
-    config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0)),
+    config=ClientConfig(
+        backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=30.0)
+    ),
 )
 
 # Linear: Predictable recovery times

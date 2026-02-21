@@ -18,7 +18,9 @@ Example:
     >>> def log_retry(retry_info: RetryInfo):
     ...     print(f"Retry {retry_info.attempt}/{retry_info.max_retries + 1}")
     ...
-    >>> response = get("https://api.example.com/data", config=ClientConfig(on_retry=log_retry))  # doctest: +SKIP
+    >>> response = get(
+    ...     "https://api.example.com/data", config=ClientConfig(on_retry=log_retry)
+    ... )  # doctest: +SKIP
 
     ```
 """
