@@ -19,7 +19,6 @@ from aresilient.core.config import (
     DEFAULT_TIMEOUT,
     ClientConfig,
 )
-from aresilient.core.validation import validate_timeout
 from aresilient.request_async import request_async
 
 if TYPE_CHECKING:
@@ -38,7 +37,8 @@ class AsyncResilientClient:
     Args:
         config: Optional ClientConfig instance for retry configuration.
             If ``None``, a default ClientConfig is used.
-        timeout: Maximum seconds to wait for server responses. Must be > 0.
+        client: Optional httpx.AsyncClient instance to use for requests.
+            If ``None``, a new client is created with the default timeout.
 
     Example:
         ```pycon
@@ -47,7 +47,7 @@ class AsyncResilientClient:
         >>> from aresilient.core.config import ClientConfig
         >>> async def main():  # doctest: +SKIP
         ...     async with AsyncResilientClient(
-        ...         config=ClientConfig(max_retries=5), timeout=30
+        ...         config=ClientConfig(max_retries=5)
         ...     ) as client:
         ...         response1 = await client.get("https://api.example.com/data1")
         ...         response2 = await client.post(
@@ -68,29 +68,21 @@ class AsyncResilientClient:
         self,
         *,
         config: ClientConfig | None = None,
-        timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
+        client: httpx.AsyncClient | None = None,
     ) -> None:
-        # Validate timeout separately (used for httpx.AsyncClient creation, not retry logic)
-        validate_timeout(timeout)
-
-        # Store timeout separately (used for httpx.AsyncClient creation)
-        self._timeout = timeout
-
-        # Store retry configuration in ClientConfig dataclass
         self._config = config or ClientConfig()
-
-        # Client will be created when entering context
-        self._client: httpx.AsyncClient | None = None
+        self._owns_client = client is None
+        self._client: httpx.AsyncClient = client or httpx.AsyncClient(timeout=DEFAULT_TIMEOUT)
         self._entered = False
 
     async def __aenter__(self) -> Self:
-        """Enter the async context manager and create the underlying
-        httpx client.
+        """Enter the async context manager.
 
         Returns:
             The AsyncResilientClient instance for making requests.
         """
-        self._client = httpx.AsyncClient(timeout=self._timeout)
+        if self._owns_client:
+            await self._client.__aenter__()
         self._entered = True
         return self
 
@@ -108,9 +100,8 @@ class AsyncResilientClient:
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        if self._client is not None:
-            await self._client.aclose()
-            self._client = None
+        if self._client is not None and self._owns_client:
+            await self._client.__aexit__(exc_type, exc_val, exc_tb)
         self._entered = False
 
     def _ensure_client(self) -> httpx.AsyncClient:
@@ -122,7 +113,7 @@ class AsyncResilientClient:
         Raises:
             RuntimeError: If the client is used outside of a context manager.
         """
-        if not self._entered or self._client is None:
+        if not self._entered:
             msg = "AsyncResilientClient must be used within an async context manager (async with statement)"
             raise RuntimeError(msg)
         return self._client

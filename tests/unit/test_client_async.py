@@ -6,12 +6,12 @@ This file contains tests for the asynchronous context manager client.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, Mock, call, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import pytest
 
 from aresilient import AsyncResilientClient
-from aresilient.core.config import ClientConfig
+from aresilient.core.config import ClientConfig, DEFAULT_TIMEOUT
 from tests.helpers import create_mock_response
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ async def test_async_client_context_manager_basic(
     """Test that AsyncResilientClient works as an async context
     manager."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(get=AsyncMock(return_value=mock_response), aclose=AsyncMock())
+        mock_client = MagicMock(get=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -40,7 +40,7 @@ async def test_async_client_context_manager_basic(
 
         assert response.status_code == 200
         mock_client.get.assert_called_once_with(url=TEST_URL)
-        mock_client.aclose.assert_called_once_with()
+        mock_client.__aexit__.assert_called_once_with(None, None, None)
     mock_asleep.assert_not_called()
 
 
@@ -49,7 +49,7 @@ async def test_async_client_closes_on_exception(mock_asleep: Mock) -> None:
     """Test that AsyncResilientClient closes properly even when
     exception occurs."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(aclose=AsyncMock())
+        mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         msg = "test error"
 
@@ -57,7 +57,7 @@ async def test_async_client_closes_on_exception(mock_asleep: Mock) -> None:
             async with AsyncResilientClient():
                 raise ValueError(msg)
 
-        mock_client.aclose.assert_called_once_with()
+        mock_client.__aexit__.assert_called_once()
 
     mock_asleep.assert_not_called()
 
@@ -78,10 +78,9 @@ async def test_async_client_outside_context_manager_raises(mock_asleep: Mock) ->
 async def test_async_client_multiple_requests(mock_asleep: Mock) -> None:
     """Test that AsyncResilientClient can handle multiple requests."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(
+        mock_client = MagicMock(
             get=AsyncMock(return_value=create_mock_response(status_code=200)),
             post=AsyncMock(return_value=create_mock_response(status_code=201)),
-            aclose=AsyncMock(),
         )
         mock_client_class.return_value = mock_client
 
@@ -95,23 +94,24 @@ async def test_async_client_multiple_requests(mock_asleep: Mock) -> None:
         mock_client.post.assert_called_once_with(
             url="https://api.example.com/data2", json={"key": "value"}
         )
-        mock_client.aclose.assert_called_once()
+        mock_client.__aexit__.assert_called_once_with(None, None, None)
 
     mock_asleep.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_async_client_uses_configured_timeout(mock_asleep: Mock) -> None:
-    """Test that AsyncResilientClient uses configured timeout."""
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(aclose=AsyncMock())
-        mock_client_class.return_value = mock_client
+async def test_async_client_uses_custom_client(
+    mock_asleep: Mock, mock_response: httpx.Response
+) -> None:
+    """Test that AsyncResilientClient uses a provided httpx.AsyncClient."""
+    mock_client = MagicMock(get=AsyncMock(return_value=mock_response))
 
-        async with AsyncResilientClient(timeout=30.0):
-            pass
+    async with AsyncResilientClient(client=mock_client) as client:
+        response = await client.get(TEST_URL)
 
-        mock_client_class.assert_called_once_with(timeout=30.0)
-
+    assert response.status_code == 200
+    mock_client.get.assert_called_once_with(url=TEST_URL)
+    mock_client.__aexit__.assert_not_called()
     mock_asleep.assert_not_called()
 
 
@@ -119,7 +119,7 @@ async def test_async_client_uses_configured_timeout(mock_asleep: Mock) -> None:
 async def test_async_client_get_method(mock_asleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.get() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(get=AsyncMock(return_value=mock_response), aclose=AsyncMock())
+        mock_client = MagicMock(get=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -135,8 +135,8 @@ async def test_async_client_get_method(mock_asleep: Mock, mock_response: httpx.R
 async def test_async_client_post_method(mock_asleep: Mock) -> None:
     """Test client.post() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(
-            post=AsyncMock(return_value=create_mock_response(status_code=201)), aclose=AsyncMock()
+        mock_client = MagicMock(
+            post=AsyncMock(return_value=create_mock_response(status_code=201))
         )
         mock_client_class.return_value = mock_client
 
@@ -153,7 +153,7 @@ async def test_async_client_post_method(mock_asleep: Mock) -> None:
 async def test_async_client_put_method(mock_asleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.put() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(put=AsyncMock(return_value=mock_response), aclose=AsyncMock())
+        mock_client = MagicMock(put=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -169,8 +169,8 @@ async def test_async_client_put_method(mock_asleep: Mock, mock_response: httpx.R
 async def test_async_client_delete_method(mock_asleep: Mock) -> None:
     """Test client.delete() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(
-            delete=AsyncMock(return_value=create_mock_response(status_code=204)), aclose=AsyncMock()
+        mock_client = MagicMock(
+            delete=AsyncMock(return_value=create_mock_response(status_code=204))
         )
         mock_client_class.return_value = mock_client
 
@@ -187,7 +187,7 @@ async def test_async_client_delete_method(mock_asleep: Mock) -> None:
 async def test_async_client_patch_method(mock_asleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.patch() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(patch=AsyncMock(return_value=mock_response), aclose=AsyncMock())
+        mock_client = MagicMock(patch=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -203,7 +203,7 @@ async def test_async_client_patch_method(mock_asleep: Mock, mock_response: httpx
 async def test_async_client_head_method(mock_asleep: Mock, mock_response: httpx.Response) -> None:
     """Test client.head() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(head=AsyncMock(return_value=mock_response), aclose=AsyncMock())
+        mock_client = MagicMock(head=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -221,7 +221,7 @@ async def test_async_client_options_method(
 ) -> None:
     """Test client.options() method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(options=AsyncMock(return_value=mock_response), aclose=AsyncMock())
+        mock_client = MagicMock(options=AsyncMock(return_value=mock_response))
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -239,10 +239,8 @@ async def test_async_client_request_method(
 ) -> None:
     """Test client.request() method with custom HTTP method."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock()
-
+        mock_client = MagicMock()
         mock_client.trace = AsyncMock(return_value=mock_response)
-        mock_client.aclose = AsyncMock()
         mock_client_class.return_value = mock_client
 
         async with AsyncResilientClient() as client:
@@ -260,8 +258,8 @@ async def test_async_client_default_max_retries(
     """Test that client's default max_retries is used when not
     overridden."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(
-            get=AsyncMock(side_effect=[mock_response_fail, mock_response]), aclose=AsyncMock()
+        mock_client = MagicMock(
+            get=AsyncMock(side_effect=[mock_response_fail, mock_response])
         )
         mock_client_class.return_value = mock_client
 
@@ -285,10 +283,13 @@ async def test_async_client_validation_max_retries_negative(mock_asleep: Mock) -
 
 
 @pytest.mark.asyncio
-async def test_async_client_validation_timeout_zero(mock_asleep: Mock) -> None:
-    """Test that client validates timeout parameter must be > 0."""
-    with pytest.raises(ValueError, match=r"timeout must be > 0, got 0"):
-        AsyncResilientClient(timeout=0)
+async def test_async_client_default_timeout(mock_asleep: Mock) -> None:
+    """Test that AsyncResilientClient creates a default client with DEFAULT_TIMEOUT."""
+    with patch("httpx.AsyncClient") as mock_client_class:
+        AsyncResilientClient()
+
+        mock_client_class.assert_called_once_with(timeout=DEFAULT_TIMEOUT)
+
     mock_asleep.assert_not_called()
 
 
@@ -298,10 +299,9 @@ async def test_async_client_shares_configuration_across_requests(
 ) -> None:
     """Test that all requests share the same configuration."""
     with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(
+        mock_client = MagicMock(
             get=AsyncMock(return_value=mock_response),
             post=AsyncMock(return_value=mock_response),
-            aclose=AsyncMock(),
         )
         mock_client_class.return_value = mock_client
 
@@ -320,18 +320,18 @@ async def test_async_client_shares_configuration_across_requests(
 
 
 @pytest.mark.asyncio
-async def test_async_client_exit_with_none_client() -> None:
-    """Test that __aexit__ handles None client gracefully.
+async def test_async_client_exit_without_enter() -> None:
+    """Test that __aexit__ can be called without __aenter__.
 
-    This tests the defensive branch where _client might be None during
-    exit.
+    This tests that calling __aexit__ before entering the context manager
+    does not raise an error and properly delegates to the owned client.
     """
-    client = AsyncResilientClient()
+    with patch("httpx.AsyncClient") as mock_client_class:
+        client = AsyncResilientClient()
 
-    # Manually trigger __aexit__ without calling __aenter__
-    # _client will be None
-    await client.__aexit__(None, None, None)
+        # Manually trigger __aexit__ without calling __aenter__
+        await client.__aexit__(None, None, None)
 
-    # Should complete without errors
-    assert client._client is None
-    assert client._entered is False
+        # Should complete without errors
+        mock_client_class.return_value.__aexit__.assert_called_once_with(None, None, None)
+        assert client._entered is False
