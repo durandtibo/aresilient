@@ -46,9 +46,7 @@ class AsyncResilientClient:
         >>> from aresilient import AsyncResilientClient
         >>> from aresilient.core.config import ClientConfig
         >>> async def main():  # doctest: +SKIP
-        ...     async with AsyncResilientClient(
-        ...         config=ClientConfig(max_retries=5)
-        ...     ) as client:
+        ...     async with AsyncResilientClient(config=ClientConfig(max_retries=5)) as client:
         ...         response1 = await client.get("https://api.example.com/data1")
         ...         response2 = await client.post(
         ...             "https://api.example.com/data2", json={"key": "value"}
