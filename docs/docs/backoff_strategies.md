@@ -34,7 +34,9 @@ from aresilient.core.config import ClientConfig
 # Explicit exponential backoff with max delay cap
 response = get(
     "https://api.example.com/data",
-    config=ClientConfig(backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=10.0)),
+    config=ClientConfig(
+        backoff_strategy=ExponentialBackoff(base_delay=0.5, max_delay=10.0)
+    ),
 )
 # Delays: 0.5s, 1s, 2s, 4s, 8s, 10s (capped), 10s (capped)...
 ```
@@ -122,7 +124,9 @@ response = get(
 # With max_delay cap
 response = get(
     "https://api.example.com/data",
-    config=ClientConfig(backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0)),
+    config=ClientConfig(
+        backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0)
+    ),
 )
 # Delays: 1s, 1s, 2s, 3s, 5s, 8s, 10s (capped)...
 ```
@@ -290,7 +294,9 @@ from aresilient.core.config import ClientConfig
 async def fetch_data():
     response = await get_async(
         "https://api.example.com/data",
-        config=ClientConfig(backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0)),
+        config=ClientConfig(
+            backoff_strategy=FibonacciBackoff(base_delay=1.0, max_delay=10.0)
+        ),
     )
     return response.json()
 ```
