@@ -72,9 +72,7 @@ class AsyncResilientClient:
     ) -> None:
         self._config = config or ClientConfig()
         self._owns_client = client is None
-        self._client: httpx.AsyncClient | None = (
-            client or httpx.AsyncClient(timeout=DEFAULT_TIMEOUT)
-        )
+        self._client: httpx.AsyncClient = client or httpx.AsyncClient(timeout=DEFAULT_TIMEOUT)
         self._entered = False
 
     async def __aenter__(self) -> Self:
@@ -83,6 +81,8 @@ class AsyncResilientClient:
         Returns:
             The AsyncResilientClient instance for making requests.
         """
+        if self._owns_client:
+            await self._client.__aenter__()
         self._entered = True
         return self
 
@@ -101,8 +101,7 @@ class AsyncResilientClient:
             exc_tb: Exception traceback if an exception occurred.
         """
         if self._client is not None and self._owns_client:
-            await self._client.aclose()
-            self._client = None
+            await self._client.__aexit__(exc_type, exc_val, exc_tb)
         self._entered = False
 
     def _ensure_client(self) -> httpx.AsyncClient:
@@ -114,7 +113,7 @@ class AsyncResilientClient:
         Raises:
             RuntimeError: If the client is used outside of a context manager.
         """
-        if not self._entered or self._client is None:
+        if not self._entered:
             msg = "AsyncResilientClient must be used within an async context manager (async with statement)"
             raise RuntimeError(msg)
         return self._client

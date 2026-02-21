@@ -66,7 +66,7 @@ class ResilientClient:
     ) -> None:
         self._config = config or ClientConfig()
         self._owns_client = client is None
-        self._client: httpx.Client | None = client or httpx.Client(timeout=DEFAULT_TIMEOUT)
+        self._client: httpx.Client = client or httpx.Client(timeout=DEFAULT_TIMEOUT)
         self._entered = False
 
     def __enter__(self) -> Self:
@@ -75,6 +75,8 @@ class ResilientClient:
         Returns:
             The ResilientClient instance for making requests.
         """
+        if self._owns_client:
+            self._client.__enter__()
         self._entered = True
         return self
 
@@ -93,8 +95,7 @@ class ResilientClient:
             exc_tb: Exception traceback if an exception occurred.
         """
         if self._client is not None and self._owns_client:
-            self._client.close()
-            self._client = None
+            self._client.__exit__(exc_type, exc_val, exc_tb)
         self._entered = False
 
     def _ensure_client(self) -> httpx.Client:
@@ -106,7 +107,7 @@ class ResilientClient:
         Raises:
             RuntimeError: If the client is used outside of a context manager.
         """
-        if not self._entered or self._client is None:
+        if not self._entered:
             msg = "ResilientClient must be used within a context manager (with statement)"
             raise RuntimeError(msg)
         return self._client
