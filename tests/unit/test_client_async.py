@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, Mock, call, patch
 import pytest
 
 from aresilient import AsyncResilientClient
-from aresilient.core.config import ClientConfig
+from aresilient.core.config import ClientConfig, DEFAULT_TIMEOUT
 from tests.helpers import create_mock_response
 
 if TYPE_CHECKING:
@@ -101,17 +101,17 @@ async def test_async_client_multiple_requests(mock_asleep: Mock) -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_client_uses_configured_timeout(mock_asleep: Mock) -> None:
-    """Test that AsyncResilientClient uses configured timeout."""
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = Mock(aclose=AsyncMock())
-        mock_client_class.return_value = mock_client
+async def test_async_client_uses_custom_client(
+    mock_asleep: Mock, mock_response: httpx.Response
+) -> None:
+    """Test that AsyncResilientClient uses a provided httpx.AsyncClient."""
+    mock_client = Mock(get=AsyncMock(return_value=mock_response), aclose=AsyncMock())
 
-        async with AsyncResilientClient(timeout=30.0):
-            pass
+    async with AsyncResilientClient(client=mock_client) as client:
+        response = await client.get(TEST_URL)
 
-        mock_client_class.assert_called_once_with(timeout=30.0)
-
+    assert response.status_code == 200
+    mock_client.get.assert_called_once_with(url=TEST_URL)
     mock_asleep.assert_not_called()
 
 
@@ -285,10 +285,13 @@ async def test_async_client_validation_max_retries_negative(mock_asleep: Mock) -
 
 
 @pytest.mark.asyncio
-async def test_async_client_validation_timeout_zero(mock_asleep: Mock) -> None:
-    """Test that client validates timeout parameter must be > 0."""
-    with pytest.raises(ValueError, match=r"timeout must be > 0, got 0"):
-        AsyncResilientClient(timeout=0)
+async def test_async_client_default_timeout(mock_asleep: Mock) -> None:
+    """Test that AsyncResilientClient creates a default client with DEFAULT_TIMEOUT."""
+    with patch("httpx.AsyncClient") as mock_client_class:
+        AsyncResilientClient()
+
+        mock_client_class.assert_called_once_with(timeout=DEFAULT_TIMEOUT)
+
     mock_asleep.assert_not_called()
 
 

@@ -11,7 +11,7 @@ from unittest.mock import Mock, call, patch
 import pytest
 
 from aresilient import ResilientClient
-from aresilient.core.config import ClientConfig
+from aresilient.core.config import ClientConfig, DEFAULT_TIMEOUT
 from tests.helpers import create_mock_response
 
 if TYPE_CHECKING:
@@ -91,14 +91,15 @@ def test_client_multiple_requests(mock_sleep: Mock) -> None:
     mock_sleep.assert_not_called()
 
 
-def test_client_uses_configured_timeout(mock_sleep: Mock) -> None:
-    """Test that ResilientClient uses configured timeout."""
-    with patch("httpx.Client") as mock_client_class:
-        with ResilientClient(timeout=30.0):
-            pass
+def test_client_uses_custom_client(mock_sleep: Mock, mock_response: httpx.Response) -> None:
+    """Test that ResilientClient uses a provided httpx.Client."""
+    mock_client = Mock(get=Mock(return_value=mock_response), close=Mock())
 
-        mock_client_class.assert_called_once_with(timeout=30.0)
+    with ResilientClient(client=mock_client) as client:
+        response = client.get(TEST_URL)
 
+    assert response.status_code == 200
+    mock_client.get.assert_called_once_with(url=TEST_URL)
     mock_sleep.assert_not_called()
 
 
@@ -250,10 +251,12 @@ def test_client_validation_max_retries_negative(mock_sleep: Mock) -> None:
     mock_sleep.assert_not_called()
 
 
-def test_client_validation_timeout_zero(mock_sleep: Mock) -> None:
-    """Test that client validates timeout parameter must be > 0."""
-    with pytest.raises(ValueError, match=r"timeout must be > 0, got 0"):
-        ResilientClient(timeout=0)
+def test_client_default_timeout(mock_sleep: Mock) -> None:
+    """Test that ResilientClient creates a default client with DEFAULT_TIMEOUT."""
+    with patch("httpx.Client") as mock_client_class:
+        ResilientClient()
+
+        mock_client_class.assert_called_once_with(timeout=DEFAULT_TIMEOUT)
 
     mock_sleep.assert_not_called()
 

@@ -18,7 +18,6 @@ from aresilient.core.config import (
     DEFAULT_TIMEOUT,
     ClientConfig,
 )
-from aresilient.core.validation import validate_timeout
 from aresilient.request import request
 
 if TYPE_CHECKING:
@@ -37,14 +36,15 @@ class ResilientClient:
     Args:
         config: Optional ClientConfig instance for retry configuration.
             If ``None``, a default ClientConfig is used.
-        timeout: Maximum seconds to wait for server responses. Must be > 0.
+        client: Optional httpx.Client instance to use for requests.
+            If ``None``, a new client is created with the default timeout.
 
     Example:
         ```pycon
         >>> from aresilient import ResilientClient
         >>> from aresilient.core.config import ClientConfig
         >>> with ResilientClient(
-        ...     config=ClientConfig(max_retries=5), timeout=30
+        ...     config=ClientConfig(max_retries=5)
         ... ) as client:  # doctest: +SKIP
         ...     response1 = client.get("https://api.example.com/data1")
         ...     response2 = client.post("https://api.example.com/data2", json={"key": "value"})
@@ -62,29 +62,20 @@ class ResilientClient:
         self,
         *,
         config: ClientConfig | None = None,
-        timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
+        client: httpx.Client | None = None,
     ) -> None:
-        # Validate timeout separately (used for httpx.Client creation, not retry logic)
-        validate_timeout(timeout)
-
-        # Store timeout separately (used for httpx.Client creation)
-        self._timeout = timeout
-
-        # Store retry configuration in ClientConfig dataclass
         self._config = config or ClientConfig()
-
-        # Client will be created when entering context
-        self._client: httpx.Client | None = None
+        self._client: httpx.Client | None = (
+            client if client is not None else httpx.Client(timeout=DEFAULT_TIMEOUT)
+        )
         self._entered = False
 
     def __enter__(self) -> Self:
-        """Enter the context manager and create the underlying httpx
-        client.
+        """Enter the context manager.
 
         Returns:
             The ResilientClient instance for making requests.
         """
-        self._client = httpx.Client(timeout=self._timeout)
         self._entered = True
         return self
 
