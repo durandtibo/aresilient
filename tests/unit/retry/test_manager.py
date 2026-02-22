@@ -80,6 +80,23 @@ def test_on_retry_callback_invoked() -> None:
     assert call_args.status_code == 500
 
 
+def test_on_retry_callback_none() -> None:
+    """Test on_retry does nothing when callback is None."""
+    config = CallbackConfig()
+    manager = CallbackManager(config)
+
+    # Should not raise
+    manager.on_retry(
+        url="https://example.com",
+        method="GET",
+        attempt=0,
+        max_retries=3,
+        sleep_time=1.5,
+        error=None,
+        status_code=None,
+    )
+
+
 def test_on_retry_callback_with_exception() -> None:
     """Test on_retry callback with exception."""
     mock_callback = Mock()
@@ -132,6 +149,24 @@ def test_on_success_callback_invoked() -> None:
     assert call_args.total_time == 2.5
 
 
+def test_on_success_callback_none() -> None:
+    """Test on_success does nothing when callback is None."""
+    config = CallbackConfig()
+    manager = CallbackManager(config)
+
+    mock_response = Mock(spec=httpx.Response)
+
+    # Should not raise
+    manager.on_success(
+        url="https://example.com",
+        method="GET",
+        attempt=0,
+        max_retries=3,
+        response=mock_response,
+        start_time=100.0,
+    )
+
+
 def test_on_failure_callback_invoked() -> None:
     """Test on_failure callback is invoked correctly."""
     mock_callback = Mock()
@@ -162,6 +197,25 @@ def test_on_failure_callback_invoked() -> None:
     assert failure_info.error is error
     assert failure_info.status_code == 500
     assert failure_info.total_time == 5.0
+
+
+def test_on_failure_callback_none() -> None:
+    """Test on_failure does nothing when callback is None."""
+    config = CallbackConfig()
+    manager = CallbackManager(config)
+
+    error = Exception("Test error")
+
+    # Should not raise
+    manager.on_failure(
+        url="https://example.com",
+        method="GET",
+        attempt=3,
+        max_retries=3,
+        error=error,
+        status_code=None,
+        start_time=100.0,
+    )
 
 
 def test_all_callbacks_invoked() -> None:
