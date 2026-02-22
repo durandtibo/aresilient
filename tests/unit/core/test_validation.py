@@ -112,6 +112,7 @@ def test_validate_retry_params_rejects_zero_max_wait_time() -> None:
 
 
 def test_validate_retry_params_rejects_negative_max_wait_time() -> None:
-    """Test that validate_retry_params rejects negative max_wait_time."""
+    """Test that validate_retry_params rejects negative
+    max_wait_time."""
     with pytest.raises(ValueError, match=r"max_wait_time must be > 0, got -5.0"):
         validate_retry_params(max_retries=3, max_wait_time=-5.0)
