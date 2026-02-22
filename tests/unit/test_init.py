@@ -31,8 +31,10 @@ def test_all_exports_defined() -> None:
 
 def test_all_exports_count() -> None:
     """Test that __all__ has the expected number of exports."""
-    # 4 config constants + 1 exception + 4 callback types + 1 version + 16 HTTP methods (sync+async)
-    # + 5 backoff strategies + 3 circuit breaker exports + 2 client classes = 36
+    # 3 classes (AsyncResilientClient, HttpRequestError, ResilientClient)
+    # + 1 version (__version__)
+    # + 16 HTTP method functions (8 sync + 8 async)
+    # = 20
     assert len(aresilient.__all__) == 20
 
 
