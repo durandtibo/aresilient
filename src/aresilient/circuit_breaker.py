@@ -247,6 +247,35 @@ class CircuitBreaker:
                 except Exception as e:  # noqa: BLE001
                     logger.warning(f"Error in circuit breaker state change callback: {e}")
 
+    def _handle_open_state(self) -> None:
+        """Handle OPEN state: transition to HALF_OPEN or raise.
+
+        Checks whether the recovery timeout has elapsed. If it has, transitions
+        the circuit to HALF_OPEN to allow a test request. Otherwise raises
+        CircuitBreakerError to fail fast.
+
+        Must be called with ``self._lock`` held.
+
+        Raises:
+            CircuitBreakerError: If the recovery timeout has not yet elapsed.
+        """
+        if self._last_failure_time is not None:
+            time_since_failure = time.time() - self._last_failure_time
+            if time_since_failure >= self._recovery_timeout:
+                # Transition to HALF_OPEN to test recovery
+                self._change_state(CircuitState.HALF_OPEN)
+            else:
+                # Still in OPEN state, fail fast
+                msg = (
+                    f"Circuit breaker is OPEN (failed {self._failure_count} times). "
+                    f"Retry after {self._recovery_timeout - time_since_failure:.1f}s"
+                )
+                raise CircuitBreakerError(msg)
+        else:
+            # This shouldn't happen, but handle gracefully
+            msg = "Circuit breaker is OPEN"
+            raise CircuitBreakerError(msg)
+
     def check(self) -> None:
         """Check if the circuit allows requests to proceed.
 
@@ -274,24 +303,8 @@ class CircuitBreaker:
         with self._lock:
             current_state = self._state
 
-            # If OPEN, check if recovery timeout has elapsed
             if current_state == CircuitState.OPEN:
-                if self._last_failure_time is not None:
-                    time_since_failure = time.time() - self._last_failure_time
-                    if time_since_failure >= self._recovery_timeout:
-                        # Transition to HALF_OPEN to test recovery
-                        self._change_state(CircuitState.HALF_OPEN)
-                    else:
-                        # Still in OPEN state, fail fast
-                        msg = (
-                            f"Circuit breaker is OPEN (failed {self._failure_count} times). "
-                            f"Retry after {self._recovery_timeout - time_since_failure:.1f}s"
-                        )
-                        raise CircuitBreakerError(msg)
-                else:
-                    # This shouldn't happen, but handle gracefully
-                    msg = "Circuit breaker is OPEN"
-                    raise CircuitBreakerError(msg)
+                self._handle_open_state()
 
     def call(self, func: Callable[[], object]) -> object:
         """Execute a function through the circuit breaker.
@@ -327,27 +340,8 @@ class CircuitBreaker:
         """
         # Check if we can make the request
         with self._lock:
-            current_state = self._state
-
-            # If OPEN, check if recovery timeout has elapsed
-            if current_state == CircuitState.OPEN:
-                if self._last_failure_time is not None:
-                    time_since_failure = time.time() - self._last_failure_time
-                    if time_since_failure >= self._recovery_timeout:
-                        # Transition to HALF_OPEN to test recovery
-                        self._change_state(CircuitState.HALF_OPEN)
-                        current_state = CircuitState.HALF_OPEN
-                    else:
-                        # Still in OPEN state, fail fast
-                        msg = (
-                            f"Circuit breaker is OPEN (failed {self._failure_count} times). "
-                            f"Retry after {self._recovery_timeout - time_since_failure:.1f}s"
-                        )
-                        raise CircuitBreakerError(msg)
-                else:
-                    # This shouldn't happen, but handle gracefully
-                    msg = "Circuit breaker is OPEN"
-                    raise CircuitBreakerError(msg)
+            if self._state == CircuitState.OPEN:
+                self._handle_open_state()
 
         # Execute the function
         try:
