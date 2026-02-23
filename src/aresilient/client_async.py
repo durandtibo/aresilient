@@ -117,8 +117,7 @@ class AsyncResilientClient:
     ) -> None:
         self._config = config or ClientConfig()
         self._client: httpx.AsyncClient = client or httpx.AsyncClient(timeout=DEFAULT_TIMEOUT)
-        self._entered = False
-        self._manages_client = False
+        self._owns_client = False
 
     async def __aenter__(self) -> Self:
         """Enter the async context manager.
@@ -134,13 +133,12 @@ class AsyncResilientClient:
         """
         try:
             await self._client.__aenter__()
-            self._manages_client = True
-        except RuntimeError as exc:
-            if "Cannot open a client instance more than once" not in str(exc):
+            self._owns_client = True
+        except RuntimeError:
+            if self._client.is_closed:
                 raise
             # Client is already open (managed by an outer context manager).
-            self._manages_client = False
-        self._entered = True
+            self._owns_client = False
         return self
 
     async def __aexit__(
@@ -157,24 +155,9 @@ class AsyncResilientClient:
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        if self._client is not None and self._manages_client:
+        if self._client is not None and self._owns_client:
             await self._client.__aexit__(exc_type, exc_val, exc_tb)
-        self._manages_client = False
-        self._entered = False
-
-    def _ensure_client(self) -> httpx.AsyncClient:
-        """Ensure the client is available for use.
-
-        Returns:
-            The httpx.AsyncClient instance.
-
-        Raises:
-            RuntimeError: If the client is used outside of a context manager.
-        """
-        if not self._entered:
-            msg = "AsyncResilientClient must be used within an async context manager (async with statement)"
-            raise RuntimeError(msg)
-        return self._client
+        self._owns_client = False
 
     async def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP request with automatic retry logic.
@@ -188,7 +171,6 @@ class AsyncResilientClient:
             An httpx.Response object containing the server's HTTP response.
 
         Raises:
-            RuntimeError: If called outside of a context manager.
             HttpRequestError: If the request fails after all retries.
 
         Example:
@@ -203,12 +185,10 @@ class AsyncResilientClient:
 
             ```
         """
-        client = self._ensure_client()
-
         return await request_async(
             url=url,
             method=method,
-            request_func=getattr(client, method.lower()),
+            request_func=getattr(self._client, method.lower()),
             config=self._config,
             **kwargs,
         )

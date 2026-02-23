@@ -56,17 +56,6 @@ def test_client_closes_on_exception(mock_sleep: Mock) -> None:
     mock_sleep.assert_not_called()
 
 
-def test_client_outside_context_manager_raises(mock_sleep: Mock) -> None:
-    """Test that using client outside context manager raises
-    RuntimeError."""
-    client = ResilientClient()
-
-    with pytest.raises(RuntimeError, match=r"must be used within a context manager"):
-        client.get(TEST_URL)
-
-    mock_sleep.assert_not_called()
-
-
 def test_client_multiple_requests(mock_sleep: Mock) -> None:
     """Test that ResilientClient can handle multiple requests."""
     with patch("httpx.Client") as mock_client_class:
@@ -111,13 +100,14 @@ def test_client_scenario1_externally_managed_client(
 ) -> None:
     """Test Scenario 1: client whose lifecycle is managed by an outer context manager.
 
-    When the provided httpx.Client is already open (its __enter__ raises RuntimeError),
-    ResilientClient uses it without managing its lifecycle.
+    When the provided httpx.Client is already open (its __enter__ raises RuntimeError
+    and is_closed returns False), ResilientClient uses it without managing its lifecycle.
     """
     mock_client = Mock(
         get=Mock(return_value=mock_response),
         __enter__=Mock(side_effect=RuntimeError("Cannot open a client instance more than once.")),
         __exit__=Mock(),
+        is_closed=False,
     )
 
     with ResilientClient(client=mock_client) as client:
@@ -344,7 +334,7 @@ def test_client_exit_without_enter() -> None:
         # Manually trigger __exit__ without calling __enter__
         client.__exit__(None, None, None)
 
-        # Since __enter__ was never called, _manages_client is False and
+        # Since __enter__ was never called, _owns_client is False and
         # the underlying client's __exit__ should not be called.
         mock_client_class.return_value.__exit__.assert_not_called()
-        assert client._entered is False
+        assert client._owns_client is False

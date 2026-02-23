@@ -65,18 +65,6 @@ async def test_async_client_closes_on_exception(mock_asleep: Mock) -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_client_outside_context_manager_raises(mock_asleep: Mock) -> None:
-    """Test that using client outside context manager raises
-    RuntimeError."""
-    client = AsyncResilientClient()
-
-    with pytest.raises(RuntimeError, match=r"must be used within an async context manager"):
-        await client.get(TEST_URL)
-
-    mock_asleep.assert_not_called()
-
-
-@pytest.mark.asyncio
 async def test_async_client_multiple_requests(mock_asleep: Mock) -> None:
     """Test that AsyncResilientClient can handle multiple requests."""
     with patch("httpx.AsyncClient") as mock_client_class:
@@ -127,8 +115,8 @@ async def test_async_client_scenario1_externally_managed_client(
 ) -> None:
     """Test Scenario 1: client whose lifecycle is managed by an outer async context manager.
 
-    When the provided httpx.AsyncClient is already open (its __aenter__ raises RuntimeError),
-    AsyncResilientClient uses it without managing its lifecycle.
+    When the provided httpx.AsyncClient is already open (its __aenter__ raises RuntimeError
+    and is_closed returns False), AsyncResilientClient uses it without managing its lifecycle.
     """
     mock_client = Mock(
         get=AsyncMock(return_value=mock_response),
@@ -136,6 +124,7 @@ async def test_async_client_scenario1_externally_managed_client(
             side_effect=RuntimeError("Cannot open a client instance more than once.")
         ),
         __aexit__=AsyncMock(),
+        is_closed=False,
     )
 
     async with AsyncResilientClient(client=mock_client) as client:
@@ -393,7 +382,7 @@ async def test_async_client_exit_without_enter() -> None:
         # Manually trigger __aexit__ without calling __aenter__
         await client.__aexit__(None, None, None)
 
-        # Since __aenter__ was never called, _manages_client is False and
+        # Since __aenter__ was never called, _owns_client is False and
         # the underlying client's __aexit__ should not be called.
         mock_client_class.return_value.__aexit__.assert_not_called()
-        assert client._entered is False
+        assert client._owns_client is False
