@@ -11,6 +11,7 @@ from __future__ import annotations
 
 __all__ = ["AsyncResilientClient"]
 
+import contextlib
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -117,7 +118,6 @@ class AsyncResilientClient:
     ) -> None:
         self._config = config or ClientConfig()
         self._client: httpx.AsyncClient = client or httpx.AsyncClient(timeout=DEFAULT_TIMEOUT)
-        self._owns_client = False
 
     async def __aenter__(self) -> Self:
         """Enter the async context manager.
@@ -131,14 +131,19 @@ class AsyncResilientClient:
         Returns:
             The AsyncResilientClient instance for making requests.
         """
+        self._exit_stack = contextlib.AsyncExitStack()
         try:
             await self._client.__aenter__()
-            self._owns_client = True
+            _aexit = self._client.__aexit__
+
+            async def _aexit_callback(*args: object) -> object:
+                return await _aexit(*args)
+
+            self._exit_stack.push_async_exit(_aexit_callback)
         except RuntimeError:
             if self._client.is_closed:
                 raise
             # Client is already open (managed by an outer context manager).
-            self._owns_client = False
         return self
 
     async def __aexit__(
@@ -155,9 +160,9 @@ class AsyncResilientClient:
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        if self._client is not None and self._owns_client:
-            await self._client.__aexit__(exc_type, exc_val, exc_tb)
-        self._owns_client = False
+        stack = getattr(self, "_exit_stack", None)
+        if stack is not None:
+            await stack.__aexit__(exc_type, exc_val, exc_tb)
 
     async def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP request with automatic retry logic.

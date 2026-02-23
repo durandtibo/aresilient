@@ -10,6 +10,7 @@ from __future__ import annotations
 
 __all__ = ["ResilientClient"]
 
+import contextlib
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -107,7 +108,6 @@ class ResilientClient:
     ) -> None:
         self._config = config or ClientConfig()
         self._client: httpx.Client = client or httpx.Client(timeout=DEFAULT_TIMEOUT)
-        self._owns_client = False
 
     def __enter__(self) -> Self:
         """Enter the context manager.
@@ -120,14 +120,14 @@ class ResilientClient:
         Returns:
             The ResilientClient instance for making requests.
         """
+        self._exit_stack = contextlib.ExitStack()
         try:
             self._client.__enter__()
-            self._owns_client = True
+            self._exit_stack.push(self._client.__exit__)
         except RuntimeError:
             if self._client.is_closed:
                 raise
             # Client is already open (managed by an outer context manager).
-            self._owns_client = False
         return self
 
     def __exit__(
@@ -144,9 +144,9 @@ class ResilientClient:
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        if self._client is not None and self._owns_client:
-            self._client.__exit__(exc_type, exc_val, exc_tb)
-        self._owns_client = False
+        stack = getattr(self, "_exit_stack", None)
+        if stack is not None:
+            stack.__exit__(exc_type, exc_val, exc_tb)
 
     def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP request with automatic retry logic.

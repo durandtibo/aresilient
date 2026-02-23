@@ -382,7 +382,6 @@ async def test_async_client_exit_without_enter() -> None:
         # Manually trigger __aexit__ without calling __aenter__
         await client.__aexit__(None, None, None)
 
-        # Since __aenter__ was never called, _owns_client is False and
-        # the underlying client's __aexit__ should not be called.
+        # Since __aenter__ was never called, the underlying client's
+        # __aexit__ should not be called.
         mock_client_class.return_value.__aexit__.assert_not_called()
-        assert client._owns_client is False

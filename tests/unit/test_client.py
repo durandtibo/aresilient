@@ -334,7 +334,6 @@ def test_client_exit_without_enter() -> None:
         # Manually trigger __exit__ without calling __enter__
         client.__exit__(None, None, None)
 
-        # Since __enter__ was never called, _owns_client is False and
-        # the underlying client's __exit__ should not be called.
+        # Since __enter__ was never called, the underlying client's
+        # __exit__ should not be called.
         mock_client_class.return_value.__exit__.assert_not_called()
-        assert client._owns_client is False
