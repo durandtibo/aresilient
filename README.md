@@ -182,7 +182,7 @@ It manages the lifecycle of the underlying `httpx.Client` automatically.
 
 There are two supported patterns:
 
-#### Scenario 1 – Two context managers (explicit lifecycle control)
+#### Scenario 1 - Two context managers (explicit lifecycle control)
 
 Create the `httpx.Client` in its own `with` block and pass it to `ResilientClient`. The outer
 `with` block is responsible for closing the `httpx.Client`; `ResilientClient` will not close it.
@@ -211,9 +211,9 @@ It also makes it easy to share one `httpx.Client` across multiple `ResilientClie
 - Lifecycle boundaries are explicit and easy to reason about.
 
 **Cons**:
-- Slightly more verbose – requires two nested `with` statements.
+- Slightly more verbose - requires two nested `with` statements.
 
-#### Scenario 2 – Single context manager (ResilientClient manages lifecycle)
+#### Scenario 2 - Single context manager (ResilientClient manages lifecycle)
 
 Pass an `httpx.Client` inline or omit it entirely to let `ResilientClient` create a default one.
 `ResilientClient` enters and closes the underlying client when the `with` block exits.
@@ -223,14 +223,14 @@ import httpx
 from aresilient import ResilientClient
 from aresilient.core.config import ClientConfig
 
-# Pass an httpx.Client inline – ResilientClient manages its lifecycle
+# Pass an httpx.Client inline - ResilientClient manages its lifecycle
 with ResilientClient(
     client=httpx.Client(), config=ClientConfig(max_retries=5)
 ) as client:
     response = client.get("https://api.example.com/data1")
 # httpx.Client is closed here by ResilientClient
 
-# Equivalent shorthand – ResilientClient creates a default client
+# Equivalent shorthand - ResilientClient creates a default client
 with ResilientClient(config=ClientConfig(max_retries=5)) as client:
     response = client.get("https://api.example.com/data1")
 ```
@@ -240,7 +240,7 @@ with ResilientClient(config=ClientConfig(max_retries=5)) as client:
 `client` argument) is the most common usage.
 
 **Pros**:
-- Simple – a single `with` statement is sufficient.
+- Simple - a single `with` statement is sufficient.
 - Resources are automatically cleaned up without extra nesting.
 
 **Cons**:
@@ -316,7 +316,7 @@ print(data)
 `AsyncResilientClient` is the async counterpart of `ResilientClient` and supports the same two
 usage patterns:
 
-#### Scenario 1 – Two async context managers (explicit lifecycle control)
+#### Scenario 1 - Two async context managers (explicit lifecycle control)
 
 ```python
 import asyncio
@@ -339,7 +339,7 @@ async def main():
 asyncio.run(main())
 ```
 
-#### Scenario 2 – Single async context manager (AsyncResilientClient manages lifecycle)
+#### Scenario 2 - Single async context manager (AsyncResilientClient manages lifecycle)
 
 ```python
 import asyncio
@@ -349,13 +349,13 @@ from aresilient.core.config import ClientConfig
 
 
 async def main():
-    # Pass an httpx.AsyncClient inline – AsyncResilientClient manages its lifecycle
+    # Pass an httpx.AsyncClient inline - AsyncResilientClient manages its lifecycle
     async with AsyncResilientClient(
         client=httpx.AsyncClient(), config=ClientConfig(max_retries=5)
     ) as client:
         response = await client.get("https://api.example.com/data1")
 
-    # Equivalent shorthand – AsyncResilientClient creates a default client
+    # Equivalent shorthand - AsyncResilientClient creates a default client
     async with AsyncResilientClient(config=ClientConfig(max_retries=5)) as client:
         response = await client.get("https://api.example.com/data1")
 

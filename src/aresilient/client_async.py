@@ -36,7 +36,7 @@ class AsyncResilientClient:
 
     Two usage patterns are supported:
 
-    **Scenario 1 – Two context managers (external lifecycle management)**:
+    **Scenario 1 - Two context managers (external lifecycle management)**:
     The ``httpx.AsyncClient`` is created and managed by an outer ``async with``
     block, and passed into ``AsyncResilientClient``. ``AsyncResilientClient``
     does *not* close the underlying client when it exits, leaving full control
@@ -58,7 +58,7 @@ class AsyncResilientClient:
                 response = await client.get("https://api.example.com/data1")
         # http_client is closed here by the outer ``async with`` block
 
-    **Scenario 2 – Single context manager (AsyncResilientClient manages lifecycle)**:
+    **Scenario 2 - Single context manager (AsyncResilientClient manages lifecycle)**:
     An ``httpx.AsyncClient`` instance is passed inline (or omitted, in which
     case a default client is created). ``AsyncResilientClient`` enters and
     closes the underlying client automatically when the ``async with`` block

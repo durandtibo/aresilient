@@ -35,7 +35,7 @@ class ResilientClient:
 
     Two usage patterns are supported:
 
-    **Scenario 1 – Two context managers (external lifecycle management)**:
+    **Scenario 1 - Two context managers (external lifecycle management)**:
     The ``httpx.Client`` is created and managed by an outer ``with`` block,
     and passed into ``ResilientClient``. ``ResilientClient`` does *not* close
     the underlying client when it exits, leaving full control to the caller.
@@ -57,7 +57,7 @@ class ResilientClient:
                 response = client.get("https://api.example.com/data1")
         # http_client is closed here by the outer ``with`` block
 
-    **Scenario 2 – Single context manager (ResilientClient manages lifecycle)**:
+    **Scenario 2 - Single context manager (ResilientClient manages lifecycle)**:
     An ``httpx.Client`` instance is passed inline (or omitted, in which case a
     default client is created). ``ResilientClient`` enters and closes the
     underlying client automatically when the ``with`` block exits.
