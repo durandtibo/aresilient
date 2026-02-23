@@ -174,6 +174,76 @@ with httpx.Client(headers={"Authorization": "Bearer token"}) as client:
     response = get("https://api.example.com/protected", client=client)
 ```
 
+### Using ResilientClient for Multiple Requests
+
+`ResilientClient` provides a context manager interface that applies consistent retry
+configuration across multiple requests, avoiding the need to repeat configuration on every call.
+It manages the lifecycle of the underlying `httpx.Client` automatically.
+
+There are two supported patterns:
+
+#### Scenario 1 – Two context managers (explicit lifecycle control)
+
+Create the `httpx.Client` in its own `with` block and pass it to `ResilientClient`. The outer
+`with` block is responsible for closing the `httpx.Client`; `ResilientClient` will not close it.
+
+```python
+import httpx
+from aresilient import ResilientClient
+from aresilient.core.config import ClientConfig
+
+with httpx.Client(headers={"Authorization": "Bearer token"}) as http_client:
+    with ResilientClient(client=http_client, config=ClientConfig(max_retries=5)) as client:
+        response = client.get("https://api.example.com/data1")
+        response2 = client.post("https://api.example.com/data2", json={"key": "value"})
+# http_client is closed here by the outer `with` block
+```
+
+**When to use**: Choose this pattern when you need to configure the `httpx.Client` explicitly
+(custom headers, authentication, proxies, SSL settings) and want full control over its lifecycle.
+It also makes it easy to share one `httpx.Client` across multiple `ResilientClient` instances.
+
+**Pros**:
+- Full control over `httpx.Client` configuration and lifecycle.
+- The same `httpx.Client` instance can be reused outside the `ResilientClient` block.
+- Lifecycle boundaries are explicit and easy to reason about.
+
+**Cons**:
+- Slightly more verbose – requires two nested `with` statements.
+
+#### Scenario 2 – Single context manager (ResilientClient manages lifecycle)
+
+Pass an `httpx.Client` inline or omit it entirely to let `ResilientClient` create a default one.
+`ResilientClient` enters and closes the underlying client when the `with` block exits.
+
+```python
+import httpx
+from aresilient import ResilientClient
+from aresilient.core.config import ClientConfig
+
+# Pass an httpx.Client inline – ResilientClient manages its lifecycle
+with ResilientClient(client=httpx.Client(), config=ClientConfig(max_retries=5)) as client:
+    response = client.get("https://api.example.com/data1")
+# httpx.Client is closed here by ResilientClient
+
+# Equivalent shorthand – ResilientClient creates a default client
+with ResilientClient(config=ClientConfig(max_retries=5)) as client:
+    response = client.get("https://api.example.com/data1")
+```
+
+**When to use**: Choose this pattern when you only need the `httpx.Client` inside the
+`ResilientClient` block and want the simplest possible code. The shorthand form (no explicit
+`client` argument) is the most common usage.
+
+**Pros**:
+- Simple – a single `with` statement is sufficient.
+- Resources are automatically cleaned up without extra nesting.
+
+**Cons**:
+- The `httpx.Client` instance is not accessible outside the `ResilientClient` block.
+- Less explicit about `httpx.Client` configuration (use the shorthand form with default settings,
+  or pass a pre-configured client inline).
+
 ### Other HTTP Methods
 
 ```python
@@ -236,6 +306,59 @@ async def fetch_data():
 data = asyncio.run(fetch_data())
 print(data)
 ```
+
+### Using AsyncResilientClient for Multiple Async Requests
+
+`AsyncResilientClient` is the async counterpart of `ResilientClient` and supports the same two
+usage patterns:
+
+#### Scenario 1 – Two async context managers (explicit lifecycle control)
+
+```python
+import asyncio
+import httpx
+from aresilient import AsyncResilientClient
+from aresilient.core.config import ClientConfig
+
+
+async def main():
+    async with httpx.AsyncClient(headers={"Authorization": "Bearer token"}) as http_client:
+        async with AsyncResilientClient(
+            client=http_client, config=ClientConfig(max_retries=5)
+        ) as client:
+            response = await client.get("https://api.example.com/data1")
+    # http_client is closed here by the outer `async with` block
+
+
+asyncio.run(main())
+```
+
+#### Scenario 2 – Single async context manager (AsyncResilientClient manages lifecycle)
+
+```python
+import asyncio
+import httpx
+from aresilient import AsyncResilientClient
+from aresilient.core.config import ClientConfig
+
+
+async def main():
+    # Pass an httpx.AsyncClient inline – AsyncResilientClient manages its lifecycle
+    async with AsyncResilientClient(
+        client=httpx.AsyncClient(), config=ClientConfig(max_retries=5)
+    ) as client:
+        response = await client.get("https://api.example.com/data1")
+
+    # Equivalent shorthand – AsyncResilientClient creates a default client
+    async with AsyncResilientClient(config=ClientConfig(max_retries=5)) as client:
+        response = await client.get("https://api.example.com/data1")
+
+
+asyncio.run(main())
+```
+
+See the [ResilientClient section](#using-resilientclient-for-multiple-requests) above for a
+detailed discussion of the pros and cons of each pattern.
 
 ### Concurrent Async Requests
 

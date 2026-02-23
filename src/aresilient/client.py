@@ -33,6 +33,49 @@ class ResilientClient:
     the lifecycle of the underlying httpx.Client and applies consistent retry
     logic across all requests.
 
+    Two usage patterns are supported:
+
+    **Scenario 1 – Two context managers (external lifecycle management)**:
+    The ``httpx.Client`` is created and managed by an outer ``with`` block,
+    and passed into ``ResilientClient``. ``ResilientClient`` does *not* close
+    the underlying client when it exits, leaving full control to the caller.
+    Use this pattern when you need to share a single ``httpx.Client`` across
+    multiple ``ResilientClient`` instances, or when you need to configure the
+    ``httpx.Client`` with headers, auth, proxies, etc. and want explicit
+    lifecycle control.
+
+    .. code-block:: python
+
+        import httpx
+        from aresilient import ResilientClient
+        from aresilient.core.config import ClientConfig
+
+        with httpx.Client(headers={"Authorization": "Bearer token"}) as http_client:
+            with ResilientClient(client=http_client, config=ClientConfig(max_retries=5)) as client:
+                response = client.get("https://api.example.com/data1")
+        # http_client is closed here by the outer ``with`` block
+
+    **Scenario 2 – Single context manager (ResilientClient manages lifecycle)**:
+    An ``httpx.Client`` instance is passed inline (or omitted, in which case a
+    default client is created). ``ResilientClient`` enters and closes the
+    underlying client automatically when the ``with`` block exits.
+    Use this pattern for the simplest usage when you don't need to reuse the
+    ``httpx.Client`` outside the ``with`` block.
+
+    .. code-block:: python
+
+        import httpx
+        from aresilient import ResilientClient
+        from aresilient.core.config import ClientConfig
+
+        with ResilientClient(client=httpx.Client(), config=ClientConfig(max_retries=5)) as client:
+            response = client.get("https://api.example.com/data1")
+        # httpx.Client is closed here by ResilientClient
+
+        # Equivalent shorthand (ResilientClient creates a default client):
+        with ResilientClient(config=ClientConfig(max_retries=5)) as client:
+            response = client.get("https://api.example.com/data1")
+
     Args:
         config: Optional ClientConfig instance for retry configuration.
             If ``None``, a default ClientConfig is used.
@@ -63,18 +106,29 @@ class ResilientClient:
         client: httpx.Client | None = None,
     ) -> None:
         self._config = config or ClientConfig()
-        self._owns_client = client is None
         self._client: httpx.Client = client or httpx.Client(timeout=DEFAULT_TIMEOUT)
         self._entered = False
+        self._manages_client = False
 
     def __enter__(self) -> Self:
         """Enter the context manager.
 
+        If the underlying ``httpx.Client`` is not yet open, it is entered and
+        its lifecycle is managed by this context manager (closed on exit).
+        If the client is already open (e.g. managed by an outer ``with``
+        block), ``ResilientClient`` uses it without closing it on exit.
+
         Returns:
             The ResilientClient instance for making requests.
         """
-        if self._owns_client:
+        try:
             self._client.__enter__()
+            self._manages_client = True
+        except RuntimeError as exc:
+            if "Cannot open a client instance more than once" not in str(exc):
+                raise
+            # Client is already open (managed by an outer context manager).
+            self._manages_client = False
         self._entered = True
         return self
 
@@ -85,15 +139,16 @@ class ResilientClient:
         exc_tb: TracebackType | None,
     ) -> None:
         """Exit the context manager and close the underlying httpx
-        client.
+        client if this context manager opened it.
 
         Args:
             exc_type: Exception type if an exception occurred.
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        if self._client is not None and self._owns_client:
+        if self._client is not None and self._manages_client:
             self._client.__exit__(exc_type, exc_val, exc_tb)
+        self._manages_client = False
         self._entered = False
 
     def _ensure_client(self) -> httpx.Client:

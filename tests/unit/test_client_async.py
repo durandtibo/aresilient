@@ -107,10 +107,35 @@ async def test_async_client_multiple_requests(mock_asleep: Mock) -> None:
 async def test_async_client_uses_custom_client(
     mock_asleep: Mock, mock_response: httpx.Response
 ) -> None:
-    """Test that AsyncResilientClient uses a provided
-    httpx.AsyncClient."""
+    """Test that AsyncResilientClient enters and exits a provided httpx.AsyncClient (Scenario 2)."""
     mock_client = Mock(
         get=AsyncMock(return_value=mock_response), __aenter__=AsyncMock(), __aexit__=AsyncMock()
+    )
+
+    async with AsyncResilientClient(client=mock_client) as client:
+        response = await client.get(TEST_URL)
+
+    assert response.status_code == 200
+    mock_client.get.assert_called_once_with(url=TEST_URL)
+    mock_client.__aexit__.assert_called_once_with(None, None, None)
+    mock_asleep.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_async_client_scenario1_externally_managed_client(
+    mock_asleep: Mock, mock_response: httpx.Response
+) -> None:
+    """Test Scenario 1: client whose lifecycle is managed by an outer async context manager.
+
+    When the provided httpx.AsyncClient is already open (its __aenter__ raises RuntimeError),
+    AsyncResilientClient uses it without managing its lifecycle.
+    """
+    mock_client = Mock(
+        get=AsyncMock(return_value=mock_response),
+        __aenter__=AsyncMock(
+            side_effect=RuntimeError("Cannot open a client instance more than once.")
+        ),
+        __aexit__=AsyncMock(),
     )
 
     async with AsyncResilientClient(client=mock_client) as client:
@@ -359,8 +384,8 @@ async def test_async_client_exit_without_enter() -> None:
     """Test that __aexit__ can be called without __aenter__.
 
     This tests that calling __aexit__ before entering the context
-    manager does not raise an error and properly delegates to the owned
-    client.
+    manager does not raise an error. Since the client was never entered,
+    its lifecycle is not managed and __aexit__ is not delegated to it.
     """
     with patch("httpx.AsyncClient") as mock_client_class:
         client = AsyncResilientClient()
@@ -368,6 +393,7 @@ async def test_async_client_exit_without_enter() -> None:
         # Manually trigger __aexit__ without calling __aenter__
         await client.__aexit__(None, None, None)
 
-        # Should complete without errors
-        mock_client_class.return_value.__aexit__.assert_called_once_with(None, None, None)
+        # Since __aenter__ was never called, _manages_client is False and
+        # the underlying client's __aexit__ should not be called.
+        mock_client_class.return_value.__aexit__.assert_not_called()
         assert client._entered is False
