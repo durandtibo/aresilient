@@ -83,7 +83,8 @@ def test_client_multiple_requests(mock_sleep: Mock) -> None:
 
 
 def test_client_uses_custom_client(mock_sleep: Mock, mock_response: httpx.Response) -> None:
-    """Test that ResilientClient enters and exits a provided httpx.Client (Scenario 2)."""
+    """Test that ResilientClient enters and exits a provided
+    httpx.Client (Scenario 2)."""
     mock_client = Mock(get=Mock(return_value=mock_response), __enter__=Mock(), __exit__=Mock())
 
     with ResilientClient(client=mock_client) as client:

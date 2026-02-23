@@ -95,7 +95,8 @@ async def test_async_client_multiple_requests(mock_asleep: Mock) -> None:
 async def test_async_client_uses_custom_client(
     mock_asleep: Mock, mock_response: httpx.Response
 ) -> None:
-    """Test that AsyncResilientClient enters and exits a provided httpx.AsyncClient (Scenario 2)."""
+    """Test that AsyncResilientClient enters and exits a provided
+    httpx.AsyncClient (Scenario 2)."""
     mock_client = Mock(
         get=AsyncMock(return_value=mock_response), __aenter__=AsyncMock(), __aexit__=AsyncMock()
     )

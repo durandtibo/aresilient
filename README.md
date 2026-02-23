@@ -193,7 +193,9 @@ from aresilient import ResilientClient
 from aresilient.core.config import ClientConfig
 
 with httpx.Client(headers={"Authorization": "Bearer token"}) as http_client:
-    with ResilientClient(client=http_client, config=ClientConfig(max_retries=5)) as client:
+    with ResilientClient(
+        client=http_client, config=ClientConfig(max_retries=5)
+    ) as client:
         response = client.get("https://api.example.com/data1")
         response2 = client.post("https://api.example.com/data2", json={"key": "value"})
 # http_client is closed here by the outer `with` block
@@ -222,7 +224,9 @@ from aresilient import ResilientClient
 from aresilient.core.config import ClientConfig
 
 # Pass an httpx.Client inline – ResilientClient manages its lifecycle
-with ResilientClient(client=httpx.Client(), config=ClientConfig(max_retries=5)) as client:
+with ResilientClient(
+    client=httpx.Client(), config=ClientConfig(max_retries=5)
+) as client:
     response = client.get("https://api.example.com/data1")
 # httpx.Client is closed here by ResilientClient
 
@@ -322,7 +326,9 @@ from aresilient.core.config import ClientConfig
 
 
 async def main():
-    async with httpx.AsyncClient(headers={"Authorization": "Bearer token"}) as http_client:
+    async with httpx.AsyncClient(
+        headers={"Authorization": "Bearer token"}
+    ) as http_client:
         async with AsyncResilientClient(
             client=http_client, config=ClientConfig(max_retries=5)
         ) as client:

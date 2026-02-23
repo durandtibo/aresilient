@@ -10,7 +10,6 @@ from __future__ import annotations
 
 __all__ = ["ResilientClient"]
 
-import contextlib
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -52,7 +51,9 @@ class ResilientClient:
         from aresilient.core.config import ClientConfig
 
         with httpx.Client(headers={"Authorization": "Bearer token"}) as http_client:
-            with ResilientClient(client=http_client, config=ClientConfig(max_retries=5)) as client:
+            with ResilientClient(
+                client=http_client, config=ClientConfig(max_retries=5)
+            ) as client:
                 response = client.get("https://api.example.com/data1")
         # http_client is closed here by the outer ``with`` block
 
@@ -69,7 +70,9 @@ class ResilientClient:
         from aresilient import ResilientClient
         from aresilient.core.config import ClientConfig
 
-        with ResilientClient(client=httpx.Client(), config=ClientConfig(max_retries=5)) as client:
+        with ResilientClient(
+            client=httpx.Client(), config=ClientConfig(max_retries=5)
+        ) as client:
             response = client.get("https://api.example.com/data1")
         # httpx.Client is closed here by ResilientClient
 
@@ -106,8 +109,9 @@ class ResilientClient:
         config: ClientConfig | None = None,
         client: httpx.Client | None = None,
     ) -> None:
-        self._config = config or ClientConfig()
+        self._config: ClientConfig = config or ClientConfig()
         self._client: httpx.Client = client or httpx.Client(timeout=DEFAULT_TIMEOUT)
+        self._close_client = False
 
     def __enter__(self) -> Self:
         """Enter the context manager.
@@ -120,14 +124,9 @@ class ResilientClient:
         Returns:
             The ResilientClient instance for making requests.
         """
-        self._exit_stack = contextlib.ExitStack()
-        try:
+        if self._client.is_closed:
             self._client.__enter__()
-            self._exit_stack.push(self._client.__exit__)
-        except RuntimeError:
-            if self._client.is_closed:
-                raise
-            # Client is already open (managed by an outer context manager).
+            self._close_client = True
         return self
 
     def __exit__(
@@ -144,9 +143,9 @@ class ResilientClient:
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        stack = getattr(self, "_exit_stack", None)
-        if stack is not None:
-            stack.__exit__(exc_type, exc_val, exc_tb)
+        if self._close_client:
+            self._client.__exit__(exc_type, exc_val, exc_tb)
+            self._close_client = False
 
     def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP request with automatic retry logic.
