@@ -34,6 +34,53 @@ class AsyncResilientClient:
     the lifecycle of the underlying httpx.AsyncClient and applies consistent retry
     logic across all requests.
 
+    Two usage patterns are supported:
+
+    **Scenario 1 - Two context managers (external lifecycle management)**:
+    The ``httpx.AsyncClient`` is created and managed by an outer ``async with``
+    block, and passed into ``AsyncResilientClient``. ``AsyncResilientClient``
+    does *not* close the underlying client when it exits, leaving full control
+    to the caller. Use this pattern when you need to share a single
+    ``httpx.AsyncClient`` across multiple ``AsyncResilientClient`` instances,
+    or when you need to configure the client with headers, auth, proxies, etc.
+    and want explicit lifecycle control.
+
+    .. code-block:: python
+
+        import httpx
+        from aresilient import AsyncResilientClient
+        from aresilient.core.config import ClientConfig
+
+        async with httpx.AsyncClient(headers={"Authorization": "Bearer token"}) as http_client:
+            async with AsyncResilientClient(
+                client=http_client, config=ClientConfig(max_retries=5)
+            ) as client:
+                response = await client.get("https://api.example.com/data1")
+        # http_client is closed here by the outer ``async with`` block
+
+    **Scenario 2 - Single context manager (AsyncResilientClient manages lifecycle)**:
+    An ``httpx.AsyncClient`` instance is passed inline (or omitted, in which
+    case a default client is created). ``AsyncResilientClient`` enters and
+    closes the underlying client automatically when the ``async with`` block
+    exits. Use this pattern for the simplest usage when you don't need to
+    reuse the ``httpx.AsyncClient`` outside the ``async with`` block.
+
+    .. code-block:: python
+
+        import httpx
+        from aresilient import AsyncResilientClient
+        from aresilient.core.config import ClientConfig
+
+        async with AsyncResilientClient(
+            client=httpx.AsyncClient(), config=ClientConfig(max_retries=5)
+        ) as client:
+            response = await client.get("https://api.example.com/data1")
+        # httpx.AsyncClient is closed here by AsyncResilientClient
+
+        # Equivalent shorthand (AsyncResilientClient creates a default client):
+        async with AsyncResilientClient(config=ClientConfig(max_retries=5)) as client:
+            response = await client.get("https://api.example.com/data1")
+
     Args:
         config: Optional ClientConfig instance for retry configuration.
             If ``None``, a default ClientConfig is used.
@@ -69,19 +116,24 @@ class AsyncResilientClient:
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self._config = config or ClientConfig()
-        self._owns_client = client is None
         self._client: httpx.AsyncClient = client or httpx.AsyncClient(timeout=DEFAULT_TIMEOUT)
-        self._entered = False
+        self._close_client = False
 
     async def __aenter__(self) -> Self:
         """Enter the async context manager.
 
+        If the underlying ``httpx.AsyncClient`` is not yet open, it is
+        entered and its lifecycle is managed by this context manager (closed
+        on exit). If the client is already open (e.g. managed by an outer
+        ``async with`` block), ``AsyncResilientClient`` uses it without
+        closing it on exit.
+
         Returns:
             The AsyncResilientClient instance for making requests.
         """
-        if self._owns_client:
+        if self._client.is_closed:
             await self._client.__aenter__()
-        self._entered = True
+            self._close_client = True
         return self
 
     async def __aexit__(
@@ -91,30 +143,16 @@ class AsyncResilientClient:
         exc_tb: TracebackType | None,
     ) -> None:
         """Exit the async context manager and close the underlying httpx
-        client.
+        client if this context manager opened it.
 
         Args:
             exc_type: Exception type if an exception occurred.
             exc_val: Exception value if an exception occurred.
             exc_tb: Exception traceback if an exception occurred.
         """
-        if self._client is not None and self._owns_client:
+        if self._close_client:
             await self._client.__aexit__(exc_type, exc_val, exc_tb)
-        self._entered = False
-
-    def _ensure_client(self) -> httpx.AsyncClient:
-        """Ensure the client is available for use.
-
-        Returns:
-            The httpx.AsyncClient instance.
-
-        Raises:
-            RuntimeError: If the client is used outside of a context manager.
-        """
-        if not self._entered:
-            msg = "AsyncResilientClient must be used within an async context manager (async with statement)"
-            raise RuntimeError(msg)
-        return self._client
+            self._close_client = False
 
     async def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         r"""Send an HTTP request with automatic retry logic.
@@ -128,7 +166,6 @@ class AsyncResilientClient:
             An httpx.Response object containing the server's HTTP response.
 
         Raises:
-            RuntimeError: If called outside of a context manager.
             HttpRequestError: If the request fails after all retries.
 
         Example:
@@ -143,12 +180,10 @@ class AsyncResilientClient:
 
             ```
         """
-        client = self._ensure_client()
-
         return await request_async(
             url=url,
             method=method,
-            request_func=getattr(client, method.lower()),
+            request_func=getattr(self._client, method.lower()),
             config=self._config,
             **kwargs,
         )
