@@ -28,10 +28,14 @@ Example:
 from __future__ import annotations
 
 __all__ = [
+    "CallbackInfo",
     "FailureInfo",
     "RequestInfo",
     "ResponseInfo",
     "RetryInfo",
+    "invoke_on_request",
+    "invoke_on_retry",
+    "invoke_on_success",
 ]
 
 import time
