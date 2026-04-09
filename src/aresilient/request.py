@@ -7,7 +7,13 @@ __all__ = ["request"]
 
 from typing import TYPE_CHECKING, Any
 
-from aresilient.core.config import ClientConfig
+import httpx
+
+from aresilient.core.config import (
+    DEFAULT_TIMEOUT,
+    ClientConfig,
+)
+from aresilient.core.validation import validate_timeout
 from aresilient.retry import (
     CallbackConfig,
     RetryConfig,
@@ -17,14 +23,14 @@ from aresilient.retry import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    import httpx
-
 
 def request(
     url: str,
     method: str,
-    request_func: Callable[..., httpx.Response],
+    request_func: Callable[..., httpx.Response] | None = None,
     *,
+    client: httpx.Client | None = None,
+    timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
     config: ClientConfig | None = None,
     **kwargs: Any,
 ) -> httpx.Response:
@@ -51,7 +57,13 @@ def request(
         url: The URL to send the request to.
         method: The HTTP method name (e.g., "GET", "POST") for logging.
         request_func: The function to call to make the request (e.g.,
-            client.get, client.post).
+            client.get, client.post). If None, the method will be derived
+            from the client parameter.
+        client: An optional httpx.Client object to use for making requests.
+            If None and request_func is also None, a new client will be
+            created and closed after use. Only used if request_func is None.
+        timeout: Maximum seconds to wait for the server response.
+            Only used if client is None and request_func is None. Must be > 0.
         config: An optional ClientConfig object with retry configuration.
             If None, default ClientConfig values are used.
         **kwargs: Additional keyword arguments passed to the request function.
@@ -62,6 +74,7 @@ def request(
     Raises:
         HttpRequestError: If the request times out, encounters network errors,
             or fails after exhausting all retries, or if max_total_time is exceeded.
+        ValueError: If timeout is non-positive.
 
     Example:
         ```pycon
@@ -84,13 +97,21 @@ def request(
         ...     response = request(
         ...         url="https://api.example.com/data",
         ...         method="GET",
-        ...         request_func=client.get,
+        ...         client=client,
         ...         config=config,
         ...     )  # doctest: +SKIP
         ...
 
         ```
     """
+    # Client management: only needed when request_func is not provided
+    owns_client = request_func is None and client is None
+    if request_func is None:
+        if client is None:
+            validate_timeout(timeout)
+            client = httpx.Client(timeout=timeout)
+        request_func = getattr(client, method.lower())
+
     config = config or ClientConfig()
 
     # Create retry configuration
@@ -118,4 +139,8 @@ def request(
         callback_config=callback_config,
         circuit_breaker=config.circuit_breaker,
     )
-    return executor.execute(url=url, method=method, request_func=request_func, **kwargs)
+    try:
+        return executor.execute(url=url, method=method, request_func=request_func, **kwargs)
+    finally:
+        if owns_client and client is not None:
+            client.close()

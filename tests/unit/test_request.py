@@ -1053,3 +1053,91 @@ def test_request_config_none_uses_defaults(
     assert response == mock_response
     mock_request_func.assert_called_once_with(url=TEST_URL)
     mock_sleep.assert_not_called()
+
+
+##############################################
+#     Tests for request with client param    #
+##############################################
+
+
+def test_request_with_client(
+    mock_client: httpx.Client, mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
+    """Test successful request using an httpx.Client object."""
+    mock_client.get = Mock(return_value=mock_response)
+
+    response = request(url=TEST_URL, method="GET", client=mock_client)
+
+    assert response == mock_response
+    mock_client.get.assert_called_once_with(url=TEST_URL)
+    mock_sleep.assert_not_called()
+
+
+def test_request_with_client_not_closed(
+    mock_client: httpx.Client, mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
+    """Test that a provided client is not closed after the request."""
+    mock_client.get = Mock(return_value=mock_response)
+
+    request(url=TEST_URL, method="GET", client=mock_client)
+
+    mock_client.close.assert_not_called()
+
+
+def test_request_without_client_or_request_func_creates_client(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
+    """Test that a new client is created and closed when neither client
+    nor request_func is provided."""
+    from unittest.mock import patch
+
+    mock_client = Mock(spec=httpx.Client)
+    mock_client.get = Mock(return_value=mock_response)
+
+    with patch("httpx.Client", return_value=mock_client) as mock_client_cls:
+        response = request(url=TEST_URL, method="GET")
+
+    assert response == mock_response
+    mock_client_cls.assert_called_once_with(timeout=10.0)
+    mock_client.get.assert_called_once_with(url=TEST_URL)
+    mock_client.close.assert_called_once()
+
+
+def test_request_without_client_uses_custom_timeout(
+    mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
+    """Test that a new client is created with the specified timeout."""
+    from unittest.mock import patch
+
+    mock_client = Mock(spec=httpx.Client)
+    mock_client.get = Mock(return_value=mock_response)
+
+    with patch("httpx.Client", return_value=mock_client) as mock_client_cls:
+        request(url=TEST_URL, method="GET", timeout=30.0)
+
+    mock_client_cls.assert_called_once_with(timeout=30.0)
+
+
+def test_request_invalid_timeout_raises(mock_sleep: Mock) -> None:
+    """Test that a non-positive timeout raises ValueError."""
+    with pytest.raises(ValueError, match="timeout must be > 0"):
+        request(url=TEST_URL, method="GET", timeout=0.0)
+
+
+def test_request_with_client_retry_on_retryable_status(
+    mock_client: httpx.Client, mock_response: httpx.Response, mock_sleep: Mock
+) -> None:
+    """Test that retry logic works when using client parameter."""
+    mock_fail_response = Mock(spec=httpx.Response, status_code=503)
+    mock_client.get = Mock(side_effect=[mock_fail_response, mock_response])
+
+    response = request(
+        url=TEST_URL,
+        method="GET",
+        client=mock_client,
+        config=ClientConfig(status_forcelist=(503,)),
+    )
+
+    assert response == mock_response
+    assert mock_client.get.call_args_list == [call(url=TEST_URL), call(url=TEST_URL)]
+    mock_sleep.assert_called_once_with(0.3)
