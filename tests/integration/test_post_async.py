@@ -34,6 +34,7 @@ async def test_post_async_large_request_body() -> None:
 @pytest.mark.asyncio
 async def test_post_async_form_data() -> None:
     """Test POST request with form data."""
+
     async with httpx.AsyncClient() as client:
         response = await post_async(
             url=f"{HTTPBIN_URL}/post", data={"field1": "value1", "field2": "value2"}, client=client

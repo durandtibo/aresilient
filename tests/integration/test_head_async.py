@@ -22,6 +22,7 @@ HTTPBIN_URL = "https://httpbin.org"
 @pytest.mark.asyncio
 async def test_head_async_check_content_length() -> None:
     """Test async HEAD request to check Content-Length header."""
+
     async with httpx.AsyncClient() as client:
         # Request a specific number of bytes to check Content-Length
         response = await head_async(url=f"{HTTPBIN_URL}/bytes/1024", client=client)
@@ -37,6 +38,7 @@ async def test_head_async_check_content_length() -> None:
 @pytest.mark.asyncio
 async def test_head_async_concurrent_requests() -> None:
     """Test multiple concurrent async HEAD requests."""
+
     async with httpx.AsyncClient() as client:
         # Create multiple concurrent HEAD requests
         urls = [
@@ -56,6 +58,7 @@ async def test_head_async_concurrent_requests() -> None:
 @pytest.mark.asyncio
 async def test_head_async_with_custom_headers() -> None:
     """Test async HEAD request with custom headers."""
+
     async with httpx.AsyncClient() as client:
         response = await head_async(
             url=f"{HTTPBIN_URL}/headers",
@@ -71,6 +74,7 @@ async def test_head_async_with_custom_headers() -> None:
 @pytest.mark.asyncio
 async def test_head_async_successful_request_with_client() -> None:
     """Test successful async HEAD request with explicit client."""
+
     async with httpx.AsyncClient() as client:
         response = await head_async(url=f"{HTTPBIN_URL}/get", client=client)
 

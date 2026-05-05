@@ -565,7 +565,6 @@ def test_callbacks_with_custom_backoff_strategy(
 def test_invoke_on_request_with_none_callback() -> None:
     """Test that invoke_on_request does nothing when callback is
     None."""
-
     # Should not raise any errors
     invoke_on_request(
         None,
@@ -578,7 +577,6 @@ def test_invoke_on_request_with_none_callback() -> None:
 
 def test_invoke_on_request_calls_callback() -> None:
     """Test that invoke_on_request calls the provided callback."""
-
     mock_callback = Mock()
     invoke_on_request(
         mock_callback,
@@ -598,7 +596,6 @@ def test_invoke_on_request_calls_callback() -> None:
 
 def test_invoke_on_request_converts_attempt_to_1_indexed() -> None:
     """Test that attempt is converted from 0-indexed to 1-indexed."""
-
     mock_callback = Mock()
     invoke_on_request(
         mock_callback,
@@ -620,7 +617,6 @@ def test_invoke_on_request_converts_attempt_to_1_indexed() -> None:
 def test_invoke_on_success_with_none_callback() -> None:
     """Test that invoke_on_success does nothing when callback is
     None."""
-
     mock_response = Mock(spec=httpx.Response)
     invoke_on_success(
         None,
@@ -635,7 +631,6 @@ def test_invoke_on_success_with_none_callback() -> None:
 
 def test_invoke_on_success_calls_callback() -> None:
     """Test that invoke_on_success calls the provided callback."""
-
     mock_callback = Mock()
     mock_response = Mock(spec=httpx.Response)
 
@@ -662,7 +657,6 @@ def test_invoke_on_success_calls_callback() -> None:
 
 def test_invoke_on_success_calculates_total_time() -> None:
     """Test that total_time is calculated correctly."""
-
     mock_callback = Mock()
     mock_response = Mock(spec=httpx.Response)
 
@@ -688,7 +682,6 @@ def test_invoke_on_success_calculates_total_time() -> None:
 
 def test_invoke_on_retry_with_none_callback() -> None:
     """Test that invoke_on_retry does nothing when callback is None."""
-
     invoke_on_retry(
         None,
         url=TEST_URL,
@@ -703,7 +696,6 @@ def test_invoke_on_retry_with_none_callback() -> None:
 
 def test_invoke_on_retry_calls_callback_with_error() -> None:
     """Test that invoke_on_retry calls callback with error info."""
-
     mock_callback = Mock()
     error = Exception("Test error")
 
@@ -731,7 +723,6 @@ def test_invoke_on_retry_calls_callback_with_error() -> None:
 
 def test_invoke_on_retry_calls_callback_with_status_code() -> None:
     """Test that invoke_on_retry calls callback with status code."""
-
     mock_callback = Mock()
 
     invoke_on_retry(
@@ -753,9 +744,7 @@ def test_invoke_on_retry_calls_callback_with_status_code() -> None:
 
 def test_invoke_on_retry_calculates_next_attempt() -> None:
     """Test that next attempt number is calculated correctly."""
-
     mock_callback = Mock()
-
     invoke_on_retry(
         mock_callback,
         url=TEST_URL,

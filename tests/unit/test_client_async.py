@@ -114,10 +114,12 @@ async def test_async_client_uses_custom_client(
 async def test_async_client_scenario1_externally_managed_client(
     mock_asleep: Mock, mock_response: httpx.Response
 ) -> None:
-    """Test Scenario 1: client whose lifecycle is managed by an outer async context manager.
+    """Test Scenario 1: client whose lifecycle is managed by an outer
+    async context manager.
 
-    When the provided httpx.AsyncClient is already open (its __aenter__ raises RuntimeError
-    and is_closed returns False), AsyncResilientClient uses it without managing its lifecycle.
+    When the provided httpx.AsyncClient is already open (its __aenter__
+    raises RuntimeError and is_closed returns False),
+    AsyncResilientClient uses it without managing its lifecycle.
     """
     mock_client = Mock(
         get=AsyncMock(return_value=mock_response),

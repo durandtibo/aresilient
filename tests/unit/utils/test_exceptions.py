@@ -153,7 +153,6 @@ def test_handle_request_error_various_error_types(exc: httpx.RequestError) -> No
 
 def test_handle_exception_with_callback_non_final_attempt() -> None:
     """Test that callback is not called on non-final attempts."""
-
     mock_on_failure = Mock()
     mock_handler = Mock()
     exc = Exception("Test error")
@@ -263,7 +262,6 @@ def test_handle_exception_with_callback_reraises_error() -> None:
 
 def test_raise_final_error_with_response() -> None:
     """Test raise_final_error with a response object."""
-
     mock_response = Mock(spec=httpx.Response, status_code=503)
 
     with pytest.raises(HttpRequestError) as exc_info:
@@ -287,7 +285,6 @@ def test_raise_final_error_with_response() -> None:
 
 def test_raise_final_error_without_response() -> None:
     """Test raise_final_error without a response object."""
-
     with pytest.raises(HttpRequestError) as exc_info:
         raise_final_error(
             url=TEST_URL,
@@ -308,7 +305,6 @@ def test_raise_final_error_without_response() -> None:
 
 def test_raise_final_error_calls_on_failure_with_response() -> None:
     """Test that on_failure callback is called with response."""
-
     mock_on_failure = Mock()
     mock_response = Mock(spec=httpx.Response, status_code=500)
 
@@ -338,7 +334,6 @@ def test_raise_final_error_calls_on_failure_with_response() -> None:
 
 def test_raise_final_error_calls_on_failure_without_response() -> None:
     """Test that on_failure callback is called without response."""
-
     mock_on_failure = Mock()
 
     with (
@@ -367,7 +362,6 @@ def test_raise_final_error_calls_on_failure_without_response() -> None:
 
 def test_raise_final_error_calculates_total_time() -> None:
     """Test that total_time is calculated correctly."""
-
     mock_response = Mock(spec=httpx.Response, status_code=429)
 
     with (

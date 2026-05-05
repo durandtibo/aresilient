@@ -264,7 +264,6 @@ def test_retry_executor_max_total_time_exceeded_with_response() -> None:
 
 def test_retry_executor_max_total_time_exceeded_with_exception_only() -> None:
     """Test max_total_time exceeded with exception but no response."""
-
     retry_config = RetryConfig(
         max_retries=5,
         status_forcelist=(500,),
