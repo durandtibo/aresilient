@@ -22,6 +22,7 @@ HTTPBIN_URL = "https://httpbin.org"
 @pytest.mark.asyncio
 async def test_options_async_concurrent_requests() -> None:
     """Test multiple concurrent async OPTIONS requests."""
+
     async with httpx.AsyncClient() as client:
         # Create multiple concurrent OPTIONS requests
         urls = [
@@ -39,6 +40,7 @@ async def test_options_async_concurrent_requests() -> None:
 @pytest.mark.asyncio
 async def test_options_async_with_custom_headers() -> None:
     """Test async OPTIONS request with custom headers."""
+
     async with httpx.AsyncClient() as client:
         response = await options_async(
             url=f"{HTTPBIN_URL}/get",
@@ -53,6 +55,7 @@ async def test_options_async_with_custom_headers() -> None:
 @pytest.mark.asyncio
 async def test_options_async_successful_request_with_client() -> None:
     """Test successful async OPTIONS request with explicit client."""
+
     async with httpx.AsyncClient() as client:
         response = await options_async(url=f"{HTTPBIN_URL}/get", client=client)
 

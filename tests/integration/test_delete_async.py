@@ -20,6 +20,7 @@ HTTPBIN_URL = "https://httpbin.org"
 @pytest.mark.asyncio
 async def test_delete_async_with_auth_headers() -> None:
     """Test DELETE request with authorization headers."""
+
     async with httpx.AsyncClient() as client:
         response = await delete_async(
             url=f"{HTTPBIN_URL}/delete",
@@ -35,6 +36,7 @@ async def test_delete_async_with_auth_headers() -> None:
 @pytest.mark.asyncio
 async def test_delete_async_multiple_headers() -> None:
     """Test DELETE request with multiple custom headers."""
+
     async with httpx.AsyncClient() as client:
         response = await delete_async(
             url=f"{HTTPBIN_URL}/delete",

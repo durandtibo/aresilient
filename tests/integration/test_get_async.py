@@ -20,6 +20,7 @@ HTTPBIN_URL = "https://httpbin.org"
 @pytest.mark.asyncio
 async def test_get_async_redirect_chain() -> None:
     """Test GET request that follows a redirect chain."""
+
     # httpbin.org supports redirects: /redirect/n redirects n times
     # Create a client with follow_redirects=True to handle the redirect chain
     async with httpx.AsyncClient(follow_redirects=True) as client:
@@ -34,6 +35,7 @@ async def test_get_async_redirect_chain() -> None:
 @pytest.mark.asyncio
 async def test_get_async_large_response() -> None:
     """Test GET request with large response body."""
+
     # Request a large amount of bytes (10KB)
     async with httpx.AsyncClient() as client:
         response = await get_async(url=f"{HTTPBIN_URL}/bytes/10240", client=client)
@@ -45,6 +47,7 @@ async def test_get_async_large_response() -> None:
 @pytest.mark.asyncio
 async def test_get_async_with_custom_headers() -> None:
     """Test async GET request with custom headers."""
+
     async with httpx.AsyncClient() as client:
         response = await get_async(
             url=f"{HTTPBIN_URL}/headers",

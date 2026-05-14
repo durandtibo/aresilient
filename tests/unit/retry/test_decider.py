@@ -185,7 +185,6 @@ def test_should_retry_exception_with_predicate_false() -> None:
 
 def test_should_retry_exception_max_retries_reached() -> None:
     """Test exception retry when max retries reached with predicate."""
-
     decider = RetryDecider(status_forcelist=(), retry_if=always_retry)
 
     exc = httpx.TimeoutException("Timeout")

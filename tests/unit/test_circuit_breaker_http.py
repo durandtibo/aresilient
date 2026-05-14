@@ -95,7 +95,6 @@ def test_circuit_breaker_recovers_after_timeout(
 ) -> None:
     """Test that circuit breaker recovers after timeout and successful
     request."""
-
     cb = CircuitBreaker(failure_threshold=2, recovery_timeout=0.1)
 
     # Open the circuit

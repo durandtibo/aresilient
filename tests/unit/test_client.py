@@ -99,10 +99,12 @@ def test_client_uses_custom_client(mock_sleep: Mock, mock_response: httpx.Respon
 def test_client_scenario1_externally_managed_client(
     mock_sleep: Mock, mock_response: httpx.Response
 ) -> None:
-    """Test Scenario 1: client whose lifecycle is managed by an outer context manager.
+    """Test Scenario 1: client whose lifecycle is managed by an outer
+    context manager.
 
-    When the provided httpx.Client is already open (its __enter__ raises RuntimeError
-    and is_closed returns False), ResilientClient uses it without managing its lifecycle.
+    When the provided httpx.Client is already open (its __enter__ raises
+    RuntimeError and is_closed returns False), ResilientClient uses it
+    without managing its lifecycle.
     """
     mock_client = Mock(
         get=Mock(return_value=mock_response),

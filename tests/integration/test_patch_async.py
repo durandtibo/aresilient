@@ -34,6 +34,7 @@ async def test_patch_async_large_request_body() -> None:
 @pytest.mark.asyncio
 async def test_patch_async_form_data() -> None:
     """Test PATCH request with form data."""
+
     async with httpx.AsyncClient() as client:
         response = await patch_async(
             url=f"{HTTPBIN_URL}/patch", data={"field1": "value1", "field2": "value2"}, client=client
